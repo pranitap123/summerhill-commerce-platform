@@ -14,7 +14,7 @@ const client = new Client({
     await client.connect();
     console.log('Connected to Postgres');
 
-    const data = JSON.parse(fs.readFileSync('scraped.json', 'utf-8'));
+    const data = JSON.parse(fs.readFileSync('../scraped.json', 'utf-8'));
     console.log(`Loaded scraped.json with ${data.length} category/subcategory groups`);
 
     for (const group of data) {
