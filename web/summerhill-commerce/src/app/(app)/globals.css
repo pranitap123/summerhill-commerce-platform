@@ -1,3 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --cream: #FAF6EE;
+  --evergreen: #1F3A2E;
+  --mustard: #C9962C;
+  --sage: #DCE5D8;
+  --charcoal: #211F1C;
+}
+
+body {
+  background: var(--cream);
+  color: var(--charcoal);
+  font-family: 'Work Sans', sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: 'Fraunces', serif;
+}
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 

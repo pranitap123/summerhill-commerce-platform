@@ -1,102 +1,105 @@
-import { Grid } from '@/components/Grid'
-import { ProductGridItem } from '@/components/ProductGridItem'
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
-import React from 'react'
+'use client';
 
-export const metadata = {
-  description: 'Search for products in the store.',
-  title: 'Shop',
-}
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 
-type SearchParams = { [key: string]: string | string[] | undefined }
+function ShopContent() {
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get('category') || '';
+  const [category, setCategory] = useState(initialCategory);
+  const [query, setQuery] = useState('');
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-type Props = {
-  searchParams: Promise<SearchParams>
-}
+  useEffect(function () {
+    fetch('/api/categories').then(function (r) { return r.json(); }).then(function (d) { setCategories(d.categories); });
+  }, []);
 
-export default async function ShopPage({ searchParams }: Props) {
-  const { q: searchValue, sort, category } = await searchParams
-  const payload = await getPayload({ config: configPromise })
-
-  const products = await payload.find({
-    collection: 'products',
-    draft: false,
-    overrideAccess: false,
-    select: {
-      title: true,
-      slug: true,
-      gallery: true,
-      categories: true,
-      priceInUSD: true,
-    },
-    ...(sort ? { sort } : { sort: 'title' }),
-    ...(searchValue || category
-      ? {
-          where: {
-            and: [
-              {
-                _status: {
-                  equals: 'published',
-                },
-              },
-              ...(searchValue
-                ? [
-                    {
-                      or: [
-                        {
-                          title: {
-                            like: searchValue,
-                          },
-                        },
-                        {
-                          description: {
-                            like: searchValue,
-                          },
-                        },
-                      ],
-                    },
-                  ]
-                : []),
-              ...(category
-                ? [
-                    {
-                      categories: {
-                        contains: category,
-                      },
-                    },
-                  ]
-                : []),
-            ],
-          },
-        }
-      : {}),
-  })
-
-  const resultsText = products.docs.length > 1 ? 'results' : 'result'
+  useEffect(function () {
+    setLoading(true);
+    let url;
+    if (query.trim()) {
+      url = '/api/products/search?q=' + encodeURIComponent(query);
+    } else if (category) {
+      url = '/api/products?category=' + encodeURIComponent(category) + '&limit=50';
+    } else {
+      url = '/api/products?limit=50';
+    }
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (d) { setProducts(d.products || d.results); })
+      .finally(function () { setLoading(false); });
+  }, [category, query]);
 
   return (
-    <div>
-      {searchValue ? (
-        <p className="mb-4">
-          {products.docs?.length === 0
-            ? 'There are no products that match '
-            : `Showing ${products.docs.length} ${resultsText} for `}
-          <span className="font-bold">&quot;{searchValue}&quot;</span>
-        </p>
-      ) : null}
+    <main className="max-w-6xl mx-auto px-6 py-16">
+      <motion.h1
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="font-display text-4xl mb-8 text-[#1F3A2E]"
+      >
+        Shop
+      </motion.h1>
 
-      {!searchValue && products.docs?.length === 0 && (
-        <p className="mb-4">No products found. Please try different filters.</p>
-      )}
-
-      {products?.docs.length > 0 ? (
-        <Grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.docs.map((product) => {
-            return <ProductGridItem key={product.id} product={product} />
+      <div className="flex flex-col md:flex-row gap-4 mb-10">
+        <input
+          type="text"
+          value={query}
+          onChange={function (e) { setQuery(e.target.value); }}
+          placeholder="Search products..."
+          className="flex-1 border border-[#DCE5D8] rounded-full px-5 py-2.5 bg-white text-[#1F3A2E] focus:outline-none focus:ring-2 focus:ring-[#C9962C]"
+        />
+        <select
+          value={category}
+          onChange={function (e) { setCategory(e.target.value); }}
+          disabled={!!query.trim()}
+          className="border border-[#DCE5D8] rounded-full px-5 py-2.5 bg-white text-[#1F3A2E] font-medium disabled:opacity-50"
+        >
+          <option value="">All Categories</option>
+          {categories.map(function (c: any) {
+            return <option key={c.id} value={c.name}>{c.name}</option>;
           })}
-        </Grid>
-      ) : null}
-    </div>
-  )
+        </select>
+      </div>
+
+      {loading ? (
+        <p className="text-[#211F1C]">Loading...</p>
+      ) : (
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-6"
+        >
+          {products.map(function (p: any) {
+            return (
+              <motion.a
+                key={p.id}
+                variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+                href={"/products/" + encodeURIComponent(p.id)}
+                className="group bg-white rounded-2xl p-3 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="overflow-hidden rounded-xl mb-2">
+                  <img src={p.images && p.images[0]} alt={p.name} className="h-28 w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                </div>
+                <p className="text-sm font-medium text-[#211F1C]">{p.name}</p>
+                <p className="text-[#C9962C] text-sm font-semibold">${p.price}</p>
+              </motion.a>
+            );
+          })}
+        </motion.div>
+      )}
+    </main>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      <ShopContent />
+    </Suspense>
+  );
 }
