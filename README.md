@@ -163,10 +163,6 @@ web/summerhill-commerce/   Next.js 16 + Payload 3 app
 dagster/, scripts/    legacy prototype scripts (stages 1–2), superseded by pipeline/
 ```
 
-## Status
-
-Phases G0–G6 are built and pass `npm run ci:local`; G7 (documentation, demo, runbooks) is done locally. Publication steps (history clean-up, CI on GitHub Actions, the v1.0.0 tag) are on the [pre-publish checklist](docs/IMPLEMENTATION_PLAN.md#pre-publish-checklist-run-before-the-first-push). Known limits: performance budgets were measured on an 8 GB development machine and need a rerun on a CI-class runner ([TESTING §2.1](docs/TESTING.md#21-quality-security-and-performance-results-g6-2026-09-28)); optional showcases are listed under G8. There's no hosted demo, by decision: it runs locally in a few commands and needs no accounts ([G7-06](docs/IMPLEMENTATION_PLAN.md#g7-implementation-record-2026-09-29)).
-
 ## Security
 
 See [SECURITY.md](SECURITY.md). Third-party licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
