@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
-import { InitTheme } from '@/providers/Theme/InitTheme'
 import { Providers } from '@/providers'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
@@ -17,7 +16,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <InitTheme />
         <link href="/favicon.ico" rel="icon" sizes="32x32" />
         <link href="/favicon.svg" rel="icon" type="image/svg+xml" />
       </head>

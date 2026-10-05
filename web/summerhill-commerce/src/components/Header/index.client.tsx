@@ -1,7 +1,6 @@
 'use client'
 import { CMSLink } from '@/components/Link'
-import { Cart } from '@/components/Cart'
-import { OpenCartButton } from '@/components/Cart/OpenCart'
+import { HeaderCartLink } from '@/components/HeaderCartLink'
 import Link from 'next/link'
 import React, { Suspense } from 'react'
 
@@ -55,9 +54,7 @@ export function HeaderClient({ header }: Props) {
           </div>
 
           <div className="flex justify-end md:w-1/3 gap-4">
-            <Suspense fallback={<OpenCartButton />}>
-              <Cart />
-            </Suspense>
+            <HeaderCartLink />
           </div>
         </div>
       </nav>

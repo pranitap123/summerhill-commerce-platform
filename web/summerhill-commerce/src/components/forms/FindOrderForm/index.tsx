@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/Auth'
 import React, { Fragment, useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { sendOrderAccessEmail } from './sendOrderAccessEmail'
 
 type FormData = {
   email: string
@@ -40,15 +39,17 @@ export const FindOrderForm: React.FC<Props> = ({ initialEmail }) => {
     setSubmitError(null)
 
     try {
-      const result = await sendOrderAccessEmail({
-        email: data.email,
-        orderID: data.orderID,
+      const res = await fetch('/api/v1/orders/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicId: data.orderID, email: data.email }),
       })
-
-      if (result.success) {
+      if (res.ok) {
         setSuccess(true)
+      } else if (res.status === 429) {
+        setSubmitError('Too many attempts. Please wait a few minutes and try again.')
       } else {
-        setSubmitError(result.error || 'Something went wrong. Please try again.')
+        setSubmitError('Check the order ID (like SH-ABC123) and email, then try again.')
       }
     } catch {
       setSubmitError('Something went wrong. Please try again.')

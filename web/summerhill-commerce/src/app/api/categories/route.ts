@@ -1,14 +1,9 @@
-import { NextResponse } from 'next/server';
-import catalogPool from '@/lib/catalogDb';
+import type { NextRequest } from 'next/server'
 
-export async function GET() {
-  try {
-    const result = await catalogPool.query(
-      `SELECT id, name FROM categories ORDER BY name`
-    );
-    return NextResponse.json({ categories: result.rows });
-  } catch (err) {
-    console.error('GET /api/categories failed:', err);
-    return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
-  }
+import { GET as v1 } from '../v1/categories/route'
+import { deprecated } from '../products/deprecated'
+
+export async function GET(req: NextRequest) {
+  const res = await v1(req, { params: Promise.resolve({}) })
+  return deprecated(await res.json(), '/api/v1/categories')
 }
