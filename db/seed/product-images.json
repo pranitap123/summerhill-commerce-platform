@@ -1,0 +1,428 @@
+{
+  "Honeycrisp Apples": {
+    "image": "/product-images/honeycrisp-apples.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Apple_fruit_in_illorin.jpg",
+    "author": "Eunice Ameh",
+    "license": "CC0"
+  },
+  "Bananas": {
+    "image": "/product-images/bananas.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Bunch_of_bananas.JPG",
+    "author": "Pdpics.com",
+    "license": "CC0"
+  },
+  "Bartlett Pears": {
+    "image": "/product-images/bartlett-pears.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:More_pears.jpg",
+    "author": "Keith Weller, USDA ARS",
+    "license": "Public domain"
+  },
+  "Seedless Green Grapes": {
+    "image": "/product-images/seedless-green-grapes.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Green_Grape_3.jpg",
+    "author": "Martin Kozák",
+    "license": "Public domain"
+  },
+  "Navel Oranges": {
+    "image": "/product-images/navel-oranges.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ambersweet_oranges.jpg",
+    "author": "Unknown",
+    "license": "Public domain"
+  },
+  "Mangoes": {
+    "image": "/product-images/mangoes.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Carabao_mangoes_(Philippines).jpg",
+    "author": "Obsidian Soul",
+    "license": "CC0"
+  },
+  "Lemons": {
+    "image": "/product-images/lemons.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Citrus_limon_extracted_1.png",
+    "author": "Andrikkos",
+    "license": "Public domain"
+  },
+  "Broccoli Crowns": {
+    "image": "/product-images/broccoli-crowns.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Basket_of_broccoli_in_Singapore_market.jpg",
+    "author": "David",
+    "license": "Public domain"
+  },
+  "Carrots": {
+    "image": "/product-images/carrots.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Vegetable-Carrot-Bundle-wStalks.jpg",
+    "author": "Evan-Amos",
+    "license": "Public domain"
+  },
+  "Yellow Onions": {
+    "image": "/product-images/yellow-onions.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Yellow_onions_vegetables.jpg",
+    "author": "Jon Sullivan",
+    "license": "Public domain"
+  },
+  "Gold Potatoes": {
+    "image": "/product-images/gold-potatoes.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Irish_Potato_Kenya.jpg",
+    "author": "safaritravelplus",
+    "license": "CC0"
+  },
+  "Red Peppers": {
+    "image": "/product-images/red-peppers.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:RedBellPepper.jpg",
+    "author": "Renee Comet (photographer)",
+    "license": "Public domain"
+  },
+  "English Cucumber": {
+    "image": "/product-images/english-cucumber.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Cucumber_Tha-Khar-Tee.jpg",
+    "author": "စာကလေး",
+    "license": "CC0"
+  },
+  "Zucchini": {
+    "image": "/product-images/zucchini.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Zucchini_-_Massachusetts.jpg",
+    "author": "Daderot",
+    "license": "CC0"
+  },
+  "Rib Steak": {
+    "image": "/product-images/rib-steak.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:RibEyeSteak.jpg",
+    "author": "King pigeon at English Wikipedia",
+    "license": "Public domain"
+  },
+  "Striploin Steak": {
+    "image": "/product-images/striploin-steak.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:%E8%BF%91%E6%B1%9F%E7%89%9B.jpg",
+    "author": "Syced",
+    "license": "CC0"
+  },
+  "Lean Ground Beef": {
+    "image": "/product-images/lean-ground-beef.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ground_beef_USDA.jpg",
+    "author": "Unknown",
+    "license": "Public domain"
+  },
+  "Beef Short Ribs": {
+    "image": "/product-images/beef-short-ribs.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Seasoned_Beef_Short_Ribs.jpg",
+    "author": "Suohros",
+    "license": "CC0"
+  },
+  "Atlantic Salmon Fillet": {
+    "image": "/product-images/atlantic-salmon-fillet.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Atlantic_Salmon.png",
+    "author": "Robpedia at English Wikipedia",
+    "license": "Public domain"
+  },
+  "Wild Shrimp": {
+    "image": "/product-images/wild-shrimp.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Raw_river_shrimp.jpg",
+    "author": "Fumikas Sagisavas",
+    "license": "CC0"
+  },
+  "Cod Loin": {
+    "image": "/product-images/cod-loin.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Frozen_cod_fillet_(20240124).jpg",
+    "author": "Fumikas Sagisavas",
+    "license": "CC0"
+  },
+  "Rainbow Trout": {
+    "image": "/product-images/rainbow-trout.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:SalmonFillet.jpg",
+    "author": "NjoyHarmony",
+    "license": "CC0"
+  },
+  "Free Run Eggs 12 ea": {
+    "image": "/product-images/free-run-eggs-12-ea.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:6-Pack-Chicken-Eggs.jpg",
+    "author": "Evan-Amos",
+    "license": "Public domain"
+  },
+  "Omega-3 Eggs 12 ea": {
+    "image": "/product-images/omega-3-eggs-12-ea.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Chicken_eggs_20101113.jpg",
+    "author": "Batholith (talk)",
+    "license": "Public domain"
+  },
+  "Large Brown Eggs 18 ea": {
+    "image": "/product-images/large-brown-eggs-18-ea.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Brown-eggs.jpg",
+    "author": "Photos public domain.com",
+    "license": "Public domain"
+  },
+  "Aged Cheddar": {
+    "image": "/product-images/aged-cheddar.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:White_cheddar_cheese.jpg",
+    "author": "Jon Sullivan",
+    "license": "Public domain"
+  },
+  "Brie": {
+    "image": "/product-images/brie.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Brie_and_crackers_(Unsplash).jpg",
+    "author": "Anita Peeples anitapeeples",
+    "license": "CC0"
+  },
+  "Gouda": {
+    "image": "/product-images/gouda.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Chesses_gouda_affinage.JPG",
+    "author": "No machine-readable author provided. Alpha.prim~commonswiki assumed (based on copyright claims).",
+    "license": "Public domain"
+  },
+  "Parmigiano": {
+    "image": "/product-images/parmigiano.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Parmigiano_Reggiano_cheese.jpg",
+    "author": "Jon Sullivan",
+    "license": "Public domain"
+  },
+  "2% Milk 2 L": {
+    "image": "/product-images/2-milk-2-l.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Flax_milk_2.jpg",
+    "author": "Mx. Granger",
+    "license": "CC0"
+  },
+  "Whole Milk 1 L": {
+    "image": "/product-images/whole-milk-1-l.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Milk_bottle_and_two_doughnuts.jpg",
+    "author": "www.Pixel.la Free Stock Photos",
+    "license": "CC0"
+  },
+  "Oat Beverage 1.75 L": {
+    "image": "/product-images/oat-beverage-1-75-l.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Oatmilk_1.jpg",
+    "author": "Mx. Granger",
+    "license": "CC0"
+  },
+  "Sourdough Loaf": {
+    "image": "/product-images/sourdough-loaf.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:No-knead_sourdough_baked_during_pandemic.jpg",
+    "author": "Valereee",
+    "license": "CC0"
+  },
+  "Multigrain Loaf": {
+    "image": "/product-images/multigrain-loaf.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Bread_(Unsplash).jpg",
+    "author": "Kim Cruickshanks helloimkim",
+    "license": "CC0"
+  },
+  "Baguette": {
+    "image": "/product-images/baguette.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Baguette-246424.jpg",
+    "author": "cocoparisienne",
+    "license": "CC0"
+  },
+  "Rye Bread": {
+    "image": "/product-images/rye-bread.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Rye_bread_Roggenbengel_2025-02-14_13.jpg",
+    "author": "Leonhard Lenz",
+    "license": "CC0"
+  },
+  "Butter Croissants 4 ea": {
+    "image": "/product-images/butter-croissants-4-ea.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Croissants_au_beurre_(18953292873).jpg",
+    "author": "Herry Wibisono (herryway)",
+    "license": "CC0"
+  },
+  "Carrot Cake Slice": {
+    "image": "/product-images/carrot-cake-slice.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Carrot_Cake_-_The_Den_2025-07-23.jpg",
+    "author": "Andy Li",
+    "license": "CC0"
+  },
+  "Lemon Tart": {
+    "image": "/product-images/lemon-tart.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:A_Lemon_Meringue_Tart.jpg",
+    "author": "PDPhoto.org",
+    "license": "Public domain"
+  },
+  "Chocolate Brownies 6 ea": {
+    "image": "/product-images/chocolate-brownies-6-ea.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Oreo_brownie_-_Cafe_Coho_2024-05-30.jpg",
+    "author": "Andy Li",
+    "license": "CC0"
+  },
+  "Chicken Pot Pie": {
+    "image": "/product-images/chicken-pot-pie.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Chicken_pot_pie_-_Massachusetts.jpg",
+    "author": "Daderot",
+    "license": "CC0"
+  },
+  "Beef Lasagna": {
+    "image": "/product-images/beef-lasagna.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Lasagna_food.jpg",
+    "author": "Jon Sullivan",
+    "license": "Public domain"
+  },
+  "Butter Chicken": {
+    "image": "/product-images/butter-chicken.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Butter_chicken_curry_of_Origin_Bento.jpg",
+    "author": "毒島みるく",
+    "license": "CC0"
+  },
+  "Vegetable Curry": {
+    "image": "/product-images/vegetable-curry.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Thai_ginger_curry_with_vegetables_and_coconut_milk,_on_rotini_-_Massachusetts.jpg",
+    "author": "Daderot",
+    "license": "CC0"
+  },
+  "Salmon Teriyaki Bowl": {
+    "image": "/product-images/salmon-teriyaki-bowl.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:TERIYAKI_SALMON_SALAD_-_Jonny%27s_2025-05-27.jpg",
+    "author": "Andy Li",
+    "license": "CC0"
+  },
+  "California Roll 8 pc": {
+    "image": "/product-images/california-roll-8-pc.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Des_California_rolls_(traiteur,_livraison)_en_mars_2021.jpg",
+    "author": "Benoît Prieur",
+    "license": "CC0"
+  },
+  "Salmon Avocado Roll 8 pc": {
+    "image": "/product-images/salmon-avocado-roll-8-pc.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Mixed_Selection_Menu_20_Pieces_-_Sakura_Sushi_%26_Bento_2025-06-04.jpg",
+    "author": "Andy Li",
+    "license": "CC0"
+  },
+  "Vegetable Roll 8 pc": {
+    "image": "/product-images/vegetable-roll-8-pc.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Vegetarian_Sushi_Maki_roll.jpg",
+    "author": "Miscellaneous contributor",
+    "license": "CC0"
+  },
+  "Orange Juice 1.5 L": {
+    "image": "/product-images/orange-juice-1-5-l.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg",
+    "author": "Agency of the United States Department of Agriculture Edited Version by: Arad",
+    "license": "Public domain"
+  },
+  "Apple Juice 1 L": {
+    "image": "/product-images/apple-juice-1-l.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:EmiMa-068.jpg",
+    "author": "Emanuel Jöbstl und Martin Thoma",
+    "license": "CC0"
+  },
+  "Cold-Pressed Green Juice 350 ml": {
+    "image": "/product-images/cold-pressed-green-juice-350-ml.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Kiwi_Smoothie.jpg",
+    "author": "rawpixel.com",
+    "license": "CC0"
+  },
+  "Sparkling Water 500 ml": {
+    "image": "/product-images/sparkling-water-500-ml.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Blue_glass_with_carbonated_water.jpg",
+    "author": "W.carter",
+    "license": "CC0"
+  },
+  "Cola 2 L": {
+    "image": "/product-images/cola-2-l.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Glass_cola.jpg",
+    "author": "pic_p_ter",
+    "license": "Public domain"
+  },
+  "Lemon Soda 355 ml": {
+    "image": "/product-images/lemon-soda-355-ml.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Nopa_Fish_-_August_2025_-_Sarah_Stierch_01.jpg",
+    "author": "Missvain",
+    "license": "CC0"
+  },
+  "Sea Salt Kettle Chips 200 g": {
+    "image": "/product-images/sea-salt-kettle-chips-200-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Potato-Chips.jpg",
+    "author": "Evan-Amos",
+    "license": "Public domain"
+  },
+  "Tortilla Chips 300 g": {
+    "image": "/product-images/tortilla-chips-300-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Corn_chips_close_up.jpg",
+    "author": "Leon Brooks",
+    "license": "Public domain"
+  },
+  "Salt & Vinegar Chips 200 g": {
+    "image": "/product-images/salt-vinegar-chips-200-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Tayto_cheese_and_onion_crisps.jpg",
+    "author": "Samuel Wiki",
+    "license": "CC0"
+  },
+  "Dark Chocolate Bar 100 g": {
+    "image": "/product-images/dark-chocolate-bar-100-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Green_and_Black%27s_dark_chocolate_bar_2.jpg",
+    "author": "Mx. Granger",
+    "license": "CC0"
+  },
+  "Milk Chocolate Almonds 150 g": {
+    "image": "/product-images/milk-chocolate-almonds-150-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Deliciously_Ella_chocolate-covered_almonds.jpg",
+    "author": "Mx. Granger",
+    "license": "CC0"
+  },
+  "Fruit Gummies 180 g": {
+    "image": "/product-images/fruit-gummies-180-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Watermelon_gummy_candies.jpg",
+    "author": "Fumikas Sagisavas",
+    "license": "CC0"
+  },
+  "Shortbread Cookies 325 g": {
+    "image": "/product-images/shortbread-cookies-325-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Scottisch_Shortbread.jpg",
+    "author": "Thorsten Alge",
+    "license": "Public domain"
+  },
+  "Oatmeal Cookies 300 g": {
+    "image": "/product-images/oatmeal-cookies-300-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Voortman_Cookies_Oatmeal_Cookie,_March_2020.jpg",
+    "author": "Thomson200",
+    "license": "CC0"
+  },
+  "Ginger Snaps 250 g": {
+    "image": "/product-images/ginger-snaps-250-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Arnott%27s_Ginger_Nut_04.jpg",
+    "author": "Samuel Wiki",
+    "license": "CC0"
+  },
+  "Spaghetti 500 g": {
+    "image": "/product-images/spaghetti-500-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Spaghetti2.jpg",
+    "author": "Popo le Chien",
+    "license": "CC0"
+  },
+  "Penne 500 g": {
+    "image": "/product-images/penne-500-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Barilla_penne_1.jpg",
+    "author": "Mx. Granger",
+    "license": "CC0"
+  },
+  "Basmati Rice 2 kg": {
+    "image": "/product-images/basmati-rice-2-kg.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Brun_ris.jpg",
+    "author": "No machine-readable author provided. Ranveig assumed (based on copyright claims).",
+    "license": "Public domain"
+  },
+  "Rolled Oats 1 kg": {
+    "image": "/product-images/rolled-oats-1-kg.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Rolled_oats.jpg",
+    "author": "en:user:Hankwang",
+    "license": "Public domain"
+  },
+  "All-Purpose Flour 2.5 kg": {
+    "image": "/product-images/all-purpose-flour-2-5-kg.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Wheat_flour_01.jpg",
+    "author": "congerdesign",
+    "license": "CC0"
+  },
+  "Cane Sugar 2 kg": {
+    "image": "/product-images/cane-sugar-2-kg.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Sucre_blanc_cassonade_complet_rapadura.jpg",
+    "author": "Romain Behar",
+    "license": "Public domain"
+  },
+  "Pure Maple Syrup 500 ml": {
+    "image": "/product-images/pure-maple-syrup-500-ml.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Maple_syrup.jpg",
+    "author": "User:Miguel Andrade",
+    "license": "Public domain"
+  },
+  "Baking Soda 500 g": {
+    "image": "/product-images/baking-soda-500-g.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Sodium_bicarbonate_CN_brightened.png",
+    "author": "Tszrkx",
+    "license": "CC0"
+  }
+}

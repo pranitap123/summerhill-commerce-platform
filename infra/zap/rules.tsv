@@ -1,0 +1,14 @@
+# ZAP baseline rule configuration (G6-02). Format: <rule id>	<IGNORE|INFO|WARN|FAIL>	<reason>
+# Unlisted rules keep ZAP's default (WARN). tools/zap-baseline.mjs fails the run on any High-risk
+# finding whatever this file says, and on any rule marked FAIL here.
+# Headers the app sets on purpose (G6-01): a regression must fail the scan.
+10020	FAIL	(X-Frame-Options / frame-ancestors missing)
+10021	FAIL	(X-Content-Type-Options missing)
+10038	FAIL	(Content-Security-Policy missing)
+10055	WARN	(CSP: style-src 'unsafe-inline' is deliberate: React/Radix/Payload inline style attributes)
+10063	FAIL	(Permissions-Policy missing)
+10035	INFO	(HSTS: only sent by production builds, and ignored by browsers over plain http://localhost)
+90004	WARN	(Spectre isolation: COOP and CORP same-origin are set; COEP is not, as nothing needs cross-origin isolation)
+10024	FAIL	(Sensitive information in URL: forms that take credentials post their data, G6-02)
+10044	INFO	(Big redirect: Next.js redirect() sends a small HTML shell with the 307; it holds no data of the target page)
+10031	INFO	(User-controllable attribute: React escapes attribute values; the spider sees ?sub= reflected in a link)

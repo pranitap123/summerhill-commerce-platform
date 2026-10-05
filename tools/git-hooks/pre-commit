@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blocks commits that contain secrets or real merchant data.
+# Enabled with: git config core.hooksPath tools/git-hooks
+ROOT="$(git rev-parse --show-toplevel)"
+node "$ROOT/tools/scan-secrets.mjs" --staged || {
+  echo "Commit blocked by tools/scan-secrets.mjs" >&2
+  exit 1
+}
