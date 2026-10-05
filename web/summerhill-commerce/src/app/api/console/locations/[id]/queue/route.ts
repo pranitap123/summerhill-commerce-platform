@@ -1,0 +1,11 @@
+import { consoleQueue } from '@/modules/fulfilment'
+import { parseParams, route } from '@/server/http'
+
+import { scopeOf } from '../../../_lib/scope'
+import { locationParams } from '../../../_lib/schemas'
+
+/** GET /api/console/locations/{id}/queue: orders that still need a person (G4-06). Polled. */
+export const GET = route<{ id: string }>('staff', async (ctx) => {
+  const { id } = parseParams(ctx.params, locationParams)
+  return consoleQueue(scopeOf(ctx), id)
+})
