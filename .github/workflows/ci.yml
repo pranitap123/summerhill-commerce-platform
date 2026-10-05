@@ -1,0 +1,114 @@
+# Runs the exact same checks as `npm run ci:local` (tools/ci-local.mjs).
+# Not executed until the repository is pushed (see docs/IMPLEMENTATION_PLAN.md, pre-publish checklist).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # Nightly full run, including the back-office journeys (G5-19): 07:00 UTC = 03:00 Toronto
+  schedule:
+    - cron: '0 7 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for the secret scan
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/summerhill-commerce/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix web/summerhill-commerce
+          npm run pipeline:install
+
+      - name: Start Postgres, Elasticsearch, Mailpit
+        run: npm run stack:up
+
+      - name: Secret scan (full history)
+        run: npm run scan:history
+
+      - name: ci:local
+        run: npm run ci:local
+
+      - name: Stop stack
+        if: always()
+        run: npm run stack:down
+
+  # G4-18, G5-19: storefront, store-console and back-office journeys against a production build
+  # with the payment simulator (no Stripe account). Locally: `npm run test:e2e --prefix
+  # web/summerhill-commerce`.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/summerhill-commerce/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix web/summerhill-commerce
+          npm run pipeline:install
+          npx --prefix web/summerhill-commerce playwright install --with-deps chromium
+
+      - name: Stack, database and demo accounts
+        run: |
+          npm run stack:up
+          npm run db:setup
+          cp web/summerhill-commerce/.env.example web/summerhill-commerce/.env
+          echo "PAYLOAD_SECRET=ci-only-$(openssl rand -hex 16)" >> web/summerhill-commerce/.env
+          npm run seed:users --prefix web/summerhill-commerce
+
+      - name: E2E journeys
+        run: npm run test:e2e --prefix web/summerhill-commerce
+        env:
+          CI: 'true'
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/summerhill-commerce/playwright-report
+
+      - name: Stop stack
+        if: always()
+        run: npm run stack:down
