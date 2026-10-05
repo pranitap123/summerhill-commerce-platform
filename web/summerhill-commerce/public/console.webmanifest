@@ -1,0 +1,12 @@
+{
+  "name": "Store console · Grocery Marketplace Demo",
+  "short_name": "Store console",
+  "description": "Accept, pick, weigh and hand over pickup orders (demo, test mode).",
+  "start_url": "/console",
+  "scope": "/console",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FAF6EE",
+  "theme_color": "#1F3A2E",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
