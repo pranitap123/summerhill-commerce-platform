@@ -44,3 +44,9 @@ dagster_home/
 
 # Private study notes (never published with the project)
 /interview/
+
+# local tooling / run artefacts
+.claude/
+.dagster/
+test-results/
+interview/
