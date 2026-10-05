@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /web/summerhill-commerce
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      payload:
+        patterns: ['payload', '@payloadcms/*']
+      next-react:
+        patterns: ['next', 'react', 'react-dom', 'eslint-config-next']
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: docker
+    directory: /infra
+    schedule:
+      interval: monthly
