@@ -29,6 +29,16 @@ A grocery marketplace where a local store sells through the platform, built as a
 | ![Ops order page with refund and ledger](docs/media/09-ops-order-refund.png) | ![Reconciliation run](docs/media/10-ops-reconciliation.png) |
 | Back office: a refund split by the liability matrix | Finance: reconciliation catching two charges Stripe (here, the simulator) has no record of |
 
+## Demo catalogue
+
+The seed data is a synthetic grocery catalogue of 70+ products across produce, dairy, bakery, meat, seafood, pantry, frozen and beverages. Each has a photo from Wikimedia Commons (public domain or CC0, see [CREDITS](web/summerhill-commerce/public/product-images/CREDITS.md)).
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| <img src="web/summerhill-commerce/public/product-images/honeycrisp-apples.webp" width="150" alt="Honeycrisp Apples"><br>Honeycrisp Apples | <img src="web/summerhill-commerce/public/product-images/bananas.webp" width="150" alt="Bananas"><br>Bananas | <img src="web/summerhill-commerce/public/product-images/mangoes.webp" width="150" alt="Mangoes"><br>Mangoes | <img src="web/summerhill-commerce/public/product-images/broccoli-crowns.webp" width="150" alt="Broccoli Crowns"><br>Broccoli Crowns |
+| <img src="web/summerhill-commerce/public/product-images/sourdough-loaf.webp" width="150" alt="Sourdough Loaf"><br>Sourdough Loaf | <img src="web/summerhill-commerce/public/product-images/butter-croissants-4-ea.webp" width="150" alt="Butter Croissants"><br>Butter Croissants | <img src="web/summerhill-commerce/public/product-images/aged-cheddar.webp" width="150" alt="Aged Cheddar"><br>Aged Cheddar | <img src="web/summerhill-commerce/public/product-images/free-run-eggs-12-ea.webp" width="150" alt="Free-run Eggs"><br>Free-run Eggs |
+| <img src="web/summerhill-commerce/public/product-images/atlantic-salmon-fillet.webp" width="150" alt="Atlantic Salmon Fillet"><br>Atlantic Salmon Fillet | <img src="web/summerhill-commerce/public/product-images/rib-steak.webp" width="150" alt="Rib Steak"><br>Rib Steak | <img src="web/summerhill-commerce/public/product-images/pure-maple-syrup-500-ml.webp" width="150" alt="Pure Maple Syrup"><br>Pure Maple Syrup | <img src="web/summerhill-commerce/public/product-images/orange-juice-1-5-l.webp" width="150" alt="Orange Juice"><br>Orange Juice |
+
 ## Architecture
 
 ```mermaid
