@@ -1,9 +1,10 @@
-import type { NextRequest } from 'next/server'
+import { findProducts } from '@/modules/search'
+import { parseQuery, route } from '@/server/http'
 
-import { GET as v1 } from '../v1/products/route'
+import { browseQuery } from '../v1/_lib/schemas'
 import { deprecated } from './deprecated'
 
-export async function GET(req: NextRequest) {
-  const res = await v1(req, { params: Promise.resolve({}) })
-  return deprecated(await res.json(), '/api/v1/products')
-}
+/** Deprecated alias of GET /api/v1/products. */
+export const GET = route('public', async ({ req }) =>
+  deprecated(await findProducts(parseQuery(req, browseQuery)), '/api/v1/products'),
+)

@@ -1,9 +1,9 @@
-import type { NextRequest } from 'next/server'
+import { listCategories } from '@/modules/catalog'
+import { route } from '@/server/http'
 
-import { GET as v1 } from '../v1/categories/route'
 import { deprecated } from '../products/deprecated'
 
-export async function GET(req: NextRequest) {
-  const res = await v1(req, { params: Promise.resolve({}) })
-  return deprecated(await res.json(), '/api/v1/categories')
-}
+/** Deprecated alias of GET /api/v1/categories. */
+export const GET = route('public', async () =>
+  deprecated({ categories: await listCategories() }, '/api/v1/categories'),
+)

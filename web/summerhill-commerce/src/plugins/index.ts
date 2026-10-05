@@ -9,7 +9,7 @@ import { getServerSideURL } from '@/utilities/getURL'
 import { isAdmin } from '@/access/isAdmin'
 
 const generateTitle: GenerateTitle<Page> = ({ doc }) => {
-  return doc?.title ? `${doc.title} | Payload Ecommerce Template` : 'Payload Ecommerce Template'
+  return doc?.title ? `${doc.title} | Grocery Marketplace Demo` : 'Grocery Marketplace Demo'
 }
 
 const generateURL: GenerateURL<Page> = ({ doc }) => {
