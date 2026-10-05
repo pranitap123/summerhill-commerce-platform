@@ -3,72 +3,98 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 
-import { useCartStore } from '@/lib/cartStore'
+import { CartApiError, useCartStore } from '@/lib/cartStore'
 
-type Product = { id: string; pricingModel?: 'each' | 'per_weight' | null }
+export interface AddableProduct {
+  id: string
+  name: string
+  availability: 'in_stock' | 'out_of_stock'
+  pricingModel: 'each' | 'per_weight'
+  sellBy: 'quantity' | 'weight'
+  minWeightLb: string
+  weightStepLb: string
+}
 
-export default function AddToCartButton({ product }: { product: Product }) {
+/** Weight choices for items sold by weight: from the minimum, in the product's steps, up to 5 lb. */
+function weightOptions(p: AddableProduct): number[] {
+  const min = Number(p.minWeightLb)
+  const step = Number(p.weightStepLb)
+  const out: number[] = []
+  for (let w = min; w <= 5 + 1e-9; w += step) out.push(Math.round(w * 1000) / 1000)
+  return out
+}
+
+/**
+ * Adds to the SERVER cart. Items sold by weight ask for a weight. A product from another store
+ * asks before starting a new cart (the current one is saved, ORDERS §1).
+ */
+export default function AddToCartButton({ product }: { product: AddableProduct }) {
   const add = useCartStore((s) => s.add)
-  const [state, setState] = useState<'idle' | 'busy' | 'added' | 'mixed' | 'error'>('idle')
+  const byWeight = product.pricingModel === 'per_weight' && product.sellBy === 'weight'
+  const options = byWeight ? weightOptions(product) : []
+  const [weightLb, setWeightLb] = useState<number>(options[Math.min(2, options.length - 1)] ?? 1)
+  const [state, setState] = useState<'idle' | 'busy' | 'added'>('idle')
+  const [error, setError] = useState<string | null>(null)
 
-  async function submit(replaceCart: boolean) {
+  if (product.availability !== 'in_stock')
+    return <p className="font-medium text-neutral-600">Not available right now</p>
+
+  async function handleClick(replaceCart = false) {
     setState('busy')
-    const weighed = product.pricingModel === 'per_weight'
-    const result = await add({
-      productId: product.id,
-      ...(weighed ? { weightLb: 1 } : { quantity: 1 }),
-      ...(replaceCart ? { replaceCart } : {}),
-    })
-    if (result.ok) {
+    setError(null)
+    try {
+      await add(product.id, byWeight ? { weightLb } : { quantity: 1 }, { replaceCart })
       setState('added')
       setTimeout(() => setState('idle'), 1500)
-    } else {
-      setState(result.code === 'CART_MERCHANT_MISMATCH' ? 'mixed' : 'error')
+    } catch (err) {
+      setState('idle')
+      if (err instanceof CartApiError && err.code === 'CART_MIXED_MERCHANTS' && !replaceCart) {
+        if (window.confirm(`${err.message}`)) await handleClick(true)
+        return
+      }
+      setError(err instanceof Error ? err.message : 'Could not add to cart')
     }
   }
 
-  if (state === 'mixed')
-    return (
-      <div role="alert" className="max-w-sm space-y-2 text-sm">
-        <p>Your cart has items from another store. Start a new cart with this item?</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => submit(true)}
-            className="rounded-full bg-[#1F3A2E] px-4 py-2 text-white"
-          >
-            Start new cart
-          </button>
-          <button type="button" onClick={() => setState('idle')} className="rounded-full border px-4 py-2">
-            Keep current cart
-          </button>
-        </div>
-      </div>
-    )
-
   return (
-    <div>
+    <div className="flex flex-col items-start gap-3">
+      {byWeight && (
+        <label className="flex items-center gap-2 text-sm text-[#211F1C]">
+          Weight
+          <select
+            value={weightLb}
+            onChange={(e) => setWeightLb(Number(e.target.value))}
+            className="rounded border border-neutral-300 bg-white px-2 py-1"
+          >
+            {options.map((w) => (
+              <option key={w} value={w}>
+                {w.toFixed(2)} lb
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <motion.button
         type="button"
-        onClick={() => submit(false)}
+        onClick={() => handleClick()}
         disabled={state === 'busy'}
         whileTap={{ scale: 0.96 }}
-        className="relative overflow-hidden rounded-full bg-[#1F3A2E] px-8 py-3.5 font-medium text-white transition-colors hover:bg-[#16291F] disabled:opacity-60"
+        className="relative overflow-hidden rounded-full bg-[#1F3A2E] px-8 py-3.5 font-medium text-white transition-colors hover:bg-[#16291F] disabled:opacity-70"
       >
         <AnimatePresence mode="wait">
           <motion.span
-            key={state === 'added' ? 'added' : 'add'}
+            key={state}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
           >
-            {state === 'added' ? 'Added ✓' : 'Add to cart'}
+            {state === 'added' ? 'Added ✓' : state === 'busy' ? 'Adding…' : 'Add to Cart'}
           </motion.span>
         </AnimatePresence>
       </motion.button>
-      {state === 'error' && (
-        <p role="alert" className="mt-2 text-sm text-red-700">
-          Couldn&apos;t add that item. Please try again.
+      {error && (
+        <p role="alert" className="text-sm text-[#B3261E]">
+          {error}
         </p>
       )}
     </div>

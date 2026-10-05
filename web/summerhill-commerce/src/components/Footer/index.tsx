@@ -1,7 +1,6 @@
 import type { Footer } from '@/payload-types'
 
 import { FooterMenu } from '@/components/Footer/menu'
-import { ThemeSelector } from '@/providers/Theme/ThemeSelector'
 import { getCachedGlobal } from '@/utilities/getGlobals'
 import Link from 'next/link'
 import React, { Suspense } from 'react'
@@ -19,7 +18,7 @@ export async function Footer() {
   const copyrightName = COMPANY_NAME || SITE_NAME || ''
 
   return (
-    <footer className="text-sm text-neutral-500 dark:text-neutral-400">
+    <footer className="text-sm text-neutral-700">
       <div className="container">
         <div className="flex w-full flex-col gap-6 border-t border-neutral-200 py-12 text-sm md:flex-row md:gap-12 dark:border-neutral-700">
           <div>
@@ -42,10 +41,24 @@ export async function Footer() {
           >
             <FooterMenu menu={menu} />
           </Suspense>
-          <div className="md:ml-auto flex flex-col gap-4 items-end">
-            <ThemeSelector />
-          </div>
+          <nav aria-label="Shop" className="md:ml-auto">
+            <ul className="flex flex-col gap-2">
+              <li><Link className="hover:underline" href="/shop">Shop all</Link></li>
+              <li><Link className="hover:underline" href="/specials">Specials</Link></li>
+              <li><Link className="hover:underline" href="/stores">Stores</Link></li>
+              <li><Link className="hover:underline" href="/find-order">Find an order</Link></li>
+            </ul>
+          </nav>
         </div>
+      </div>
+      <div className="border-t border-neutral-200 py-4 text-xs dark:border-neutral-700">
+        <p className="container mx-auto text-center md:text-left">
+          Independent demo project. Not affiliated with or endorsed by Summerhill Market. Payments
+          run in Stripe test mode; no real orders are placed.{' '}
+          <Link className="underline" href="/terms">
+            Demo terms
+          </Link>
+        </p>
       </div>
       <div className="border-t border-neutral-200 py-6 text-sm dark:border-neutral-700">
         <div className="container mx-auto flex w-full flex-col items-center gap-1 md:flex-row md:gap-0">
@@ -53,12 +66,8 @@ export async function Footer() {
             &copy; {copyrightDate} {copyrightName}
             {copyrightName.length && !copyrightName.endsWith('.') ? '.' : ''} All rights reserved.
           </p>
-          <hr className="mx-4 hidden h-4 w-px border-l border-neutral-400 md:inline-block" />
-          <p>Designed in Michigan</p>
           <p className="md:ml-auto">
-            <a className="text-black dark:text-white" href="https://payloadcms.com">
-              Crafted by Payload
-            </a>
+            Built on the MIT-licensed Payload template; see THIRD_PARTY_NOTICES.md.
           </p>
         </div>
       </div>

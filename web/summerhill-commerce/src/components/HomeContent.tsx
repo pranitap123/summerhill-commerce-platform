@@ -1,67 +1,119 @@
-'use client';
+import Link from 'next/link'
 
-import { motion } from 'framer-motion';
+import { ProductGrid } from '@/components/storefront/ProductCard'
+import type { CategoryNode, MerchantStorefront, ProductSummary } from '@/modules/catalog'
 
-export default function HomeContent({ categories, products }: { categories: any[]; products: any[] }) {
+/** Home page body (G3-13): hero with search, categories, this week's specials, stores. */
+export default function HomeContent({
+  categories,
+  specials,
+  merchants,
+}: {
+  categories: CategoryNode[] | null
+  specials: ProductSummary[] | null
+  merchants: MerchantStorefront[] | null
+}) {
   return (
-    <main className="min-h-screen">
-      <section className="relative overflow-hidden bg-[#1F3A2E] text-[#FAF6EE] px-6 py-24 md:py-32">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-3xl relative z-10"
-        >
-          <p className="text-[#C9962C] font-medium mb-3 tracking-wide">Summerhill Market</p>
-          <h1 className="font-display text-5xl md:text-7xl font-semibold leading-[1.05] mb-6">
-            Fresh groceries, grown with care.
+    <>
+      <section className="relative overflow-hidden bg-[#1F3A2E] px-4 py-16 text-[#FAF6EE] md:py-24">
+        <div className="container relative z-10 max-w-3xl">
+          <p className="mb-3 font-medium tracking-wide text-[#E0B350]">Grocery Marketplace Demo</p>
+          <h1 className="font-display mb-6 text-4xl font-semibold leading-[1.05] md:text-6xl">
+            Your local grocers, one basket.
           </h1>
-          <p className="text-[#DCE5D8] text-lg max-w-md">
-            Locally sourced produce, pantry staples, and everyday essentials, delivered to your door.
+          <p className="mb-8 max-w-md text-lg text-[#DCE5D8]">
+            Order from independent stores and pick up when it suits you. Weighed items are charged
+            by their actual weight.
           </p>
-        </motion.div>
-        <div className="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-[#C9962C]/20 blur-3xl" />
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="font-display text-3xl mb-6 text-[#1F3A2E]">Shop by category</h2>
-        <div className="flex flex-wrap gap-3">
-          {categories.map(function (c: any) {
-            return (
-              <a key={c.id} href={"/shop?category=" + encodeURIComponent(c.name)} className="px-5 py-2.5 bg-[#DCE5D8] text-[#1F3A2E] rounded-full font-medium hover:bg-[#C9962C] hover:text-white transition-colors duration-200">
-                {c.name}
-              </a>
-            );
-          })}
+          <form action="/shop" method="get" role="search" className="flex max-w-lg gap-2">
+            <label htmlFor="home-q" className="sr-only">
+              Search products
+            </label>
+            <input
+              id="home-q"
+              name="q"
+              type="search"
+              maxLength={100}
+              placeholder="Search apples, sourdough, salmon…"
+              className="min-w-0 flex-1 rounded-full bg-white px-5 py-3 text-[#211F1C] placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[#C9962C]"
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-[#C9962C] px-6 py-3 font-medium text-[#211F1C] hover:bg-[#E0B350]"
+            >
+              Search
+            </button>
+          </form>
         </div>
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-[#C9962C]/20 blur-3xl"
+        />
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <h2 className="font-display text-3xl mb-8 text-[#1F3A2E]">Featured this week</h2>
-        <motion.div
-          initial="hidden"
-          animate="show"
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
-          className="grid grid-cols-2 md:grid-cols-3 gap-6"
-        >
-          {products.map(function (p: any) {
-            return (
-              <motion.a
-                key={p.id}
-                variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-                href={"/products/" + encodeURIComponent(p.id)}
-                className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="overflow-hidden rounded-xl mb-3">
-                  <img src={p.images && p.images[0]} alt={p.name} className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                </div>
-                <p className="font-medium text-[#211F1C]">{p.name}</p>
-                <p className="text-[#C9962C] font-semibold">${p.price}</p>
-              </motion.a>
-            );
-          })}
-        </motion.div>
+      <section aria-labelledby="categories-heading" className="container py-12">
+        <h2 id="categories-heading" className="font-display mb-6 text-3xl text-[#1F3A2E]">
+          Shop by category
+        </h2>
+        {categories === null ? (
+          <p role="alert">Categories are unavailable right now.</p>
+        ) : (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {categories.map((c) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/shop/${c.slug}`}
+                  className="flex h-full flex-col justify-between rounded-2xl bg-[#DCE5D8] p-4 text-[#1F3A2E] transition-colors hover:bg-[#C9962C] hover:text-[#211F1C]"
+                >
+                  <span className="font-medium">{c.name}</span>
+                  <span className="text-sm">{c.productCount} products</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
-    </main>
-  );
+
+      {specials && specials.length > 0 && (
+        <section aria-labelledby="specials-heading" className="container pb-12">
+          <div className="mb-6 flex items-baseline justify-between gap-4">
+            <h2 id="specials-heading" className="font-display text-3xl text-[#1F3A2E]">
+              This week&apos;s specials
+            </h2>
+            <Link href="/specials" className="text-sm font-medium text-[#1F3A2E] underline">
+              See all specials
+            </Link>
+          </div>
+          <ProductGrid products={specials} label="Specials" />
+        </section>
+      )}
+
+      {merchants && merchants.length > 0 && (
+        <section aria-labelledby="stores-heading" className="container pb-16">
+          <h2 id="stores-heading" className="font-display mb-6 text-3xl text-[#1F3A2E]">
+            Stores
+          </h2>
+          <ul className="grid gap-4 md:grid-cols-2">
+            {merchants.map((m) => (
+              <li key={m.slug} className="rounded-2xl bg-white p-6 shadow-sm">
+                <Link
+                  href={`/stores/${m.slug}`}
+                  className="font-display text-xl text-[#1F3A2E] hover:underline"
+                >
+                  {m.name}
+                </Link>
+                <p className="text-sm text-neutral-700">
+                  {m.productCount} products · pickup in{' '}
+                  {m.locations
+                    .map((l) => l.city)
+                    .filter(Boolean)
+                    .join(', ') || 'store'}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  )
 }

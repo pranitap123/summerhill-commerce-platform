@@ -1,75 +1,73 @@
 import type { Metadata } from 'next'
-
-import { Button } from '@/components/ui/button'
-import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
+import { headers as getHeaders } from 'next/headers'
 import Link from 'next/link'
-import { headers as getHeaders } from 'next/headers.js'
-import configPromise from '@payload-config'
-import { AccountForm } from '@/components/forms/AccountForm'
-import { OrderList } from '@/components/OrderList'
-import { listOrdersForUser, type Order } from '@/modules/ordering'
-import { getPayload } from 'payload'
 import { redirect } from 'next/navigation'
+
+import { AccountForm } from '@/components/forms/AccountForm'
+import { PrivacyControls } from '@/components/forms/PrivacyControls'
+import { ReplacementPreferenceForm } from '@/components/forms/ReplacementPreferenceForm'
+import { Button } from '@/components/ui/button'
+import { getSessionUser } from '@/modules/identity'
+import { listOrdersForUser, STATUS_LABELS } from '@/modules/ordering'
+import { formatCad } from '@/utilities/money'
+import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 
 export const dynamic = 'force-dynamic'
 
+/** Account (G2-20): profile, default replacement preference, recent orders (own orders only). */
 export default async function AccountPage() {
-  const headers = await getHeaders()
-  const payload = await getPayload({ config: configPromise })
-  const { user } = await payload.auth({ headers })
-
-  let orders: Order[] = []
-
-  if (!user) {
-    redirect(
-      `/login?warning=${encodeURIComponent('Please login to access your account settings.')}`,
-    )
-  }
-
-  try {
-    orders = (await listOrdersForUser(String(user.id), 5)).slice(0, 5)
-  } catch {
-    orders = []
-  }
+  const user = await getSessionUser(await getHeaders())
+  if (!user)
+    redirect(`/login?warning=${encodeURIComponent('Please log in to access your account.')}`)
+  const orders = (await listOrdersForUser(String(user.id), 5)).slice(0, 5)
 
   return (
     <>
-      <div className="border p-8 rounded-lg bg-primary-foreground">
-        <h1 className="text-3xl font-medium mb-8">Account settings</h1>
+      <div className="rounded-lg border bg-primary-foreground p-8">
+        <h1 className="mb-8 text-3xl font-medium">Account settings</h1>
         <AccountForm />
       </div>
 
-      <div className=" border p-8 rounded-lg bg-primary-foreground">
-        <h2 className="text-3xl font-medium mb-8">Recent Orders</h2>
+      <div className="rounded-lg border bg-primary-foreground p-8">
+        <h2 className="mb-4 text-2xl font-medium">If an item is unavailable</h2>
+        <ReplacementPreferenceForm
+          userId={String(user.id)}
+          initial={user.defaultReplacementPreference ?? 'best_match'}
+        />
+      </div>
 
-        <div className="prose dark:prose-invert mb-8">
-          <p>
-            These are the most recent orders you have placed. Each order is associated with an
-            payment. As you place more orders, they will appear in your orders list.
-          </p>
-        </div>
-
+      <div className="rounded-lg border bg-primary-foreground p-8">
+        <h2 className="mb-4 text-2xl font-medium">Recent orders</h2>
         {orders.length === 0 ? (
-          <p className="mb-8">You have no orders.</p>
+          <p className="mb-8">You have no orders yet.</p>
         ) : (
-          <div className="mb-8">
-            <OrderList orders={orders} />
-          </div>
+          <ul className="mb-8 divide-y">
+            {orders.map((o) => (
+              <li key={o.publicId} className="flex justify-between py-2">
+                <Link href={`/orders/${o.publicId}`}>{o.publicId}</Link>
+                <span className="text-sm">
+                  {STATUS_LABELS[o.status]} ·{' '}
+                  {formatCad(o.finalTotalCents ?? o.estimatedTotalCents)}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
-
         <Button asChild variant="default">
           <Link href="/orders">View all orders</Link>
         </Button>
+      </div>
+
+      <div className="rounded-lg border bg-primary-foreground p-8">
+        <h2 className="mb-4 text-2xl font-medium">Your data</h2>
+        <PrivacyControls />
       </div>
     </>
   )
 }
 
 export const metadata: Metadata = {
-  description: 'Create an account or log in to your existing account.',
-  openGraph: mergeOpenGraph({
-    title: 'Account',
-    url: '/account',
-  }),
+  description: 'Your account.',
+  openGraph: mergeOpenGraph({ title: 'Account', url: '/account' }),
   title: 'Account',
 }

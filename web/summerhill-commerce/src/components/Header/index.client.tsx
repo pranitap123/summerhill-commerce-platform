@@ -1,6 +1,8 @@
 'use client'
 import { CMSLink } from '@/components/Link'
 import { HeaderCartLink } from '@/components/HeaderCartLink'
+import { Search } from '@/components/Search'
+
 import Link from 'next/link'
 import React, { Suspense } from 'react'
 
@@ -15,49 +17,83 @@ type Props = {
   header: Header
 }
 
+/** Storefront sections (G3-13); CMS menu items from Payload follow them. */
+const PRIMARY = [
+  { href: '/shop', label: 'Shop' },
+  { href: '/specials', label: 'Specials' },
+  { href: '/stores', label: 'Stores' },
+]
+
 export function HeaderClient({ header }: Props) {
   const menu = header.navItems || []
   const pathname = usePathname()
+  const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
   return (
-    <div className="relative z-20 border-b">
-      <nav className="flex items-center md:items-end justify-between container pt-2">
+    <header className="relative z-20 border-b border-[#DCE5D8] bg-[#FAF6EE]">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:rounded focus:bg-white focus:px-3 focus:py-2"
+      >
+        Skip to content
+      </a>
+      <nav aria-label="Main" className="container flex items-center gap-4 py-3">
         <div className="block flex-none md:hidden">
           <Suspense fallback={null}>
             <MobileMenu menu={menu} />
           </Suspense>
         </div>
-        <div className="flex w-full items-end justify-between">
-          <div className="flex w-full items-end gap-6 md:w-1/3">
-            <Link className="flex w-full items-center justify-center pt-4 pb-4 md:w-auto" href="/">
-              <LogoIcon className="w-6 h-auto" />
-            </Link>
-            {menu.length ? (
-              <ul className="hidden gap-4 text-sm md:flex md:items-center">
-                {menu.map((item) => (
-                  <li key={item.id}>
-                    <CMSLink
-                      {...item.link}
-                      size={'clear'}
-                      className={cn('relative navLink', {
-                        active:
-                          item.link.url && item.link.url !== '/'
-                            ? pathname.includes(item.link.url)
-                            : false,
-                      })}
-                      appearance="nav"
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-
-          <div className="flex justify-end md:w-1/3 gap-4">
-            <HeaderCartLink />
-          </div>
+        <Link className="flex flex-none items-center gap-2 text-[#1F3A2E]" href="/">
+          <LogoIcon className="h-auto w-6" />
+          <span className="font-display hidden text-lg font-semibold sm:inline">Grocery Demo</span>
+        </Link>
+        <ul className="hidden items-center gap-4 text-sm md:flex">
+          {PRIMARY.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                aria-current={active(item.href) ? 'page' : undefined}
+                className={cn(
+                  'font-medium text-[#1F3A2E] hover:underline',
+                  active(item.href) && 'underline decoration-[#C9962C] decoration-2 underline-offset-4',
+                )}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+          {menu.map((item) => (
+            <li key={item.id}>
+              <CMSLink {...item.link} size={'clear'} className="relative navLink" appearance="nav" />
+            </li>
+          ))}
+        </ul>
+        <div className="ml-auto hidden w-full max-w-xs lg:block">
+          <Suspense fallback={null}>
+            <Search />
+          </Suspense>
+        </div>
+        <div className="ml-auto flex flex-none items-center gap-4 lg:ml-0">
+          <Link href="/account" className="text-sm font-medium text-[#1F3A2E] hover:underline">
+            Account
+          </Link>
+          <HeaderCartLink />
         </div>
       </nav>
-    </div>
+      {/* Small screens: sections as a scrollable row */}
+      <ul className="container flex gap-5 overflow-x-auto pb-2 text-sm md:hidden">
+        {PRIMARY.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={active(item.href) ? 'page' : undefined}
+              className={cn('font-medium text-[#1F3A2E]', active(item.href) && 'underline')}
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </header>
   )
 }

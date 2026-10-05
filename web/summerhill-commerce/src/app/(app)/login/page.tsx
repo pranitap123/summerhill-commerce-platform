@@ -9,14 +9,25 @@ import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import { LoginForm } from '@/components/forms/LoginForm'
 import { redirect } from 'next/navigation'
+import { getSafeRedirect } from 'payload/shared'
 
-export default async function Login() {
+export default async function Login({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>
+}) {
   const headers = await getHeaders()
   const payload = await getPayload({ config: configPromise })
   const { user } = await payload.auth({ headers })
 
   if (user) {
-    redirect(`/account?warning=${encodeURIComponent('You are already logged in.')}`)
+    // Signed in already (e.g. straight after the form's own sign-in): go where the user was headed,
+    // such as /ops or /console, which then ask for the second factor (G5-12).
+    const target = getSafeRedirect({
+      fallbackTo: '',
+      redirectTo: (await searchParams).redirect ?? '',
+    })
+    redirect(target || `/account?warning=${encodeURIComponent('You are already logged in.')}`)
   }
 
   return (

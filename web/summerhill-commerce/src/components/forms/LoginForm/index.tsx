@@ -50,7 +50,7 @@ export const LoginForm: React.FC = () => {
   )
 
   return (
-    <form className="" onSubmit={handleSubmit(onSubmit)}>
+    <form method="post" className="" onSubmit={handleSubmit(onSubmit)}>
       <Message className="classes.message" error={error} />
       <div className="flex flex-col gap-8">
         <FormItem>

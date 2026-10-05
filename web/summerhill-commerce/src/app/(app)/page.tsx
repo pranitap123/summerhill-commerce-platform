@@ -1,18 +1,19 @@
-import HomeContent from '@/components/HomeContent';
+import type { Metadata } from 'next'
 
-async function getCategories() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/categories`, { cache: 'no-store' });
-  return res.json();
-}
+import HomeContent from '@/components/HomeContent'
 
-async function getFeaturedProducts() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/products?limit=6`, { cache: 'no-store' });
-  return res.json();
-}
+import { browse, getCategories, getMerchants } from './_lib/catalog'
 
+export const metadata: Metadata = { alternates: { canonical: '/' } }
+
+/** Home (G3-13): reads the catalogue module directly through the tagged cache. */
 export default async function HomePage() {
-  const { categories } = await getCategories();
-  const { products } = await getFeaturedProducts();
-
-  return <HomeContent categories={categories} products={products} />;
+  const [categories, specials, merchants] = await Promise.all([
+    getCategories().catch(() => null),
+    browse({ onSale: true, inStock: true, sort: 'relevance', page: 1, limit: 8 })
+      .then((r) => r.items)
+      .catch(() => null),
+    getMerchants().catch(() => null),
+  ])
+  return <HomeContent categories={categories} specials={specials} merchants={merchants} />
 }
