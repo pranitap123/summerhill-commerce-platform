@@ -27,9 +27,11 @@ for (const file of envFile.split(',')) {
   }
   Object.assign(overrides, dotenv.parse(fs.readFileSync(envPath)))
 }
+const dotEnv = path.resolve('.env')
+const base = fs.existsSync(dotEnv) ? dotenv.parse(fs.readFileSync(dotEnv)) : {}
 const child = spawn(process.execPath, [entry, ...args], {
   stdio: 'inherit',
-  env: { ...process.env, ...overrides },
+  env: { ...base, ...process.env, ...overrides },
 })
 const forward = (signal) => child.kill(signal)
 process.on('SIGINT', forward)

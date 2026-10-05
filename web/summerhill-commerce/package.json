@@ -19,7 +19,18 @@
     "stripe-webhooks": "stripe listen --forward-to localhost:3000/api/payments/stripe/webhooks",
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "dev:stack": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/next/dist/bin/next dev",
+    "dev:sim": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env,simulator.env ./node_modules/next/dist/bin/next dev",
+    "build:sim": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=6000\" node scripts/with-env.mjs stack.env,simulator.env,simulator-build.env ./node_modules/next/dist/bin/next build --webpack",
+    "start:sim": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env,simulator.env,simulator-build.env ./node_modules/next/dist/bin/next start",
+    "worker": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/tsx/dist/cli.mjs src/worker/main.ts",
+    "worker:sim": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env,simulator.env,simulator-build.env ./node_modules/tsx/dist/cli.mjs src/worker/main.ts",
+    "seed:users": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/seed-demo-users.ts",
+    "demo:totp": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/demo-totp.ts",
+    "search:rebuild": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/search-rebuild.ts",
+    "ops": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/ops.ts",
+    "openapi": "./node_modules/tsx/dist/cli.mjs scripts/generate-openapi.ts"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.4.3",
