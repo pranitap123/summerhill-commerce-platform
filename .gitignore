@@ -1,8 +1,46 @@
 node_modules/
+
+# Secrets: never commit any env file except documented examples
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Real merchant data: scraped feeds, API responses and dumps never go in the repo
 sample.json
 scraped.json
+search_sample.json
+*_sample.json
+/data/
+*.dump
+*.sql.gz
+
+# Local scratch scripts
 audit.js
 inspect.js
 investigate.js
 test.js
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.python-version.local
+
+# Dagster local state
+.dagster/
+dagster_home/
+
+# Local tool settings
+.claude/settings.local.json
+
+# Security and performance scan output (G6-02, G6-06, G6-07): regenerated on every run
+/infra/zap/zap-report.*
+/infra/zap/zap.yaml
+/tests/load/results/
+/web/summerhill-commerce/.lighthouseci/
+/web/summerhill-commerce/coverage/
+
+# Private study notes (never published with the project)
+/interview/
