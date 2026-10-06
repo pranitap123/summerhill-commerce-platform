@@ -1,11 +1,13 @@
-import type { NextRequest } from 'next/server'
+import { consume, LIMITS } from '@/modules/ops'
+import { findProducts } from '@/modules/search'
+import { clientIp, parseQuery, route } from '@/server/http'
 
-import { GET as v1 } from '../../v1/search/route'
+import { searchQuery } from '../../v1/_lib/schemas'
 import { deprecated } from '../deprecated'
 
-export async function GET(req: NextRequest) {
-  const res = await v1(req, { params: Promise.resolve({}) })
-  return res.ok
-    ? deprecated(await res.json(), '/api/v1/search')
-    : Response.json(await res.json(), { status: res.status })
-}
+/** Deprecated alias of GET /api/v1/search. */
+export const GET = route('public', async ({ req }) => {
+  const query = parseQuery(req, searchQuery)
+  await consume(LIMITS.search, `ip:${clientIp(req) ?? 'unknown'}`)
+  return deprecated(await findProducts(query), '/api/v1/search')
+})

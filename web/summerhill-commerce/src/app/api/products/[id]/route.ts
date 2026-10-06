@@ -1,13 +1,16 @@
-import type { NextRequest } from 'next/server'
+import { resolveProduct } from '@/modules/catalog'
+import { HttpError, parseParams, route } from '@/server/http'
 
-import { GET as v1 } from '../../v1/products/[slug]/route'
+import { productParams } from '../../v1/_lib/schemas'
 import { deprecated } from '../deprecated'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const res = await v1(req, { params: Promise.resolve({ slug: id }) })
-  const body = await res.json()
-  return res.ok
-    ? deprecated(body, `/api/v1/products/${encodeURIComponent(id)}`)
-    : Response.json(body, { status: res.status })
-}
+/** Deprecated alias of GET /api/v1/products/{slug}; the id still resolves. */
+export const GET = route<{ id: string }>('public', async ({ params }) => {
+  const { slug } = parseParams({ slug: (await params).id }, productParams)
+  const found = await resolveProduct(slug)
+  if (!found) throw new HttpError(404, 'NOT_FOUND', 'Product not found')
+  return deprecated(
+    { product: found.product, canonicalSlug: found.product.slug },
+    `/api/v1/products/${encodeURIComponent(found.product.slug)}`,
+  )
+})

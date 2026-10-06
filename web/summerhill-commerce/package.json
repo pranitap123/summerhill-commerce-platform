@@ -17,9 +17,9 @@
     "reinstall": "cross-env NODE_OPTIONS=--no-deprecation rm -rf node_modules && rm pnpm-lock.yaml && pnpm --ignore-workspace install",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "stripe-webhooks": "stripe listen --forward-to localhost:3000/api/payments/stripe/webhooks",
-    "test": "pnpm run test:int && pnpm run test:e2e",
+    "test": "npm run test:coverage && npm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/integration",
     "dev:stack": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/next/dist/bin/next dev",
     "dev:sim": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env,simulator.env ./node_modules/next/dist/bin/next dev",
     "build:sim": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=6000\" node scripts/with-env.mjs stack.env,simulator.env,simulator-build.env ./node_modules/next/dist/bin/next build --webpack",
@@ -30,7 +30,9 @@
     "demo:totp": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/demo-totp.ts",
     "search:rebuild": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/search-rebuild.ts",
     "ops": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/ops.ts",
-    "openapi": "./node_modules/tsx/dist/cli.mjs scripts/generate-openapi.ts"
+    "openapi": "./node_modules/tsx/dist/cli.mjs scripts/generate-openapi.ts",
+    "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/unit tests/authz",
+    "test:coverage": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts --coverage"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.4.3",
