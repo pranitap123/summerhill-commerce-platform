@@ -1,0 +1,90 @@
+[
+  {
+    "category": "Dairy & Eggs",
+    "subcategory": "Eggs",
+    "products": [
+      {
+        "id": "000000000011",
+        "name": "Free-Range Eggs Large 12 Count",
+        "description": "Example Farm. Sold by count",
+        "price": 5.49,
+        "currency": "CAD",
+        "sku": "000000000011",
+        "images": [
+          "https://images.example.test/products/000000000011.jpg"
+        ],
+        "category": "Dairy & Eggs",
+        "subcategory": "Eggs",
+        "availability": "in_stock"
+      },
+      {
+        "id": "000000000012",
+        "name": "Organic Brown Eggs 12 Count",
+        "description": "Example Farm. Organic. Sold by count",
+        "price": 7.29,
+        "currency": "CAD",
+        "sku": "000000000012",
+        "images": [
+          "https://images.example.test/products/000000000012.jpg"
+        ],
+        "category": "Dairy & Eggs",
+        "subcategory": "Eggs",
+        "availability": "out_of_stock"
+      }
+    ]
+  },
+  {
+    "category": "Dairy & Eggs",
+    "subcategory": "Milk",
+    "products": [
+      {
+        "id": "000000000021",
+        "name": "2% Milk 2 L",
+        "description": "Sample Dairy. Sold by count",
+        "price": 4.79,
+        "currency": "CAD",
+        "sku": "000000000021",
+        "images": [
+          "https://images.example.test/products/000000000021.jpg"
+        ],
+        "category": "Dairy & Eggs",
+        "subcategory": "Milk",
+        "availability": "in_stock"
+      }
+    ]
+  },
+  {
+    "category": "Produce",
+    "subcategory": "Fruit",
+    "products": [
+      {
+        "id": "000000000031",
+        "name": "Gala Apples 1 kg",
+        "description": "Sold by weight",
+        "price": 4.99,
+        "currency": "CAD",
+        "sku": "000000000031",
+        "images": [
+          "https://images.example.test/products/000000000031.jpg"
+        ],
+        "category": "Produce",
+        "subcategory": "Fruit",
+        "availability": "in_stock"
+      },
+      {
+        "id": "000000000032",
+        "name": "Bananas",
+        "description": "Sold by weight",
+        "price": 1.29,
+        "currency": "CAD",
+        "sku": "000000000032",
+        "images": [
+          "https://images.example.test/products/000000000032.jpg"
+        ],
+        "category": "Produce",
+        "subcategory": "Fruit",
+        "availability": "in_stock"
+      }
+    ]
+  }
+]

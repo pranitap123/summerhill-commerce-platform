@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+.venv
+.git
+.dagster
+web
+docs
+interview
+scraped.json
+sample.json
+.env
+**/.env

@@ -73,7 +73,28 @@ One codebase, two processes (app and worker), Postgres as the system of record. 
 
 ## Quick start
 
-Needs **Docker**, **Node 20** (`.nvmrc`) and **Python 3.12+** (`.python-version`). No Stripe account needed: the payment simulator implements Stripe's test cards, including 3-D Secure.
+### Everything in Docker
+
+Needs only **Docker** (4 GB or more of memory for Docker; the first build takes several minutes). Postgres, Elasticsearch, the catalogue pipeline (Dagster), the app (storefront and API) and the worker all run in containers, with the payment simulator instead of Stripe.
+
+```bash
+npm run stack:full        # builds the images, migrates, seeds, builds the search index, starts everything
+npm run stack:down        # stop (`npm run stack:reset` also deletes the data)
+```
+
+| URL | What |
+|---|---|
+| http://localhost:3000 | Storefront and API (Next.js and Payload; admin at `/admin`) |
+| http://localhost:3070 | Dagster: ingest jobs, schedules, run history |
+| http://localhost:8025 | Mailpit: order emails |
+| http://localhost:9200 | Elasticsearch ([sample queries](docs/SEARCH_QUERIES.md)) |
+| localhost:5433 | Postgres |
+
+Demo accounts are in [Demo accounts](#demo-accounts); the walkthrough is [docs/DEMO.md](docs/DEMO.md). The setup is in [infra/docker-compose.yml](infra/docker-compose.yml) (profile `full`) and [infra/docker/](infra/docker/).
+
+### Without Docker for the app (development)
+
+Docker runs only Postgres, Elasticsearch and Mailpit here; the app runs on your machine. Needs **Docker**, **Node 20** (`.nvmrc`) and **Python 3.12+** (`.python-version`). No Stripe account needed: the payment simulator implements Stripe's test cards, including 3-D Secure.
 
 ```bash
 git config core.hooksPath tools/git-hooks                 # secret/data scanner before commits
@@ -140,6 +161,28 @@ npm run scan:security                               # security headers + OWASP Z
 ```
 
 Results of the quality, security and performance checks are in [TESTING §2.1](docs/TESTING.md#21-quality-security-and-performance-results-g6-2026-09-28). See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions and the Definition of Done.
+
+## Scraper and catalogue data
+
+[`scripts/scraper.js`](scripts/scraper.js) fetches a storefront's product list and writes it grouped by category and subcategory, with retries and backoff. Setup, output format, re-run instructions and assumptions are in [docs/SCRAPER.md](docs/SCRAPER.md); a synthetic sample of the output is [docs/samples/scraped.sample.json](docs/samples/scraped.sample.json). Scraped data is never committed. The demo runs on a **synthetic** catalogue loaded through the same pipeline, and the pipeline's `homesome_api` connector reads real feeds.
+
+## How money moves (Stripe)
+
+1. **Checkout:** the cart becomes a hosted Stripe Checkout session (or the simulator's equivalent) with `capture_method = manual`: the card is **authorised, not charged**, for the estimate plus a buffer for weighed items.
+2. **Picking:** the store picks, weighs and substitutes, so the final amount is known.
+3. **Capture:** the platform captures exactly the final total. This is a **destination charge**: `transfer_data.destination` is the merchant's connected account, `on_behalf_of` makes the merchant the seller of record, and `application_fee_amount` is the platform's commission.
+4. **Commission** on the final item subtotal after promotions: **20%** under $50, **15%** from $50 to $100 inclusive, **10%** over $100. The merchant receives the captured total minus the fee, so the parts always add up to the whole.
+5. **Payouts:** each merchant's payout schedule is set through the Stripe API. Refunds, disputes and every cent are recorded in a double-entry ledger and reconciled against Stripe.
+
+A second flow, **separate charge and transfer** (the platform charges the customer, then transfers the merchant's share), is kept as a demo route for baskets that span merchants; the trade-offs are in [ADR-0005](docs/adr/0005-charge-model.md). Connected accounts are Express by default; Custom accounts are supported ([ADR-0011](docs/adr/0011-connect-account-type.md)). Details: [PAYMENTS_AND_MONEY](docs/domains/PAYMENTS_AND_MONEY.md).
+
+## Search design
+
+Elasticsearch handles text search and Postgres handles browsing and is the fallback, behind one `SearchService` ([ADR-0007](docs/adr/0007-search-engine.md)). Relevance weights name over brand over category, with typo tolerance, prefix matching for search-as-you-type, synonyms (pop/soda) and boosts for on-sale, in-stock and popular items. Products are always read from Postgres, so prices and stock are never stale. The index is updated within seconds of a product change (outbox event, then worker) and rebuilt nightly into a new index behind an alias swap. Design and [sample queries](docs/SEARCH_QUERIES.md); full detail in [CATALOG_AND_SEARCH](docs/domains/CATALOG_AND_SEARCH.md#8-search).
+
+## Hosting
+
+There is no hosted demo, on purpose: the project runs entirely from this repo with `npm run stack:full`, on test data and the payment simulator, so nothing real is exposed. The walkthrough video covers the running system.
 
 ## Documentation
 

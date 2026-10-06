@@ -1,6 +1,8 @@
 # Local development stack. Runs alongside any existing Postgres on 5432.
 #   npm run stack:up          # postgres + elasticsearch + mailpit
 #   npm run stack:up:stripe   # + Stripe CLI webhook forwarding (needs STRIPE_SECRET_KEY)
+#   npm run stack:full        # the whole app in containers (profile "full"): postgres, elasticsearch,
+#                             # mailpit, init jobs, web (storefront + API), worker, dagster
 #   npm run scan:zap          # OWASP ZAP baseline against the running app (profile "security")
 #   npm run test:load         # k6 load test against the running app (profile "load")
 #   npm run stack:observability  # Jaeger for traces, UI on :16686 (profile "observability")
@@ -114,6 +116,105 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # ---- Full stack (profile "full"): `npm run stack:full` --------------------------------------
+  # Everything runs in containers with the payment simulator, so no Stripe account is needed.
+  #   storefront + API  http://localhost:3000     (Next.js + Payload: pages, /api routes, admin)
+  #   Dagster UI        http://localhost:3070
+  #   Mailpit           http://localhost:8025
+  # Startup order: postgres -> migrate (schema + synthetic seed) -> web-init (Payload tables, demo
+  # users, search index) -> web, worker. Local-development credentials only.
+
+  # Applies db/migrations, loads the synthetic catalogue through the pipeline, then exits.
+  migrate:
+    build:
+      context: ..
+      dockerfile: infra/docker/pipeline.Dockerfile
+    image: grocery-pipeline
+    profiles: ["full"]
+    command: ["sh", "-c", "node /app/db/migrate.mjs && node /app/db/seed/seed.mjs"]
+    environment:
+      MIGRATION_DATABASE_URL: postgres://${POSTGRES_USER:-grocery_admin}:${POSTGRES_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-grocery}  # secret-scan:allow local-dev default
+      SEED_DATABASE_URL: postgres://${POSTGRES_USER:-grocery_admin}:${POSTGRES_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-grocery}  # secret-scan:allow local-dev default
+      INGEST_DATABASE_URL: postgres://ingest_rw:${INGEST_DB_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-grocery}  # secret-scan:allow local-dev default
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Dagster: the ingest jobs and schedules (UI and daemon in one process).
+  dagster:
+    image: grocery-pipeline
+    container_name: grocery-dagster
+    profiles: ["full"]
+    environment:
+      INGEST_DATABASE_URL: postgres://ingest_rw:${INGEST_DB_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-grocery}  # secret-scan:allow local-dev default
+      CATALOG_CONNECTOR: ${CATALOG_CONNECTOR:-fixture}
+    ports:
+      - "${DAGSTER_PORT:-3070}:3070"
+    volumes:
+      - grocery-dagster:/app/.dagster
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Creates the Payload tables (NODE_ENV=development lets Payload push its schema), the demo
+  # accounts and the first search index, then exits.
+  web-init:
+    build:
+      context: ../web/summerhill-commerce
+      dockerfile: ../../infra/docker/web.Dockerfile
+    image: grocery-web
+    profiles: ["full"]
+    env_file: ../web/summerhill-commerce/stack.env
+    environment:
+      <<: &web-env
+        DATABASE_URL: postgres://app_rw:${APP_DB_PASSWORD:-local_dev_only}@postgres:5432/payload  # secret-scan:allow local-dev default
+        CATALOG_DATABASE_URL: postgres://app_rw:${APP_DB_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-grocery}  # secret-scan:allow local-dev default
+        ELASTICSEARCH_URL: http://elasticsearch:9200
+        SMTP_HOST: mailpit
+        PAYLOAD_SECRET: ${PAYLOAD_SECRET:-local-dev-only-change-me-0123456789abcdef}
+        PAYMENT_PROVIDER: simulator
+        # Required by the config but never called while the simulator is on  # secret-scan:allow placeholder
+        STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder_not_used_by_simulator}  # secret-scan:allow placeholder
+        ALLOW_PAYMENT_SIMULATOR: "true"
+      NODE_ENV: development
+    command:
+      - sh
+      - -c
+      - node ./node_modules/payload/bin.js run src/scripts/seed-demo-users.ts && node ./node_modules/payload/bin.js run src/scripts/search-rebuild.ts
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      elasticsearch:
+        condition: service_healthy
+
+  # Storefront and API: the Next.js app (pages, /api routes, Payload admin at /admin).
+  web:
+    image: grocery-web
+    container_name: grocery-web
+    profiles: ["full"]
+    env_file: ../web/summerhill-commerce/stack.env
+    environment:
+      <<: *web-env
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      web-init:
+        condition: service_completed_successfully
+
+  # Background jobs: order processing, outbox, search sync, payouts (Postgres-backed queue).
+  worker:
+    image: grocery-web
+    container_name: grocery-worker
+    profiles: ["full"]
+    env_file: ../web/summerhill-commerce/stack.env
+    environment:
+      <<: *web-env
+    command: ["node", "./node_modules/tsx/dist/cli.mjs", "src/worker/main.ts"]
+    depends_on:
+      web-init:
+        condition: service_completed_successfully
+
 volumes:
+  grocery-dagster:
   grocery-pg:
   grocery-es:
