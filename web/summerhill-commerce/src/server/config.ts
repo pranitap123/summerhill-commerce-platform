@@ -42,6 +42,10 @@ const schema = z.object({
   // Who processes payments: Stripe (test mode), or the in-app payment simulator (G4-18) for the
   // end-to-end tests and demos without a Stripe account. The simulator is refused in production.
   PAYMENT_PROVIDER: z.enum(['stripe', 'simulator']).default('stripe'),
+  // Type of connected account created for a new merchant (ADR-0012). `custom` follows the project
+  // brief: the platform owns onboarding (test-mode company data, terms acceptance with the
+  // admin's IP). `express` uses Stripe-hosted onboarding (ADR-0011) and stays supported.
+  CONNECT_ACCOUNT_TYPE: z.enum(['custom', 'express']).default('custom'),
   // A production *build* running the simulator: only the end-to-end tests' local build sets this
   // (simulator-build.env). Without it, PAYMENT_PROVIDER=simulator is refused when NODE_ENV=production.
   ALLOW_PAYMENT_SIMULATOR: z

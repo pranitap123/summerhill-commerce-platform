@@ -2,7 +2,9 @@ import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
 import { NextRequest } from 'next/server'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+
+import { resetConfigForTests } from '@/server/config'
 
 import {
   ACCT,
@@ -848,6 +850,10 @@ describe('payouts (G5-07)', () => {
 // ================================================================================ G5-02
 describe('merchant onboarding and lifecycle (G5-02)', () => {
   let id: number
+  afterAll(() => {
+    delete process.env.CONNECT_ACCOUNT_TYPE
+    resetConfigForTests()
+  })
   it('creates a hidden draft merchant', async () => {
     const r = await admin(
       ADMIN,
@@ -880,7 +886,38 @@ describe('merchant onboarding and lifecycle (G5-02)', () => {
     ).toBe('SLUG_TAKEN')
   })
 
-  it('onboards through a Stripe-hosted Express link; status follows account.updated', async () => {
+  it('onboards a Custom account by default: terms recorded, status read at once (ADR-0012)', async () => {
+    const custom = await admin(
+      ADMIN,
+      'POST',
+      'merchants',
+      {},
+      {
+        slug: 'custom-market',
+        name: 'Custom Market',
+        location: { slug: 'main', name: 'Custom Market Main', city: 'Toronto', province: 'ON' },
+      },
+    )
+    const customId = custom.body.merchant.id
+    const r = await admin(ADMIN, 'POST', 'merchants/[id]/onboarding-link', { id: customId })
+    expect(r.status, JSON.stringify(r.body)).toBe(200)
+    expect(r.body.url).toMatch(/\/ops\/merchants\/\d+\?onboarding=done$/)
+    expect(stripe.customAccountRequests).toHaveLength(1)
+    const again = await admin(ADMIN, 'POST', 'merchants/[id]/onboarding-link', { id: customId })
+    expect(again.body.accountId).toBe(r.body.accountId) // one account per merchant
+    expect(stripe.customAccountRequests).toHaveLength(1)
+    expect(
+      (await admin(SUPPORT, 'GET', 'merchants/[id]', { id: customId })).body.merchant,
+    ).toMatchObject({
+      stripe_account_type: 'custom',
+      onboarding_status: 'verified',
+      charges_enabled: true,
+    })
+  })
+
+  it('onboards through a Stripe-hosted Express link when CONNECT_ACCOUNT_TYPE=express', async () => {
+    process.env.CONNECT_ACCOUNT_TYPE = 'express'
+    resetConfigForTests()
     const r = await admin(ADMIN, 'POST', 'merchants/[id]/onboarding-link', { id })
     expect(r.status, JSON.stringify(r.body)).toBe(200)
     expect(r.body.url).toMatch(/^https:\/\/connect\.stripe\.test\//)

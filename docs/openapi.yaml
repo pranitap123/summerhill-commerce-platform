@@ -3118,7 +3118,8 @@ paths:
                 $ref: "#/components/schemas/Error"
   /api/admin/merchants/{id}/onboarding-link:
     post:
-      summary: Express account + Stripe-hosted onboarding link
+      summary: Create the connected account (Custom by default, Express optional) and
+        return the onboarding URL
       description: "Permission `merchants.manage` (roles: admin). Staff session with a
         verified second factor; mutations are audited."
       security:

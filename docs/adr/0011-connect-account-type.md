@@ -1,6 +1,6 @@
 # ADR-0011: Stripe Connect account type
 
-- Status: **Accepted** (G5-02, 2026-09-28)
+- Status: **Accepted** (G5-02, 2026-09-28); the default account type was changed to Custom by [ADR-0012](0012-custom-accounts-by-default.md)
 - Date: 2026-09-27 (proposed), 2026-09-28 (decided)
 
 ## Context

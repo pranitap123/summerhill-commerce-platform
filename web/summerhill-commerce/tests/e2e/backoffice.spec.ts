@@ -72,7 +72,7 @@ test('support refunds a damaged line within their limit; the customer sees it', 
   await expect(page.getByText('Refunded $9.39')).toBeVisible()
 })
 
-test('admin onboards a merchant with Stripe-hosted onboarding (simulated); go-live stays gated', async ({
+test('admin onboards a merchant with a Custom connected account (simulated); go-live stays gated', async ({
   browser,
   baseURL,
 }) => {
@@ -89,14 +89,10 @@ test('admin onboards a merchant with Stripe-hosted onboarding (simulated); go-li
   await expect(admin.getByRole('heading', { level: 1 })).toContainText('draft')
 
   await admin.getByRole('button', { name: 'Start onboarding' }).click()
-  await admin.waitForURL(/\/simulator\/onboarding\/acct_sim_/)
-  await admin.getByRole('button', { name: 'Agree and submit (test)' }).click()
+  // Custom accounts (ADR-0012, the default): no hosted page; the account is created with test
+  // company data and its status is read straight away.
   await admin.waitForURL(/onboarding=done/)
-  // account.updated goes through the webhook store and the worker
-  await expect(async () => {
-    await admin.reload()
-    await expect(admin.getByText('verified', { exact: true })).toBeVisible({ timeout: 2_000 })
-  }).toPass({ timeout: 60_000 })
+  await expect(admin.getByText('verified', { exact: true })).toBeVisible()
 
   await admin.getByRole('button', { name: 'Go live' }).click()
   await expect(alertOf(admin)).toContainText('No published catalogue')

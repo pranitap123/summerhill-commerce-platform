@@ -231,7 +231,7 @@ export const G5_OPERATIONS: G5Operation[] = [
     'post',
     '/merchants/{id}/onboarding-link',
     'merchants.manage',
-    'Express account + Stripe-hosted onboarding link',
+    'Create the connected account (Custom by default, Express optional) and return the onboarding URL',
     { params: s.idParam },
   ),
   a(

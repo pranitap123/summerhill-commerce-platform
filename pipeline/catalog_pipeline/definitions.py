@@ -5,11 +5,13 @@
 - catalog_delta: every 15 min during store hours (07:00–21:45 ET): prices, promotions, availability
 - catalog_full:  nightly at 03:00 ET: all fields; deactivates products missing from the feed
 
-Search sync is not a Dagster job: ingest writes `product.changed` to the outbox and the web app's
-worker updates Elasticsearch and rebuilds the index nightly (ADR-0007, ADR-0008).
+Each job ingests into Postgres, then syncs the changed products into Elasticsearch (`sync_search`).
+The web app's worker also updates Elasticsearch from the outbox and rebuilds the index nightly
+(ADR-0007, ADR-0008); both writes are idempotent upserts, so they agree.
 """
 
 import os
+from datetime import datetime, timedelta, timezone
 
 from dagster import (
     Definitions,
@@ -27,6 +29,7 @@ from dagster import (
 from .connectors import get_connector
 from .ingest import run_ingest
 from .requests import pending_count, process_requests
+from .search_sync import sync_search
 from .settings import settings
 
 TIMEZONE = "America/Toronto"
@@ -36,6 +39,7 @@ def _ingest(context: OpExecutionContext, mode: str) -> dict:
     s = settings()
     if not s.database_url:
         raise Failure("INGEST_DATABASE_URL is not set")
+    started = datetime.now(timezone.utc) - timedelta(minutes=1)
     result = run_ingest(s.database_url, get_connector(s.connector, os.environ), s.merchant_slug, s.location_slug, mode)
     context.log.info(f"ingest run {result.run_id}: {result.summary()}")
     if result.status == "failed":
@@ -46,7 +50,20 @@ def _ingest(context: OpExecutionContext, mode: str) -> dict:
             f"ingest run {result.run_id} HELD for approval: {result.anomalies}. "
             f"Approve with `python -m catalog_pipeline approve {result.run_id} --by <name>`"
         )
-    return result.summary()
+    return {**result.summary(), "started_at": started.isoformat()}
+
+
+@op
+def sync_search_index(context: OpExecutionContext, ingest: dict) -> dict:
+    """Upserts what the ingest run changed into Elasticsearch (skipped when the run was held)."""
+    s = settings()
+    if ingest.get("status") == "held":
+        context.log.warning("ingest was held for approval; search not synced")
+        return {"status": "skipped", "reason": "ingest held"}
+    since = datetime.fromisoformat(ingest["started_at"]) if ingest.get("started_at") else None
+    result = sync_search(s.database_url, s.elasticsearch_url, s.search_alias, since)
+    context.log.info(f"search sync: {result}")
+    return result
 
 
 @op
@@ -61,12 +78,12 @@ def ingest_full(context: OpExecutionContext) -> dict:
 
 @job(description="Delta sync: prices, promotions and availability")
 def catalog_delta():
-    ingest_delta()
+    sync_search_index(ingest_delta())
 
 
 @job(description="Full sync: all fields; deactivates products missing from the feed")
 def catalog_full():
-    ingest_full()
+    sync_search_index(ingest_full())
 
 
 delta_schedule = ScheduleDefinition(

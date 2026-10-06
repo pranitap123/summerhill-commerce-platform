@@ -236,6 +236,19 @@ export class FakeStripe implements PaymentGateway {
       return { id }
     })
   }
+  /** Stripe test mode verifies a Custom account at once when given the documented test values. */
+  customAccountRequests: Array<{ tosIp: string | null; tosUserAgent: string | null }> = []
+  async createCustomAccount(
+    params: { merchantId: number; name: string; tosIp: string | null; tosUserAgent: string | null },
+    key: string,
+  ) {
+    return this.once(key, () => {
+      this.customAccountRequests.push({ tosIp: params.tosIp, tosUserAgent: params.tosUserAgent })
+      const id = `acct_test_${++this.seq}`
+      this.accounts.set(id, { charges: true, payouts: true, available: 0, interval: 'daily' })
+      return { id }
+    })
+  }
   async createOnboardingLink(accountId: string) {
     return `https://connect.stripe.test/setup/${accountId}`
   }

@@ -2,6 +2,8 @@ import Stripe from 'stripe'
 
 import { getConfig } from '@/server/config'
 
+import { testCompany, testTosAcceptance, DEMO_BUSINESS_URL } from '@/modules/merchant/stripeTestFixtures'
+
 import { simulatedGateway } from './simulator'
 import { getStripe } from './stripe'
 
@@ -119,6 +121,14 @@ export interface PaymentGateway {
   ): Promise<TransferReversalInfo>
   createExpressAccount(
     params: { merchantId: number; name: string },
+    idempotencyKey: string,
+  ): Promise<{ id: string }>
+  /**
+   * A Custom connected account (ADR-0012): the platform supplies the company details and the terms
+   * acceptance. Test mode uses Stripe's documented test values.
+   */
+  createCustomAccount(
+    params: { merchantId: number; name: string; tosIp: string | null; tosUserAgent: string | null },
     idempotencyKey: string,
   ): Promise<{ id: string }>
   createOnboardingLink(accountId: string, refreshUrl: string, returnUrl: string): Promise<string>
@@ -256,6 +266,23 @@ export const stripeGateway: PaymentGateway = {
         country: 'CA',
         capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
         business_profile: { name: params.name, mcc: '5411' },
+        metadata: { merchant_id: String(params.merchantId) },
+      },
+      { idempotencyKey },
+    )
+    return { id: account.id }
+  },
+  async createCustomAccount(params, idempotencyKey) {
+    if (!params.tosIp) throw new Error('Cannot record terms acceptance without the client IP')
+    const account = await getStripe().accounts.create(
+      {
+        type: 'custom',
+        country: 'CA',
+        business_type: 'company',
+        capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+        business_profile: { name: params.name, url: DEMO_BUSINESS_URL, mcc: '5411' },
+        company: testCompany(params.name),
+        tos_acceptance: testTosAcceptance(params.tosIp, params.tosUserAgent),
         metadata: { merchant_id: String(params.merchantId) },
       },
       { idempotencyKey },

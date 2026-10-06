@@ -26,7 +26,7 @@ This project is a reference implementation published on GitHub, not a business (
 | [domains/PAYMENTS_AND_MONEY](domains/PAYMENTS_AND_MONEY.md) | Design + current | Charge model, hold and capture, fees, tax, refunds, disputes, payouts, ledger, reconciliation |
 | [domains/ORDERS_AND_FULFILMENT](domains/ORDERS_AND_FULFILMENT.md) | Current | Order states, picking, replacements, handover, liability matrix |
 | [domains/CATALOG_AND_SEARCH](domains/CATALOG_AND_SEARCH.md) | Current | Catalogue model, ingestion, anomaly guard, search |
-| [adr/](adr/) | Current | Decision records 0001–0011 with their status |
+| [adr/](adr/) | Current | Decision records 0001–0012 with their status |
 | [openapi.yaml](openapi.yaml) | Current | The HTTP API (generated: `npm run openapi --prefix web/summerhill-commerce`) |
 
 ## Quality and operations

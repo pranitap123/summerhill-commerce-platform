@@ -15,7 +15,7 @@ extract → normalise → quality rules ──bad rows──> ops.ingest_quarant
                        outbox product.changed / catalog.ingested
 ```
 
-The web app's worker consumes the outbox: it updates Elasticsearch and revalidates storefront pages. The pipeline never talks to Elasticsearch.
+After each Dagster run, the `sync_search_index` step upserts the changed products into Elasticsearch (`catalog_pipeline/search_sync.py`: partial upserts to the live alias, so the web app's popularity values are kept). The web app's worker also consumes the outbox, updates Elasticsearch and revalidates storefront pages; both writes are idempotent. The index itself (mapping, analysers, nightly rebuild and alias swap) belongs to the web app (`npm run search:rebuild`); with no index the sync step reports "skipped".
 
 ## Setup and commands (from the repo root)
 
@@ -37,7 +37,9 @@ Configuration comes from the environment only (`infra/local.env` for the root sc
 | Variable | Default | Meaning |
 |---|---|---|
 | `INGEST_DATABASE_URL` | (required) | Postgres URL of the `ingest_rw` role |
-| `CATALOG_CONNECTOR` | `fixture` | `fixture` or `homesome_api` |
+| `CATALOG_CONNECTOR` | `fixture` | `fixture`, `scraped_json` (the Stage 1 scraper's output, [docs/SCRAPER.md](../docs/SCRAPER.md)) or `homesome_api` |
+| `SCRAPED_JSON_PATH` | `scraped.json` in the repo root | The scraper output the `scraped_json` connector reads |
+| `ELASTICSEARCH_URL`, `SEARCH_INDEX_ALIAS` | `http://localhost:9200`, `catalog-products` | Where `sync_search_index` writes |
 | `CATALOG_MERCHANT_SLUG` / `CATALOG_LOCATION_SLUG` | `demo-market` / `downtown` | whose catalogue the run loads |
 | `CATALOG_FIXTURE_PATH` | `db/seed/catalog.fixture.json` | feed for the fixture connector |
 | `CATALOG_FIXTURE_FRACTION` | (all) | demo/test knob: only the first part of the fixture feed, e.g. `0.5`, to show the anomaly guard holding a run |

@@ -12,6 +12,12 @@ node scripts/scraper.js                      # writes ./scraped.json
 node scripts/scraper.js --out data/run1.json # or choose the path (also OUTPUT_PATH)
 ```
 
+Feed it to the pipeline (Postgres, then Elasticsearch) with the `scraped_json` connector:
+
+```bash
+CATALOG_CONNECTOR=scraped_json SCRAPED_JSON_PATH=scraped.json npm run pipeline:ingest   # or run it from Dagster
+```
+
 Re-running is safe: it overwrites the output file (written to a temp file, then renamed, so a failed
 run never leaves a half-written file). Tests: `npm run test:scraper`.
 

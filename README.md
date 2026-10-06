@@ -90,7 +90,7 @@ npm run stack:down        # stop (`npm run stack:reset` also deletes the data)
 | http://localhost:9200 | Elasticsearch ([sample queries](docs/SEARCH_QUERIES.md)) |
 | localhost:5433 | Postgres |
 
-Demo accounts are in [Demo accounts](#demo-accounts); the walkthrough is [docs/DEMO.md](docs/DEMO.md). The setup is in [infra/docker-compose.yml](infra/docker-compose.yml) (profile `full`) and [infra/docker/](infra/docker/).
+Demo accounts are in [Demo accounts](#demo-accounts); the walkthrough is [docs/DEMO.md](docs/DEMO.md). The containers and a local `npm run dev:sim` share the same databases but use different `PAYLOAD_SECRET` values, which seal the staff two-step codes: when you switch from one to the other, run `npm run seed:users --prefix web/summerhill-commerce` once (or set the same `PAYLOAD_SECRET` for both). The setup is in [infra/docker-compose.yml](infra/docker-compose.yml) (profile `full`) and [infra/docker/](infra/docker/).
 
 ### Without Docker for the app (development)
 
@@ -164,7 +164,7 @@ Results of the quality, security and performance checks are in [TESTING §2.1](d
 
 ## Scraper and catalogue data
 
-[`scripts/scraper.js`](scripts/scraper.js) fetches a storefront's product list and writes it grouped by category and subcategory, with retries and backoff. Setup, output format, re-run instructions and assumptions are in [docs/SCRAPER.md](docs/SCRAPER.md); a synthetic sample of the output is [docs/samples/scraped.sample.json](docs/samples/scraped.sample.json). Scraped data is never committed. The demo runs on a **synthetic** catalogue loaded through the same pipeline, and the pipeline's `homesome_api` connector reads real feeds.
+[`scripts/scraper.js`](scripts/scraper.js) fetches a storefront's product list and writes it grouped by category and subcategory, with retries and backoff. Setup, output format, re-run instructions and assumptions are in [docs/SCRAPER.md](docs/SCRAPER.md); a synthetic sample of the output is [docs/samples/scraped.sample.json](docs/samples/scraped.sample.json). Scraped data is never committed. The demo runs on a **synthetic** catalogue loaded through the same pipeline. The pipeline's `scraped_json` connector reads the scraper's output (`CATALOG_CONNECTOR=scraped_json`), and each Dagster run loads Postgres and then syncs Elasticsearch.
 
 ## How money moves (Stripe)
 
@@ -174,7 +174,7 @@ Results of the quality, security and performance checks are in [TESTING §2.1](d
 4. **Commission** on the final item subtotal after promotions: **20%** under $50, **15%** from $50 to $100 inclusive, **10%** over $100. The merchant receives the captured total minus the fee, so the parts always add up to the whole.
 5. **Payouts:** each merchant's payout schedule is set through the Stripe API. Refunds, disputes and every cent are recorded in a double-entry ledger and reconciled against Stripe.
 
-A second flow, **separate charge and transfer** (the platform charges the customer, then transfers the merchant's share), is kept as a demo route for baskets that span merchants; the trade-offs are in [ADR-0005](docs/adr/0005-charge-model.md). Connected accounts are Express by default; Custom accounts are supported ([ADR-0011](docs/adr/0011-connect-account-type.md)). Details: [PAYMENTS_AND_MONEY](docs/domains/PAYMENTS_AND_MONEY.md).
+A second flow, **separate charge and transfer** (the platform charges the customer, then transfers the merchant's share), is kept as a demo route for baskets that span merchants; the trade-offs are in [ADR-0005](docs/adr/0005-charge-model.md). Connected accounts are **Custom** by default, as the brief asks, and Express (Stripe-hosted onboarding) is one setting away (`CONNECT_ACCOUNT_TYPE`; [ADR-0012](docs/adr/0012-custom-accounts-by-default.md), [ADR-0011](docs/adr/0011-connect-account-type.md)). Details: [PAYMENTS_AND_MONEY](docs/domains/PAYMENTS_AND_MONEY.md).
 
 ## Search design
 

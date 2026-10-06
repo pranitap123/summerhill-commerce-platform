@@ -270,6 +270,7 @@ type BackOffice = Pick<
   | 'refund'
   | 'reverseTransfer'
   | 'createExpressAccount'
+  | 'createCustomAccount'
   | 'createOnboardingLink'
   | 'retrieveAccount'
   | 'retrieveBalance'
@@ -364,6 +365,27 @@ export function simulatedBackOffice(serverUrl: string): BackOffice {
           name: params.name,
           chargesEnabled: false,
           payoutsEnabled: false,
+          availableCents: 0,
+          pendingCents: 0,
+          payoutInterval: 'daily',
+          returnUrl: null,
+          refreshUrl: null,
+        }
+        await save(tx, 'account', account.id, account)
+        return { id: account.id }
+      })
+    },
+
+    // Stripe test mode verifies a Custom account at once when it is given the documented test
+    // values, so the simulated account starts enabled.
+    async createCustomAccount(params, idempotencyKey) {
+      return idempotent(`account:${idempotencyKey}`, async (tx) => {
+        const account: SimAccount = {
+          id: newId('acct'),
+          merchantId: params.merchantId,
+          name: params.name,
+          chargesEnabled: true,
+          payoutsEnabled: true,
           availableCents: 0,
           pendingCents: 0,
           payoutInterval: 'daily',

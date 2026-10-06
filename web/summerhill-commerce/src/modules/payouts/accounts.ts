@@ -12,11 +12,16 @@ import { getDb } from '@/server/db'
 import { HttpError } from '@/server/http'
 
 /**
- * Merchant onboarding (G5-02, ADR-0011): Stripe **Express** accounts with Stripe-hosted
- * onboarding (Account Links). KYC, bank details and terms acceptance happen on Stripe's pages,
- * so bank changes never go through our UI (threat T14). Status follows `account.updated`
- * webhooks; `refreshAccountStatus` is the manual "check now".
- * With the payment simulator the link goes to /simulator/onboarding/{account}.
+ * Merchant onboarding (G5-02, ADR-0012, ADR-0011). CONNECT_ACCOUNT_TYPE picks the account type
+ * for a new merchant:
+ *  - `custom` (default, as the brief asks): the platform creates a Custom account with Stripe's
+ *    test company data and records terms acceptance with the admin's IP; there is no hosted page,
+ *    so the returned URL is the merchant page and the status is read straight away.
+ *  - `express`: Stripe-hosted onboarding (Account Links). KYC, bank details and terms happen on
+ *    Stripe's pages, so bank changes never go through our UI (threat T14). With the payment
+ *    simulator the link goes to /simulator/onboarding/{account}.
+ * An existing account keeps its type. Status follows `account.updated` webhooks;
+ * `refreshAccountStatus` is the manual "check now".
  */
 export async function startOnboarding(
   ctx: AuditContext,
@@ -27,22 +32,52 @@ export async function startOnboarding(
   if (merchant.lifecycle_status === 'offboarded')
     throw new HttpError(409, 'LIFECYCLE_CONFLICT', 'This merchant is offboarded')
   const gateway = getGateway()
+  const config = getConfig()
+  const type = merchant.stripe_account_id
+    ? (merchant.stripe_account_type ?? 'express')
+    : config.CONNECT_ACCOUNT_TYPE
   let accountId = merchant.stripe_account_id
   if (!accountId) {
-    accountId = (
-      await gateway.createExpressAccount(
-        { merchantId, name: merchant.name },
-        `express-account:merchant:${merchantId}`,
-      )
-    ).id
-    await setStripeAccount(merchantId, accountId, 'express')
+    if (type === 'custom') {
+      if (!ctx.ip && config.PAYMENT_PROVIDER === 'stripe')
+        throw new HttpError(
+          400,
+          'CLIENT_IP_UNKNOWN',
+          'Cannot determine the client IP for terms acceptance',
+        )
+      accountId = (
+        await gateway.createCustomAccount(
+          {
+            merchantId,
+            name: merchant.name,
+            tosIp: ctx.ip ?? null,
+            tosUserAgent: ctx.userAgent ?? null,
+          },
+          `custom-account:merchant:${merchantId}`,
+        )
+      ).id
+    } else {
+      accountId = (
+        await gateway.createExpressAccount(
+          { merchantId, name: merchant.name },
+          `express-account:merchant:${merchantId}`,
+        )
+      ).id
+    }
+    await setStripeAccount(merchantId, accountId, type)
   }
-  const base = `${getConfig().NEXT_PUBLIC_SERVER_URL}/ops/merchants/${merchantId}`
-  const url = await gateway.createOnboardingLink(
-    accountId,
-    `${base}?onboarding=refresh`,
-    `${base}?onboarding=done`,
-  )
+  const base = `${config.NEXT_PUBLIC_SERVER_URL}/ops/merchants/${merchantId}`
+  let url: string
+  if (type === 'custom') {
+    await refreshAccountStatus(merchantId)
+    url = `${base}?onboarding=done`
+  } else {
+    url = await gateway.createOnboardingLink(
+      accountId,
+      `${base}?onboarding=refresh`,
+      `${base}?onboarding=done`,
+    )
+  }
   await audit(getDb(), {
     ...ctx,
     action: 'merchant.onboarding_link',

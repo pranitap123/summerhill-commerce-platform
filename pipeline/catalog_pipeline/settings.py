@@ -11,6 +11,8 @@ class Settings:
     connector: str
     merchant_slug: str
     location_slug: str
+    elasticsearch_url: str
+    search_alias: str
 
 
 def settings() -> Settings:
@@ -19,4 +21,6 @@ def settings() -> Settings:
         connector=os.environ.get("CATALOG_CONNECTOR", "fixture"),
         merchant_slug=os.environ.get("CATALOG_MERCHANT_SLUG", "demo-market"),
         location_slug=os.environ.get("CATALOG_LOCATION_SLUG", "downtown"),
+        elasticsearch_url=os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200"),
+        search_alias=os.environ.get("SEARCH_INDEX_ALIAS", "catalog-products"),
     )

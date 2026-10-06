@@ -148,6 +148,7 @@ services:
     environment:
       INGEST_DATABASE_URL: postgres://ingest_rw:${INGEST_DB_PASSWORD:-local_dev_only}@postgres:5432/${POSTGRES_DB:-grocery}  # secret-scan:allow local-dev default
       CATALOG_CONNECTOR: ${CATALOG_CONNECTOR:-fixture}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
     ports:
       - "${DAGSTER_PORT:-3070}:3070"
     volumes:
