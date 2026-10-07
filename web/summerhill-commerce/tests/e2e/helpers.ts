@@ -31,7 +31,11 @@ export async function payWith(page: Page, card: string): Promise<void> {
 /** After a successful payment: the order page, once the worker has placed the order. */
 export async function placedOrder(page: Page): Promise<{ publicId: string; code: string }> {
   await page.waitForURL(/\/orders\/SH-[0-9A-Z]{6}/)
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Order placed')
+  // The first order of a run waits on a cold worker and webhook route: over a minute on a 2-core
+  // CI runner (later ones take seconds), so allow more than the default expect timeout.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Order placed', {
+    timeout: 4 * 60_000,
+  })
   const publicId = page.url().match(/SH-[0-9A-Z]{6}/)![0]
   const code = (await page.locator('strong.font-mono').textContent())!.trim()
   expect(code).toMatch(/^\d{6}$/)
