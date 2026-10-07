@@ -1,6 +1,7 @@
 import { Pool, type PoolClient } from 'pg'
 
 import { getConfig } from './config'
+import { getLogger } from './logger'
 
 /**
  * The single Postgres pool for the marketplace modules (G1-05). Replaces src/lib/catalogDb.ts,
@@ -22,6 +23,15 @@ export function getDb(): Pool {
       connectionTimeoutMillis: config.DB_CONNECT_TIMEOUT_MS,
       options:
         '-c search_path=catalog,merchant,commerce,finance,ops,public -c statement_timeout=10000',
+    })
+    // An idle connection the server drops (restart, failover, a forced DROP DATABASE in tests)
+    // is emitted as an 'error' on the pool; with no listener Node treats it as an uncaught
+    // exception and the process dies. The pool discards the client and opens a new one on demand.
+    pool.on('error', (err) => {
+      getLogger().warn(
+        { err: err.message },
+        'idle postgres connection lost; the pool will reconnect',
+      )
     })
   }
   return pool
