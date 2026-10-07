@@ -1,8 +1,7 @@
 import Stripe from 'stripe'
 
+import { stripeTestFixtures } from '@/modules/merchant'
 import { getConfig } from '@/server/config'
-
-import { testCompany, testTosAcceptance, DEMO_BUSINESS_URL } from '@/modules/merchant/stripeTestFixtures'
 
 import { simulatedGateway } from './simulator'
 import { getStripe } from './stripe'
@@ -280,9 +279,13 @@ export const stripeGateway: PaymentGateway = {
         country: 'CA',
         business_type: 'company',
         capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
-        business_profile: { name: params.name, url: DEMO_BUSINESS_URL, mcc: '5411' },
-        company: testCompany(params.name),
-        tos_acceptance: testTosAcceptance(params.tosIp, params.tosUserAgent),
+        business_profile: {
+          name: params.name,
+          url: stripeTestFixtures.DEMO_BUSINESS_URL,
+          mcc: '5411',
+        },
+        company: stripeTestFixtures.testCompany(params.name),
+        tos_acceptance: stripeTestFixtures.testTosAcceptance(params.tosIp, params.tosUserAgent),
         metadata: { merchant_id: String(params.merchantId) },
       },
       { idempotencyKey },

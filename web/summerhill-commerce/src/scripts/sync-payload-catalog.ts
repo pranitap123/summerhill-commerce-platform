@@ -33,7 +33,7 @@ async function main() {
   )
   const context = { [FROM_SYNC]: true }
 
-  const categoryIds = new Map<string, number | string>()
+  const categoryIds = new Map<string, number>()
   for (const r of rows) {
     if (categoryIds.has(r.category_slug)) continue
     const found = await payload.find({
@@ -84,7 +84,9 @@ async function main() {
       created++
     }
   }
-  console.log(`sync-payload-catalog: ${created} created, ${updated} updated, ${categoryIds.size} categories`)
+  console.log(
+    `sync-payload-catalog: ${created} created, ${updated} updated, ${categoryIds.size} categories`,
+  )
 }
 
 try {
