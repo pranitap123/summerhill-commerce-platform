@@ -104,6 +104,7 @@ npm run stack:up                                          # Postgres :5433, Elas
 npm run db:setup                                          # migrations + synthetic catalogue (via the pipeline)
 cp web/summerhill-commerce/.env.example web/summerhill-commerce/.env   # then set PAYLOAD_SECRET (see the file)
 npm run seed:users --prefix web/summerhill-commerce       # demo accounts (below)
+npm run catalog:sync-payload --prefix web/summerhill-commerce # mirror products into the Payload admin (rename / out of stock)
 npm run search:rebuild --prefix web/summerhill-commerce   # build the search index
 npm run dev:sim --prefix web/summerhill-commerce          # http://localhost:3000 with the payment simulator
 npm run worker:sim --prefix web/summerhill-commerce       # second terminal: webhooks, captures, emails, schedules
@@ -213,7 +214,7 @@ web/summerhill-commerce/   Next.js 16 + Payload 3 app
   src/app/            storefront, (console) merchant console, (ops) back office, api
   src/scripts/        seed users, search rebuild, ops commands
   tests/              unit, authz matrix, integration (real Postgres), e2e (Playwright)
-dagster/, scripts/    legacy prototype scripts (stages 1–2), superseded by pipeline/
+scripts/               legacy prototype scripts (stages 1–2), superseded by pipeline/
 ```
 
 ## Security
