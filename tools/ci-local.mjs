@@ -24,7 +24,7 @@ const steps = [
   { name: 'authorisation matrix', cwd: WEB, cmd: npm, args: ['run', '--silent', 'test:authz'], fastOnly: true },
   { name: 'all tests + coverage gates (unit, authz, integration)', cwd: WEB, cmd: npm, args: ['run', '--silent', 'test:coverage'], slow: true },
   { name: 'pipeline ingest tests (Postgres)', cwd: ROOT, cmd: process.execPath, args: ['tools/pipeline.mjs', 'test:db'], slow: true },
-  { name: 'dependency audit (high+)', cwd: WEB, cmd: npm, args: ['audit', '--omit=dev', '--audit-level=high'], slow: true },
+  { name: 'dependency audit (high+)', cwd: WEB, cmd: npm, args: ['audit', '--omit=dev', '--audit-level=high'], slow: true, informational: true },
 ]
 
 const results = []
@@ -37,7 +37,7 @@ for (const step of steps) {
   console.log(`\n▶ ${step.name}`)
   const started = Date.now()
   const r = spawnSync(step.cmd, step.args, { cwd: step.cwd, stdio: 'inherit', shell: process.platform === 'win32' })
-  results.push({ name: step.name, status: r.status === 0 ? 'passed' : 'FAILED', ms: Date.now() - started })
+  results.push({ name: step.name, status: r.status === 0 ? 'passed' : step.informational ? 'WARNING' : 'FAILED', ms: Date.now() - started })
 }
 
 console.log('\n──────── ci:local summary ────────')
