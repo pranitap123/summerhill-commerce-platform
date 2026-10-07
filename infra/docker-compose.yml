@@ -69,7 +69,7 @@ services:
       listen
       --forward-to http://host.docker.internal:3000/api/webhooks/stripe
       --forward-connect-to http://host.docker.internal:3000/api/webhooks/stripe-connect
-      --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.expired,payment_intent.canceled,payment_intent.payment_failed,account.updated
+      --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.expired,payment_intent.canceled,payment_intent.payment_failed,account.updated,refund.updated,refund.failed,charge.refund.updated,charge.dispute.created,charge.dispute.updated,charge.dispute.closed,charge.dispute.funds_reinstated,payout.created,payout.updated,payout.paid,payout.failed,payout.canceled
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

@@ -1,6 +1,6 @@
 # Grocery Marketplace: reference implementation
 
-<!-- CI badges are added at publication (pre-publish checklist, step 8), once GitHub Actions has run. -->
+[![CI](https://github.com/pranitap123/summerhill-commerce-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/pranitap123/summerhill-commerce-platform/actions/workflows/ci.yml) [![CodeQL](https://github.com/pranitap123/summerhill-commerce-platform/actions/workflows/codeql.yml/badge.svg)](https://github.com/pranitap123/summerhill-commerce-platform/actions/workflows/codeql.yml)
 
 > **Disclaimer:** this is an independent demonstration project. It is **not affiliated with, endorsed by or operated on behalf of Summerhill Market** or any other retailer named in it. Payments run in **Stripe test mode** only (or in the built-in payment simulator); no real orders are placed and no real money moves. All catalogue data is **synthetic**. © 2026 Pranita Panchal, all rights reserved (see [LICENSE](LICENSE)).
 
@@ -118,7 +118,22 @@ Upgrading a local database from before G2: run `npm run db:migrate` and `npm run
 
 ### With Stripe test mode
 
-Put an `sk_test_…` key in `.env` (live keys are refused at startup), run `dev:stack` and `worker` instead of the `:sim` variants, and forward webhooks with `npm run stack:up:stripe`; put the printed `whsec_…` secret into `.env` as `STRIPE_WEBHOOKS_SIGNING_SECRET`.
+This is the setup the brief describes: your own Stripe **sandbox** is the platform, and each merchant is a **Custom connected account** created through the API. The payment simulator above is the no-account alternative; CI and the automated journeys use it because they cannot reach Stripe.
+
+1. **Stripe sandbox.** In the [Stripe Dashboard](https://dashboard.stripe.com/) create a sandbox (test mode) account and turn on **Connect** (platform; Custom connected accounts, country Canada). Copy the secret key `sk_test_…` (live keys are refused at startup).
+2. **Keys.** Put it in `web/summerhill-commerce/.env` as `STRIPE_SECRET_KEY` (and the publishable key as `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`). Do not set `PAYMENT_PROVIDER`: it defaults to `stripe`. `.env` is git-ignored; never commit a key.
+3. **Webhooks.** The Stripe CLI container forwards events (checkout, refunds, disputes, payouts, account updates) to the app. Docker Compose reads the key from your shell, not from `.env`:
+   ```bash
+   export STRIPE_SECRET_KEY=sk_test_...   # PowerShell: $env:STRIPE_SECRET_KEY = 'sk_test_...'
+   npm run stack:up:stripe                # also starts Postgres, Elasticsearch and Mailpit
+   docker logs grocery-stripe-cli         # prints: Your webhook signing secret is whsec_...
+   ```
+   Put that `whsec_…` value into `.env` as `STRIPE_WEBHOOKS_SIGNING_SECRET` (one secret signs both platform and Connect events here).
+4. **Run** `npm run dev:stack --prefix web/summerhill-commerce` and, in a second terminal, `npm run worker --prefix web/summerhill-commerce` (the `:sim` variants are the simulator).
+5. **Create the merchant's Stripe account.** Sign in to `/ops` as `admin@example.com` (with the two-step code), open **Merchants**, and create the Custom connected account for the demo store. The account id is stored in the merchant row, and the merchant stays hidden from shoppers. Charges are only accepted once Stripe reports the account verified, and the console shows its real status.
+6. **Order.** Shop as a guest and pay on the hosted Stripe Checkout page with `4242 4242 4242 4242`. The Dashboard (test mode) shows the PaymentIntent as **uncaptured**; after the store completes picking, the worker captures the final amount, the merchant's connected balance receives the total minus the platform fee, and the fee stays in the platform balance.
+
+Webhook handling is idempotent, so replaying events is safe (`npm run ops --prefix web/summerhill-commerce -- webhook:replay <event id>`).
 
 ### Test cards
 
