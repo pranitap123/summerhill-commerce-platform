@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url'
 import { Categories } from '@/collections/Categories'
 import { Media } from '@/collections/Media'
 import { Pages } from '@/collections/Pages'
+import { Products } from '@/collections/Products'
 import { Users } from '@/collections/Users'
 import { parseMailFrom } from '@/collections/Users/auth'
 import { Footer } from '@/globals/Footer'
@@ -43,7 +44,7 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Users, Pages, Categories, Media],
+  collections: [Users, Pages, Categories, Products, Media],
   // G6-01: Payload accepts its session cookie only on requests from our own origin (CSRF), and
   // answers cross-origin API calls from nobody else.
   serverURL: getConfig().NEXT_PUBLIC_SERVER_URL,

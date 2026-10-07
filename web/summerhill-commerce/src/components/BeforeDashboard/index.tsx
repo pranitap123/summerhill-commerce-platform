@@ -5,77 +5,37 @@ import './index.scss'
 
 const baseClass = 'before-dashboard'
 
+// Products are not a Payload collection (ADR-0004): the catalogue is ingest-owned and edited
+// through overrides in the ops console. This panel is the Payload admin's door to it.
 export const BeforeDashboard: React.FC = () => {
   return (
     <div className={baseClass}>
       <Banner className={`${baseClass}__banner`} type="success">
-        <h4>Welcome to your dashboard!</h4>
+        <h4>Summerhill admin</h4>
       </Banner>
-      Here&apos;s what to do next:
+      This panel manages content, users and media. Everything commercial lives in the ops console:
       <ul className={`${baseClass}__instructions`}>
         <li>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/">Visit your website</a>
-          {' to see the storefront.'}
+          <a href="/ops/catalog">Products and prices</a>
+          {' (edit overrides, hide or restore items; ingest never overwrites them).'}
         </li>
         <li>
-          {'Head over to '}
-          <a
-            href="https://dashboard.stripe.com/test/apikeys"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Stripe to obtain your API Keys
-          </a>
-          {
-            '. Create a new account if needed, then copy them into your environment variables and restart your server. See the '
-          }
-          <a
-            href="https://github.com/payloadcms/payload/blob/3.x/templates/ecommerce/README.md#stripe"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            README
-          </a>
-          {' for more details.'}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/ops/merchants">Merchants</a>
+          {', '}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/ops/orders">orders</a>
+          {', '}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/ops/payouts">payouts</a>
+          {' and refunds.'}
         </li>
         <li>
-          {'Modify your '}
-          <a
-            href="https://payloadcms.com/docs/configuration/collections"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            collections
-          </a>
-          {' and add more '}
-          <a
-            href="https://payloadcms.com/docs/fields/overview"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            fields
-          </a>
-          {' as needed. If you are new to Payload, we also recommend you check out the '}
-          <a
-            href="https://payloadcms.com/docs/getting-started/what-is-payload"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Getting Started
-          </a>
-          {' docs.'}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/">Visit the storefront</a>
         </li>
       </ul>
-      {'Pro Tip: This block is a '}
-      <a
-        href="https://payloadcms.com/docs/admin/components#base-component-overrides"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        custom component
-      </a>
-      , you can remove it at any time by updating your <strong>payload.config</strong>.
     </div>
   )
 }

@@ -25,3 +25,10 @@ The app uses `CATALOG_DATABASE_URL` for the marketplace and `DATABASE_URL` for P
 - \+ Transactions across orders and ledger; one backup/restore story.
 - \+ Merchant/admin edits survive every re-ingest.
 - − Payload admin can't edit products; product management lives in our `/ops` console.
+
+## Update (2026-10-07): products and the Payload admin
+The brief says products are managed in the Payload admin. A free-standing Payload `Products` collection would be a second source of truth that ingest overwrites, so it is a **thin view of the catalogue** instead:
+- `catalog.*` stays the system of record. `npm run catalog:sync-payload` (also run by `web-init` in Docker) mirrors every product and category into Payload; the catalogue wins on each run.
+- In the Payload admin, `title` and `stockStatus` are editable. Saving writes `catalog.product_overrides` (name, hidden) through `setProductOverride`, audited, which ingest never touches and search and the storefront read. Setting the title back to the source name and "in stock" removes the override.
+- Price, description, image, slug and category are mirrored read-only (ingest-owned). Products can't be created or deleted in Payload.
+- Payload `Categories` gains an optional `icon` (Media upload). The dashboard also links to `/ops/catalog`.

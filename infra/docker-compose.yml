@@ -181,7 +181,7 @@ services:
     command:
       - sh
       - -c
-      - node ./node_modules/payload/bin.js run src/scripts/seed-demo-users.ts && node ./node_modules/payload/bin.js run src/scripts/search-rebuild.ts
+      - node ./node_modules/payload/bin.js run src/scripts/seed-demo-users.ts && node ./node_modules/payload/bin.js run src/scripts/sync-payload-catalog.ts && node ./node_modules/payload/bin.js run src/scripts/search-rebuild.ts
     depends_on:
       migrate:
         condition: service_completed_successfully

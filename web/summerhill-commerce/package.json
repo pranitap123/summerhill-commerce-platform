@@ -29,6 +29,7 @@
     "seed:users": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/seed-demo-users.ts",
     "demo:totp": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/demo-totp.ts",
     "search:rebuild": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/search-rebuild.ts",
+    "catalog:sync-payload": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/sync-payload-catalog.ts",
     "ops": "cross-env NODE_OPTIONS=--no-deprecation node scripts/with-env.mjs stack.env ./node_modules/payload/bin.js run src/scripts/ops.ts",
     "openapi": "./node_modules/tsx/dist/cli.mjs scripts/generate-openapi.ts",
     "test:unit": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts tests/unit tests/authz",

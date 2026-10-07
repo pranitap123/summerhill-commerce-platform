@@ -70,6 +70,7 @@ export interface Config {
     users: User;
     pages: Page;
     categories: Category;
+    products: Product;
     media: Media;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -83,6 +84,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -138,8 +140,8 @@ export interface UserAuthOperations {
 export interface User {
   id: number;
   name?: string | null;
-  roles?: ('admin' | 'support' | 'finance' | 'customer')[] | null;
   defaultReplacementPreference?: ('best_match' | 'refund') | null;
+  roles?: ('admin' | 'support' | 'finance' | 'customer')[] | null;
   deactivatedAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -583,10 +585,55 @@ export interface Category {
   id: number;
   title: string;
   /**
+   * Optional icon or image for the category.
+   */
+  icon?: (number | null) | Media;
+  /**
    * When enabled, the slug will auto-generate from the title field on save and autosave.
    */
   generateSlug?: boolean | null;
   slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Rename a product or mark it out of stock. Prices and descriptions come from ingest.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  /**
+   * Owned by the catalogue ingest; shown here read-only.
+   */
+  productId: string;
+  title: string;
+  /**
+   * Owned by the catalogue ingest; shown here read-only.
+   */
+  slug: string;
+  /**
+   * Name from the source; clear the title edit by restoring it.
+   */
+  sourceName?: string | null;
+  /**
+   * Owned by the catalogue ingest; shown here read-only.
+   */
+  description?: string | null;
+  /**
+   * CAD, per sale unit. Owned by ingest.
+   */
+  price?: number | null;
+  /**
+   * Owned by the catalogue ingest; shown here read-only.
+   */
+  imageUrl?: string | null;
+  /**
+   * Owned by the catalogue ingest; shown here read-only.
+   */
+  category?: (number | null) | Category;
+  stockStatus: 'in_stock' | 'out_of_stock';
   updatedAt: string;
   createdAt: string;
 }
@@ -642,6 +689,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'categories';
         value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
       } | null)
     | ({
         relationTo: 'media';
@@ -703,8 +754,8 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
-  roles?: T;
   defaultReplacementPreference?: T;
+  roles?: T;
   deactivatedAt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -863,8 +914,26 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface CategoriesSelect<T extends boolean = true> {
   title?: T;
+  icon?: T;
   generateSlug?: T;
   slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  productId?: T;
+  title?: T;
+  slug?: T;
+  sourceName?: T;
+  description?: T;
+  price?: T;
+  imageUrl?: T;
+  category?: T;
+  stockStatus?: T;
   updatedAt?: T;
   createdAt?: T;
 }

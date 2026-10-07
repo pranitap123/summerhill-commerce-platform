@@ -21,6 +21,12 @@ export const Categories: CollectionConfig = {
       type: 'text',
       required: true,
     },
+    {
+      name: 'icon',
+      type: 'upload',
+      relationTo: 'media',
+      admin: { description: 'Optional icon or image for the category.' },
+    },
     slugField({
       position: undefined,
     }),
