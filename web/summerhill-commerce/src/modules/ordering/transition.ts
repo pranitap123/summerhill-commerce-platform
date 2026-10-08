@@ -8,16 +8,6 @@ import { HttpError } from '@/server/http'
 
 import { canTransition, type OrderStatus } from './stateMachine'
 
-/**
- * The only way an order changes state (ORDERS §4). One transaction:
- *   UPDATE … WHERE status IN (from)   → a concurrent transition makes this match no row (409)
- *   INSERT order_events               → the timeline
- *   INSERT ops.outbox order.<to>      → side effects (email, capture) happen after commit
- *   slot hold                         → booked on `placed`, released on `abandoned`/`cancelled` (G4-02)
- * `placed` also assigns the 6-digit pickup code (ORDERS §7).
- * Two requests racing (e.g. accept vs. cancel) both lock the same row; the second re-checks the
- * status after the first commits, finds it changed and loses with ORDER_STATE_CONFLICT.
- */
 export interface TransitionOptions {
   reason?: string | null
   data?: Record<string, unknown>
@@ -109,12 +99,10 @@ export async function transitionInTx(
   return result
 }
 
-/** Six random digits (leading zeros allowed), from a CSPRNG: the code proves who collects. */
 export function pickupCode(): string {
   return String(randomInt(1_000_000)).padStart(6, '0')
 }
 
-/** Same as transitionInTx, in its own transaction. */
 export function transition(
   orderId: number,
   from: OrderStatus | readonly OrderStatus[],
@@ -125,7 +113,6 @@ export function transition(
   return withTransaction((tx) => transitionInTx(tx, orderId, from, to, actor, opts))
 }
 
-/** Adds a non-status event to the timeline (e.g. "capture failed, retrying"). */
 export async function recordOrderEvent(
   db: Db,
   orderId: number,

@@ -1,4 +1,3 @@
-// Public API of the ordering module: orders, state machine, timeline, access.
 export {
   ORDER_STATUSES,
   TRANSITIONS,

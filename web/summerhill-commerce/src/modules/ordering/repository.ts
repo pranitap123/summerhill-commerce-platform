@@ -35,11 +35,11 @@ export interface Order {
   refundStatus: 'none' | 'partial' | 'full'
   placedAt: Date | null
   createdAt: Date
-  // Fulfilment (G4)
+
   slotId: number | null
   pickupStartsAt: Date | null
   pickupEndsAt: Date | null
-  /** Customer-facing only: never shown on the merchant console. */
+
   pickupCode: string | null
   pickupCodeFailures: number
   pickupLockedAt: Date | null
@@ -89,7 +89,7 @@ export interface OrderLine {
   finalLineTotalCents: number | null
   finalTaxCents: number | null
   finalDepositCents: number | null
-  // Picking (G4)
+
   upc: string | null
   category: string | null
   labelPriceCents: number | null
@@ -224,7 +224,6 @@ function toLine(r: Row): OrderLine {
   }
 }
 
-// Unambiguous characters only (no 0/O, 1/I): public ids are read aloud at the pickup counter.
 const PUBLIC_ID_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 export function generatePublicId(): string {
   let id = 'SH-'
@@ -238,10 +237,6 @@ export interface LineOptions {
   note: string | null
 }
 
-/**
- * Creates the order in `pending_payment` with a full snapshot of the quote (ADR-0006). Must run in
- * the caller's transaction, together with the payment row and the outbox event.
- */
 export async function insertPendingOrder(
   tx: Db,
   input: {
@@ -256,8 +251,7 @@ export async function insertPendingOrder(
   const { quote } = input
   if (!quote.canCheckout || quote.merchantId === null || quote.locationId === null)
     throw new Error('cannot create an order from a quote with issues')
-  // A public id collision (2^30 space) is retried under a savepoint, so the caller's transaction
-  // survives the failed INSERT.
+
   let rows: Row[] = []
   for (let attempt = 0; ; attempt++) {
     const publicId = generatePublicId()
@@ -338,7 +332,7 @@ export async function insertPendingOrder(
       ],
     )
   }
-  // Snapshot what the picker needs (UPC for scan-to-verify, category for the pick list order).
+
   await tx.query(
     `UPDATE commerce.order_lines ol SET upc = v.upc, category = v.category
      FROM catalog.product_view v WHERE ol.order_id = $1 AND v.id = ol.product_id`,
@@ -354,7 +348,6 @@ export async function getOrder(id: number, db: Db = getDb()): Promise<Order | nu
   return rows[0] ? toOrder(rows[0]) : null
 }
 
-/** Locks the row until the end of the caller's transaction. */
 export async function getOrderForUpdate(tx: Db, id: number): Promise<Order | null> {
   const { rows } = await tx.query(
     `SELECT ${ORDER_COLUMNS} FROM commerce.orders WHERE id = $1 FOR UPDATE`,
@@ -434,7 +427,6 @@ export async function listRecentOrders(params: {
   return rows.map(toOrder)
 }
 
-/** Guest lookup (G2-20): an order matching both the public id and the email, else null. */
 export async function findOrderForLookup(publicId: string, email: string): Promise<Order | null> {
   const { rows } = await getDb().query(
     `SELECT ${ORDER_COLUMNS} FROM commerce.orders
@@ -444,7 +436,6 @@ export async function findOrderForLookup(publicId: string, email: string): Promi
   return rows[0] ? toOrder(rows[0]) : null
 }
 
-/** Records picking results for a line (used by G4 and the demo fast-forward). */
 export async function recordPick(
   tx: Db,
   lineId: number,
@@ -466,7 +457,6 @@ export async function recordPick(
   )
 }
 
-/** Stores the final amounts computed at capture. */
 export async function saveFinalAmounts(
   tx: Db,
   orderId: number,

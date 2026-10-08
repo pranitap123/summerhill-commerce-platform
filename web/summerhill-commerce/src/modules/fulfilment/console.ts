@@ -44,29 +44,20 @@ import {
   type DecodedBarcode,
 } from './barcode'
 
-/**
- * The merchant console's workflow (G4-06…G4-14, ORDERS §5–§7):
- *   placed ─accept→ accepted ─start→ picking ─(line actions)… complete→ picked ─capture job→ ready
- *   ready ─pickup code→ collected
- * Every action checks the caller's scope (404 outside it), locks the order row, re-checks the
- * status, writes the timeline, and emits outbox events for side effects (email, capture).
- */
 export const REJECT_REASONS = ['too_busy', 'items_unavailable', 'closing', 'other'] as const
 export type RejectReason = (typeof REJECT_REASONS)[number]
 export const UNAVAILABLE_REASONS = ['out_of_stock', 'damaged', 'quality', 'other'] as const
 export type UnavailableReason = (typeof UNAVAILABLE_REASONS)[number]
 
-/** Weighed lines outside this band of the estimate need the picker to confirm (ORDERS §6). */
 export const WEIGHT_TOLERANCE = { maxRatio: 1.5, minRatio: 0.5 }
 export const MAX_LINE_WEIGHT_MLB = 50_000
 export const PICKUP_CODE_MAX_FAILURES = 5
-/** Orders untouched this long after being placed are escalated, then auto-rejected (ORDERS §5). */
+
 export const ESCALATE_AFTER_MS = 10 * 60_000
 export const AUTO_REJECT_AFTER_MS = 15 * 60_000
-/** Categories kept in the fridge/freezer until pickup: the console shows a "cold items" badge. */
+
 export const COLD_CATEGORIES = new Set(['Meat & Seafood', 'Dairy & Eggs', 'Prepared Meals'])
 
-// ---------------------------------------------------------------------------------------- views
 const lb = (mlb: number | null) => (mlb === null ? null : mlb / 1000)
 
 export interface ConsoleLine {
@@ -96,9 +87,9 @@ export interface ConsoleLine {
   scannedCode: string | null
   unavailableReason: string | null
   substitutionReason: string | null
-  /** On an original line that was substituted: its substitute. */
+
   substitute: ConsoleLine | null
-  /** On a substitute: the customer's answer. */
+
   customerDecision: OrderLine['customerDecision']
 }
 
@@ -122,7 +113,6 @@ export interface ConsoleOrderSummary {
   pickupLocked: boolean
 }
 
-/** First name-ish part of the email when no pickup name was given; never the full address. */
 function displayName(order: Order): string {
   return order.pickupName ?? order.email.split('@')[0]
 }
@@ -163,7 +153,6 @@ const QUEUE_STATUSES: readonly OrderStatus[] = [
   'no_show',
 ]
 
-/** The console queue of one location (G4-06): everything that still needs a person. */
 export async function consoleQueue(scope: StaffScope, locationId: number, now = new Date()) {
   const settings = await getLocationSettings(locationId)
   if (!settings) throw new HttpError(404, 'NOT_FOUND', 'Location not found')
@@ -249,7 +238,6 @@ async function toConsoleLines(lines: OrderLine[]): Promise<ConsoleLine[]> {
     .map((l) => ({ ...view(l), substitute: subs.get(l.id) ?? null }))
 }
 
-/** Everything the picker's screen needs for one order (G4-08). */
 export async function consoleOrder(scope: StaffScope, publicId: string) {
   const { order, role } = await loadForStaff(scope, publicId)
   const [lines, events, payment] = await Promise.all([
@@ -282,7 +270,6 @@ export async function consoleOrder(scope: StaffScope, publicId: string) {
   }
 }
 
-// ------------------------------------------------------------------------ acceptance (G4-07)
 export async function acceptOrder(scope: StaffScope, publicId: string, requestId: string | null) {
   const { order } = await loadForStaff(scope, publicId)
   const actor = staffActor(scope)
@@ -296,7 +283,6 @@ export async function acceptOrder(scope: StaffScope, publicId: string, requestId
   return consoleOrder(scope, publicId)
 }
 
-/** Any reject voids the authorisation immediately (ORDERS §5); the customer gets an apology. */
 export async function rejectOrder(
   scope: StaffScope,
   publicId: string,
@@ -315,11 +301,6 @@ export async function rejectOrder(
   return consoleOrder(scope, publicId)
 }
 
-// --------------------------------------------------------------------------- picking (G4-08)
-/**
- * Claims the order for the caller. One picker per order: taking over from someone else needs an
- * explicit confirmation (`takeover`), which is recorded on the timeline.
- */
 export async function startPicking(
   scope: StaffScope,
   publicId: string,
@@ -355,7 +336,6 @@ export async function startPicking(
   return consoleOrder(scope, publicId)
 }
 
-/** Locks the order and checks the caller is its current picker. */
 async function lockForPicking(tx: Db, scope: StaffScope, orderId: number): Promise<Order> {
   const order = (await getOrderForUpdate(tx, orderId))!
   if (order.status !== 'picking')
@@ -376,7 +356,6 @@ async function lockLine(tx: Db, orderId: number, lineId: number): Promise<OrderL
   return line
 }
 
-// ------------------------------------------------------------------------ scanning (G4-10/11)
 const catalogCodeOf = (upc: string | null) => {
   const gtin = upc ? toGtin13(upc) : null
   return gtin ? toCatalogCode(gtin) : null
@@ -390,11 +369,6 @@ async function logUnrecognised(db: Db, order: Order, code: string, scope: StaffS
   )
 }
 
-/**
- * Runs a pick transaction; an unknown barcode is logged after it rolled back (logging inside it
- * would be undone, and from another connection it would wait on the order row the transaction
- * has locked).
- */
 async function withScanLog<T>(
   scope: StaffScope,
   order: Order,
@@ -422,11 +396,6 @@ export type ScanMatch =
   | { match: 'unknown'; decoded: DecodedBarcode }
   | { match: 'invalid'; decoded: DecodedBarcode }
 
-/**
- * What a scanned code is, relative to this order: one of its lines, a replacement the customer
- * chose for a line, another product of the store ("wrong item?"), or unknown (logged so the
- * catalogue's UPC gaps can be fixed).
- */
 export async function identifyScan(
   scope: StaffScope,
   order: Order,
@@ -469,7 +438,6 @@ export async function scanForOrder(scope: StaffScope, publicId: string, code: st
   }
 }
 
-/** Verifies a scan against the product it must be; returns a label's embedded price/weight. */
 async function verifyScan(
   tx: Db,
   scope: StaffScope,
@@ -508,14 +476,13 @@ async function verifyScan(
     : { labelPriceCents: null, labelWeightMlb: null }
 }
 
-// ------------------------------------------------------------------------ line actions (G4-09)
 export type PickInput =
   | {
       action: 'picked'
       quantity?: number
       weightLb?: number
       scannedCode?: string
-      /** The picker confirmed a weight far from the estimate. */
+
       confirmUnusualWeight?: boolean
     }
   | { action: 'unavailable'; reason: UnavailableReason }
@@ -529,7 +496,6 @@ interface WeighInput {
   confirmUnusualWeight?: boolean
 }
 
-/** Weight of a weighed pick, from a scale label or manual entry, with sanity checks. */
 export function resolveWeight(input: WeighInput): {
   weightMlb: number
   labelPriceCents: number | null
@@ -646,7 +612,6 @@ export async function pickLine(
   return { order: await consoleOrder(scope, publicId), suggestOutOfStock }
 }
 
-// ------------------------------------------------------------------- substitutions (G4-12)
 export interface SubstituteInput {
   productId: string
   quantity?: number
@@ -656,13 +621,6 @@ export interface SubstituteInput {
   confirmUnusualWeight?: boolean
 }
 
-/**
- * Replaces an unavailable item (ORDERS §6). Allowed only when the customer didn't choose
- * "refund"; with "specific", only one of the customer's chosen products. The customer pays the
- * LOWER of the original estimate and the substitute's price, and the substitute can't cost more
- * in total (with tax and deposit) than the original line. The customer is told immediately and
- * can reject it until picking completes.
- */
 export async function substituteLine(
   scope: StaffScope,
   publicId: string,
@@ -728,8 +686,6 @@ export async function substituteLine(
     } else lineTotalCents = quantity! * unitPriceCents
     const taxRateBp = TAX_RATE_BP[pricing.taxCode]
 
-    // "Never pay more": what the customer pays for the substitute, all in, must not exceed the
-    // original line all in (a zero-rated item replaced by a taxable one could, even when capped).
     const charged = Math.min(lineTotalCents, line.lineTotalCents)
     const subAllIn =
       charged + applyBasisPoints(charged, taxRateBp) + pricing.depositCents * (quantity ?? 1)
@@ -790,14 +746,6 @@ export async function substituteLine(
   return consoleOrder(scope, publicId)
 }
 
-// ------------------------------------------------------------------ complete picking (G4-13)
-/**
- * Picking done → `picked`; the outbox event starts the capture job, which charges exactly the
- * final amount and moves the order to `ready`. Refused while lines are unresolved. When the final
- * total would exceed what the card can be charged (the authorisation, or the overcapture maximum)
- * the picker must confirm (ORDERS §6: trim the item, or the platform absorbs the difference).
- * Substitutes the customer hasn't answered count as approved ("no answer → the preference applies").
- */
 export async function completePicking(
   scope: StaffScope,
   publicId: string,
@@ -849,18 +797,12 @@ export async function completePicking(
   return consoleOrder(scope, publicId)
 }
 
-// ------------------------------------------------------------------------- handover (G4-14)
-/** Constant-time comparison, so response timing can't reveal how many digits were right. */
 function sameCode(given: string, expected: string): boolean {
   return (
     given.length === expected.length && timingSafeEqual(Buffer.from(given), Buffer.from(expected))
   )
 }
 
-/**
- * The customer tells the code; staff type it (ORDERS §7). Five wrong codes lock the order until a
- * manager unlocks it. The handover records who handed it over.
- */
 export async function handOver(
   scope: StaffScope,
   publicId: string,
@@ -909,7 +851,7 @@ export async function handOver(
     )
     return { ok: true as const }
   })
-  // Recorded outside the rolled-back path so the failure counter sticks.
+
   if (!outcome.ok)
     throw new HttpError(
       outcome.attemptsLeft > 0 ? 422 : 423,

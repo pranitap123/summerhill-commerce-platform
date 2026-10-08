@@ -1,5 +1,3 @@
-// Public API of the fulfilment module: the merchant console workflow, customer order actions,
-// barcode decoding and the time-driven order rules (G4).
 export {
   staffScope,
   staffActor,

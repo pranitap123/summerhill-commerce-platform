@@ -1,4 +1,3 @@
-// Public API of the scheduling module: location settings, closures, pickup slots and holds (G4).
 export {
   BOOKING_WINDOW_DAYS,
   DEFAULT_WEEKLY_HOURS,

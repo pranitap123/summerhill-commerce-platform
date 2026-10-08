@@ -6,26 +6,20 @@ import { HttpError } from '@/server/http'
 import { DEFAULT_WEEKLY_HOURS, type ScheduleSettings, type WeeklyHours } from './schedule'
 import { generateSlots } from './slots'
 
-/**
- * Location settings (G4-01, M10/M13): opening hours, slot length and capacity, lead time, holiday
- * closures and the pause switch. Every change is audited and regenerates the location's FUTURE
- * slots in the same transaction (slots that already have bookings are never shrunk below them;
- * see generateSlots). Only an owner may change them (enforced by the console routes).
- */
 export interface LocationSettings extends ScheduleSettings {
   locationId: number
   merchantId: number
   locationName: string
   paused: boolean
   pauseReason: string | null
-  /** GS1 variable-measure label layout; validated by the fulfilment module. */
+
   scaleBarcode: Record<string, unknown>
   updatedBy: string | null
   updatedAt: Date | null
 }
 
 export interface Closure {
-  date: string // YYYY-MM-DD, local
+  date: string
   reason: string
 }
 
@@ -54,7 +48,6 @@ const SETTINGS_SQL = `SELECT l.id AS location_id, l.merchant_id, l.name AS locat
     s.scale_barcode, s.updated_by, s.updated_at
   FROM merchant.locations l LEFT JOIN merchant.location_settings s ON s.location_id = l.id`
 
-/** Settings of a location (defaults when the location has no settings row yet); null if unknown. */
 export async function getLocationSettings(
   locationId: number,
   db: Db = getDb(),
@@ -68,7 +61,6 @@ export async function listLocationSettings(db: Db = getDb()): Promise<LocationSe
   return rows.map(toSettings)
 }
 
-/** Holiday closures from `fromDate` (YYYY-MM-DD, local) on. */
 export async function listClosures(
   locationId: number,
   fromDate: string | null = null,
@@ -92,7 +84,6 @@ export interface SettingsPatch {
   scaleBarcode?: Record<string, unknown>
 }
 
-// Column names come from this closed map, never from input.
 const COLUMNS: Record<keyof SettingsPatch, string> = {
   weeklyHours: 'weekly_hours',
   slotMinutes: 'slot_minutes',
@@ -221,7 +212,6 @@ export async function removeClosure(
   })
 }
 
-/** Nightly/hourly job: keeps every location's slots GENERATION_DAYS ahead. */
 export async function generateAllSlots(now: Date = new Date()): Promise<number> {
   let upserted = 0
   for (const settings of await listLocationSettings()) {

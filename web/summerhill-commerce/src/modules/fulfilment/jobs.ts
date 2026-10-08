@@ -6,19 +6,10 @@ import { getLogger } from '@/server/logger'
 
 import { AUTO_REJECT_AFTER_MS, ESCALATE_AFTER_MS } from './console'
 
-/**
- * Time-driven order rules (ORDERS §5, §7), as sweeps the worker runs every minute. `now` is
- * injectable so the rules are tested with a fake clock.
- */
 const SYSTEM: Actor = { type: 'system', id: null }
 
-/** How long after the end of the pickup window an uncollected order becomes a no-show. */
 export const NO_SHOW_AFTER_MS = 24 * 3600_000
 
-/**
- * Orders nobody accepted: at 10 min an alert for the store manager (SMS in production; an ops
- * alert here), at 15 min an automatic reject that voids the card hold (G4-07).
- */
 export async function runAcceptanceSweep(
   now: Date = new Date(),
 ): Promise<{ escalated: number; autoRejected: number }> {
@@ -58,14 +49,12 @@ export async function runAcceptanceSweep(
       await voidOrder(Number(o.id), SYSTEM, 'auto_rejected')
       autoRejected++
     } catch (err) {
-      // Accepted a moment ago (409) or Stripe unavailable: the next sweep looks again.
       getLogger().warn({ err, orderId: o.id }, 'auto-reject skipped an order')
     }
   }
   return { escalated, autoRejected }
 }
 
-/** Ready orders not collected 24 h after their pickup window ends become no-shows (ORDERS §7). */
 export async function runNoShowSweep(now: Date = new Date()): Promise<number> {
   const { rows } = await getDb().query<{ id: string }>(
     `SELECT id FROM commerce.orders

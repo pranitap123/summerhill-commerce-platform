@@ -3,11 +3,6 @@ import { sign, unsign } from '@/server/signing'
 
 import type { Order } from './repository'
 
-/**
- * Who may see an order (G2-13, G2-20): its signed-in owner, an admin, or anyone holding a valid
- * guest link. A guest link is `publicId~accessVersion~expiry` signed with a key only the server
- * knows; bumping `orders.access_version` revokes every link issued so far.
- */
 const DEFAULT_TTL_DAYS = 30
 
 export function orderAccessToken(

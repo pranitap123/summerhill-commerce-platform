@@ -4,10 +4,6 @@ import type { Db } from '@/server/db'
 import type { OrderLine } from './repository'
 import type { OrderStatus } from './stateMachine'
 
-/**
- * Picking records (G4-08/09/12). Line writes only; the orchestration (who may do what, when)
- * lives in the fulfilment module. Everything runs in the caller's transaction.
- */
 export interface LinePick {
   status: 'picked' | 'unavailable'
   pickedQuantity: number | null
@@ -37,7 +33,6 @@ export async function recordLinePick(tx: Db, lineId: number, pick: LinePick): Pr
   )
 }
 
-/** Puts a line back to "not picked yet" (the picker undoes an action before completing). */
 export async function resetLinePick(tx: Db, lineId: number): Promise<void> {
   await tx.query(
     `UPDATE commerce.order_lines SET status = 'ordered', picked_quantity = NULL,
@@ -65,11 +60,6 @@ export interface SubstituteSnapshot {
   category: string | null
 }
 
-/**
- * Adds the substitute as its own line pointing at the original (ORDERS §6), already picked, and
- * marks the original `substituted`. The substitute's estimate is its own price for what was
- * picked; what the customer pays is capped at the original line's estimate by finalizeOrder.
- */
 export async function insertSubstituteLine(
   tx: Db,
   original: OrderLine,
@@ -140,17 +130,12 @@ export async function insertSubstituteLine(
   return Number(rows[0].id)
 }
 
-/** Removes a substitute (the picker changed their mind before completing picking). */
 export async function deleteSubstituteLine(tx: Db, originalLineId: number): Promise<void> {
   await tx.query('DELETE FROM commerce.order_lines WHERE substitutes_line_id = $1', [
     originalLineId,
   ])
 }
 
-/**
- * The customer's answer to a substitute (G4-12). Rejecting makes the substitute `unavailable`
- * (charged 0) and the original stays `substituted` (also 0): the line is refunded in effect.
- */
 export async function setSubstituteDecision(
   tx: Db,
   substituteLineId: number,
@@ -164,7 +149,6 @@ export async function setSubstituteDecision(
   )
 }
 
-/** Orders of the given locations and statuses, for the console queue. */
 export async function listOrderIdsForLocations(
   db: Db,
   locationIds: number[],

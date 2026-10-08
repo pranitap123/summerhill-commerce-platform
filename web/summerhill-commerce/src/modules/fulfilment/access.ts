@@ -4,14 +4,6 @@ import type { Actor } from '@/modules/ops'
 import { getDb } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Who may do what in the merchant console (G4-05). A staff member sees only the merchant (and
- * location, when the membership names one) they belong to. Platform admins act as owners
- * everywhere (support), and are recorded as admins in the audit trail.
- *
- * Out-of-scope orders and locations answer 404, not 403, so the console can't be used to probe
- * which order ids exist at other stores (cross-tenant enumeration).
- */
 export interface StaffScope {
   user: SessionUser
   memberships: StaffMembership[]
@@ -28,7 +20,6 @@ export function staffActor(scope: StaffScope): Actor {
     : { type: 'merchant_staff', id: String(scope.user.id) }
 }
 
-/** The caller's role at a location, or null when it's outside their scope. */
 export function roleAt(
   scope: StaffScope,
   target: { merchantId: number; locationId: number },
@@ -51,7 +42,6 @@ const ROLE_MESSAGES: Record<StaffRole, string> = {
   owner: 'Only the store owner can do this',
 }
 
-/** Throws 404 outside the caller's scope and 403 when their role is too low; returns the role. */
 export function requireRole(
   scope: StaffScope,
   target: { merchantId: number; locationId: number },
@@ -64,10 +54,6 @@ export function requireRole(
   return role
 }
 
-/**
- * Merchant-wide screens (finance, statements: G5-13, M12) are the owner's: an owner membership of
- * that merchant (any location), or a platform admin. Outside the scope → 404.
- */
 export function requireMerchantOwner(scope: StaffScope, merchantId: number): void {
   const memberships = scope.memberships.filter((m) => m.merchantId === merchantId)
   if (!memberships.length && !scope.isAdmin) throw new HttpError(404, 'NOT_FOUND', 'Not found')
@@ -84,7 +70,6 @@ export interface ConsoleLocation {
   role: StaffRole
 }
 
-/** Locations the caller can open in the console. */
 export async function accessibleLocations(scope: StaffScope): Promise<ConsoleLocation[]> {
   const { rows } = await getDb().query(
     `SELECT l.id, l.name, l.merchant_id, m.name AS merchant_name, l.timezone

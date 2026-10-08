@@ -8,11 +8,6 @@ import {
   type Slot,
 } from '@/server/time'
 
-/**
- * Pickup schedule rules (ORDERS §3, G4-01/02/03), as pure functions. Everything is computed from
- * wall-clock times in the location's time zone, so DST days neither duplicate nor drop a slot
- * (the nonexistent spring-forward hour is skipped; see src/server/time.ts).
- */
 export const ISO_WEEKDAYS = ['1', '2', '3', '4', '5', '6', '7'] as const
 export type IsoWeekday = (typeof ISO_WEEKDAYS)[number]
 
@@ -34,9 +29,8 @@ export type WeeklyHours = Partial<Record<IsoWeekday, DayHours | null>>
 
 export const SLOT_MINUTES = [15, 30, 45, 60, 90, 120] as const
 
-/** Customers may book at most this far ahead: card authorisations expire after ~7 days (PAYMENTS §3). */
 export const BOOKING_WINDOW_DAYS = 5
-/** Slots are materialised this far ahead (ORDERS §3). */
+
 export const GENERATION_DAYS = 7
 
 export interface ScheduleSettings {
@@ -67,9 +61,8 @@ export function parseDateKey(key: string): LocalDate {
   return { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) }
 }
 
-/** ISO weekday of a calendar date: 1 = Monday … 7 = Sunday. */
 export function isoWeekday(d: LocalDate): number {
-  const js = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay() // 0 = Sunday
+  const js = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay()
   return js === 0 ? 7 : js
 }
 
@@ -83,7 +76,6 @@ export function localDate(instant: Date, timeZone = DEFAULT_TIME_ZONE): LocalDat
   return { year: w.year, month: w.month, day: w.day }
 }
 
-/** Opening hours of one local date, or null when closed (weekly hours or a holiday closure). */
 export function hoursOn(
   date: LocalDate,
   settings: Pick<ScheduleSettings, 'weeklyHours'>,
@@ -93,7 +85,6 @@ export function hoursOn(
   return settings.weeklyHours[String(isoWeekday(date)) as IsoWeekday] ?? null
 }
 
-/** The slots a location should have for `days` local dates starting with the date of `from`. */
 export function plannedSlots(
   settings: ScheduleSettings,
   closures: ReadonlySet<string>,
@@ -125,16 +116,12 @@ export interface OfferContext {
   now: Date
   leadTimeMinutes: number
   timeZone: string
-  /**
-   * ISO weekdays allowed by every item in the cart (each product's `available_days`; an empty
-   * list means every day). Pass one list per item; the slot's weekday must be in all of them.
-   */
+
   itemAvailableDays: ReadonlyArray<readonly number[]>
 }
 
 export type SlotRejection = 'past_lead_time' | 'beyond_window' | 'item_not_available_that_day'
 
-/** Why a slot can't be offered to this cart, or null when it can (capacity is checked separately). */
 export function slotRejection(
   slot: Pick<Slot, 'startsAt'>,
   ctx: OfferContext,
@@ -148,11 +135,6 @@ export function slotRejection(
   return null
 }
 
-/**
- * When the store next opens after `now` (start of the next opening period that begins after
- * `now`). Used for "out of stock today": hidden until the next opening. Looks up to 14 days
- * ahead; null if the store has no opening hours at all in that range.
- */
 export function nextOpening(
   settings: Pick<ScheduleSettings, 'weeklyHours' | 'timeZone'>,
   closures: ReadonlySet<string>,
@@ -173,7 +155,6 @@ export function nextOpening(
   return null
 }
 
-/** Default settings for a new location (mirrors the column defaults in migration 007). */
 export const DEFAULT_WEEKLY_HOURS: WeeklyHours = {
   '1': { open: '08:00', close: '21:00' },
   '2': { open: '08:00', close: '21:00' },

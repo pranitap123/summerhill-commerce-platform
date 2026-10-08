@@ -1,32 +1,12 @@
 import { z } from 'zod'
 
-/**
- * Barcode decoding for scan-to-verify and deli labels (G4-10, G4-11, ORDERS §6). Pure functions,
- * no I/O.
- *
- * Every scan is normalised to a GTIN-13 string (UPC-A gets a leading 0; GTIN-14 with a leading 0
- * drops it), after checking the GS1 mod-10 check digit.
- *
- * GS1 variable-measure labels (scale-printed, for deli/meat/cheese) start with 2 as a UPC-A
- * ("02" as GTIN-13), or with 20–29 as an EAN-13. The layout of the remaining digits depends on
- * the store's scale system, so it's configured per location:
- *
- *   GTIN-13:  P P | I I I I I | [price check digit] | V V V V V | C
- *             prefix  item code                        value      check
- *
- * itemDigits + valueDigits (+1 when the scale prints a price check digit) must be 10. The value is
- * the price in cents or the weight (2 or 3 decimals). The catalogue stores the same code with the
- * value (and price check digit) zeroed, so a label is matched to its product by zeroing them too.
- * The price check digit is skipped, not verified (its weighting differs between scale vendors);
- * the overall check digit still protects the whole code.
- */
 export const scaleBarcodeConfigSchema = z
   .object({
     itemDigits: z.number().int().min(4).max(6),
     valueDigits: z.number().int().min(4).max(6),
     priceCheckDigit: z.boolean(),
     value: z.enum(['price', 'weight']),
-    /** Decimal places of an embedded weight (lb); weight labels only. */
+
     weightDecimals: z.union([z.literal(2), z.literal(3)]).optional(),
   })
   .strict()
@@ -42,13 +22,11 @@ export const DEFAULT_SCALE_CONFIG: ScaleBarcodeConfig = {
   value: 'price',
 }
 
-/** Reads a stored config, falling back to the default when it's missing or invalid. */
 export function parseScaleConfig(raw: unknown): ScaleBarcodeConfig {
   const parsed = scaleBarcodeConfigSchema.safeParse(raw)
   return parsed.success ? parsed.data : DEFAULT_SCALE_CONFIG
 }
 
-/** GS1 mod-10 check digit of the digits before it (any length): weights 3,1,3,… from the right. */
 export function gs1CheckDigit(body: string): number {
   if (!/^\d+$/.test(body)) throw new Error('check digit body must be digits')
   let sum = 0
@@ -63,11 +41,6 @@ export function hasValidCheckDigit(code: string): boolean {
   return /^\d{8,14}$/.test(code) && gs1CheckDigit(code.slice(0, -1)) === Number(code.at(-1))
 }
 
-/**
- * Normalises a scan to GTIN-13, or null when it isn't a valid UPC-A / EAN-13 / GTIN-14 code.
- * Scanners may add spaces or dashes; those are removed. EAN-8 and UPC-E are not used by the
- * catalogue and are rejected.
- */
 export function toGtin13(raw: string): string | null {
   const digits = raw.replace(/[\s-]/g, '')
   if (!/^\d+$/.test(digits)) return null
@@ -79,7 +52,6 @@ export function toGtin13(raw: string): string | null {
   return hasValidCheckDigit(code) ? code : null
 }
 
-/** GTIN-13 → the 12-digit UPC-A the catalogue stores, when it starts with 0; else unchanged. */
 export function toCatalogCode(gtin13: string): string {
   return gtin13.startsWith('0') ? gtin13.slice(1) : gtin13
 }
@@ -93,7 +65,7 @@ export type DecodedBarcode =
   | {
       kind: 'variable_measure'
       gtin13: string
-      /** The code with the value zeroed, as stored in the catalogue. */
+
       catalogCode: string
       itemCode: string
       priceCents: number | null
@@ -132,10 +104,6 @@ export function decodeBarcode(
   }
 }
 
-/**
- * Builds a scale label for an item code (the demo's printable deli labels and the tests): the
- * catalogue code with the value filled in and the check digit recomputed.
- */
 export function encodeScaleLabel(
   catalogCode: string,
   value: number,

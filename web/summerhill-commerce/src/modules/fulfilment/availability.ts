@@ -10,11 +10,6 @@ import { HttpError } from '@/server/http'
 
 import { requireRole, staffActor, type StaffScope } from './access'
 
-/**
- * "Out of stock today" (G4-20, M11): a product or a whole category is hidden from the storefront
- * until the store next opens, then comes back by itself (product_view compares hidden_until with
- * now()). The console suggests it after a picker marks a line out of stock.
- */
 async function merchantLocation(scope: StaffScope, locationId: number) {
   const settings = await getLocationSettings(locationId)
   if (!settings) throw new HttpError(404, 'NOT_FOUND', 'Location not found')
@@ -25,7 +20,7 @@ async function merchantLocation(scope: StaffScope, locationId: number) {
 async function untilNextOpening(locationId: number, now: Date): Promise<Date> {
   const settings = (await getLocationSettings(locationId))!
   const closures = new Set((await listClosures(locationId)).map((c) => c.date))
-  // A store with no opening hours at all: hide for a day rather than forever.
+
   return nextOpening(settings, closures, now) ?? new Date(now.getTime() + 86_400_000)
 }
 

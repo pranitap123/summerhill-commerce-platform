@@ -13,14 +13,6 @@ import {
 } from './schedule'
 import type { Closure, LocationSettings } from './settings'
 
-/**
- * Pickup slots and holds (G4-02, ORDERS §3). Slots are materialised GENERATION_DAYS ahead; a hold
- * is taken in the checkout transaction with
- *   UPDATE slots SET held = held + 1 WHERE id = $1 AND booked + held < capacity
- * so concurrent checkouts can never overbook (the row lock serialises them, and the loser sees the
- * updated counters). A hold becomes a booking when the payment is authorised, and is released when
- * checkout is abandoned, the order is cancelled, or it expires.
- */
 export interface SlotRow {
   id: number
   locationId: number
@@ -53,14 +45,6 @@ export interface GenerationResult {
   closed: number
 }
 
-/**
- * Brings a location's future slots in line with its settings for the next `days` local dates:
- *  - planned slots are created, or updated (end time, capacity) if they start in the future;
- *    capacity never drops below what is already booked + held
- *  - future slots no longer planned (hours changed, holiday closure) are deleted when nobody ever
- *    held them, else marked closed: existing orders keep their pickup time, nobody new can book
- * Idempotent; runs in the caller's transaction.
- */
 export async function generateSlots(
   db: Db,
   settings: LocationSettings,
@@ -108,7 +92,6 @@ export async function generateSlots(
   }
 }
 
-/** Slots of a location between two instants (the console's day view, tests). */
 export async function listSlots(
   locationId: number,
   from: Date,
@@ -135,11 +118,6 @@ export interface OfferedSlot {
   remaining: number
 }
 
-/**
- * Slots a cart may choose (G4-03): open, with capacity left, after the lead time, within the
- * booking window, and on a weekday every item is available. Generates the location's slots
- * first if they don't reach the end of the booking window yet (e.g. before the worker ran).
- */
 export async function availableSlots(
   settings: LocationSettings,
   closures: readonly Closure[],
@@ -176,10 +154,6 @@ const REJECTION_MESSAGES = {
     'An item in your cart is not available on that day. Please choose another day.',
 } as const
 
-/**
- * Takes a hold on a slot for a pending order, in the checkout transaction. Throws 422
- * SLOT_INVALID when the slot can't be offered to this cart, 409 SLOT_UNAVAILABLE when it's full.
- */
 export async function holdSlot(
   tx: Db,
   input: {
@@ -226,11 +200,6 @@ export async function holdSlot(
   return toSlot(rows[0])
 }
 
-/**
- * The payment was authorised: the hold becomes a booking. A hold that already expired (payment
- * completed after the release job ran) is re-booked; if the slot filled up in the meantime the
- * paid order is still honoured and the slot is marked over capacity ('overbooked').
- */
 export async function bookSlotHold(
   tx: Db,
   orderId: number,
@@ -261,7 +230,6 @@ export async function bookSlotHold(
   return 'overbooked'
 }
 
-/** Frees the order's place in its slot (abandoned checkout, cancellation). Idempotent. */
 export async function releaseSlotHold(tx: Db, orderId: number): Promise<'released' | 'none'> {
   const { rows } = await tx.query<{ slot_id: string; status: 'held' | 'booked' }>(
     `WITH h AS (
@@ -279,7 +247,6 @@ export async function releaseSlotHold(tx: Db, orderId: number): Promise<'release
   return 'released'
 }
 
-/** Release job (every minute): holds whose checkout never completed in time. */
 export async function releaseExpiredHolds(now: Date = new Date()): Promise<number> {
   const { rows } = await getDb().query<{ order_id: string }>(
     `SELECT order_id FROM commerce.slot_holds WHERE status = 'held' AND expires_at < $1`,
@@ -288,7 +255,6 @@ export async function releaseExpiredHolds(now: Date = new Date()): Promise<numbe
   let released = 0
   for (const r of rows)
     await withTransaction(async (tx) => {
-      // Re-check under the lock: the payment may have booked it a moment ago.
       const { rows: still } = await tx.query(
         `SELECT 1 FROM commerce.slot_holds WHERE order_id = $1 AND status = 'held' AND expires_at < $2
          FOR UPDATE`,
