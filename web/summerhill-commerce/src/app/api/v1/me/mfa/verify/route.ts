@@ -6,11 +6,6 @@ import { HttpError, parseJson, route } from '@/server/http'
 
 import { mfaVerifyBody } from '../../../../admin/_lib/schemas'
 
-/**
- * POST /api/v1/me/mfa/verify (G5-12): checks a 6-digit code (5 tries per 5 min) and marks this
- * session as verified with an HttpOnly cookie bound to the session. The first code confirms
- * enrolment.
- */
 export const POST = route('customer', async ({ req, user }) => {
   const { code } = await parseJson(req, mfaVerifyBody)
   if (!user!.sessionId)

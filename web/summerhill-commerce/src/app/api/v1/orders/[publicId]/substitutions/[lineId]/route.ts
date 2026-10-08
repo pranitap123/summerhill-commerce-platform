@@ -5,10 +5,6 @@ import { parseJson, parseParams, parseQuery, route } from '@/server/http'
 import { customerActor, orderView, viewableOrder } from '../../../../_lib/orders'
 import { orderLineParams, orderQuery, substitutionDecisionBody } from '../../../../_lib/schemas'
 
-/**
- * POST /api/v1/orders/{publicId}/substitutions/{lineId}?t=… (G4-12): approve or reject a
- * replacement until picking completes. A rejected replacement isn't charged.
- */
 export const POST = route<{ publicId: string; lineId: string }>(
   'public',
   async ({ req, user, params }) => {

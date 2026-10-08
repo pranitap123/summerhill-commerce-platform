@@ -3,10 +3,6 @@ import { parseQuery, route } from '@/server/http'
 
 import { productSearchQuery } from '../_lib/schemas'
 
-/**
- * GET /api/admin/products?q= (G5-14, A4): products by id, name or UPC, with their override and
- * visibility, for the overrides screen (hide, hide until, rename, recategorise).
- */
 export const GET = route(
   'admin',
   async ({ req }) => {

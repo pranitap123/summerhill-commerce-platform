@@ -5,18 +5,12 @@ import { idParam, parseJson, parseParams, route } from '@/server/http'
 import { moneyAction, refundLimitFor } from '../../../_lib/helpers'
 import { refundBody } from '../../../_lib/schemas'
 
-/** GET: what can still be refunded, per line. */
 export const GET = route<{ id: string }>(
   'admin',
   async ({ params }) => refundableSummary(parseParams(params, idParam).id),
   { permission: 'refunds.create' },
 )
 
-/**
- * POST /api/admin/orders/{id}/refunds (G5-04): a line, part-line, amount or full refund. The
- * scenario decides the liability (ORDERS §9); support is capped at $50 per order. Requires an
- * Idempotency-Key; rate-limited; audited with the amounts and who bears them.
- */
 export const POST = route<{ id: string }>(
   'admin',
   async (ctx) => {

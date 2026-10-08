@@ -1,7 +1,6 @@
 import { getMfaStatus, permissionsOf } from '@/modules/identity'
 import { route } from '@/server/http'
 
-/** GET /api/admin/me: who is signed in to /ops and what they may do (menus, G5-01). */
 export const GET = route(
   'admin',
   async ({ user }) => ({

@@ -15,11 +15,6 @@ import { HttpError, parseJson, parseParams, route } from '@/server/http'
 import { scopeOf } from '../../../_lib/scope'
 import { locationParams, settingsBody } from '../../../_lib/schemas'
 
-/**
- * Location settings (G4-01, M10/M13): hours, slot length, capacity, lead time, holiday closures,
- * pause. Everyone on the store's staff can read them; only the owner can change them. Changes are
- * audited and apply to future slots only.
- */
 async function load(id: number) {
   const settings = await getLocationSettings(id)
   if (!settings) throw new HttpError(404, 'NOT_FOUND', 'Location not found')

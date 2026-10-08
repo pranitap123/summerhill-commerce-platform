@@ -1,9 +1,5 @@
 import { z } from 'zod'
 
-/**
- * Request schemas for /api/v1 (strict: unknown keys are rejected, GAP-10). Kept out of the route
- * files (Next.js allows only HTTP handlers there) so the OpenAPI generator (G2-18) can read them.
- */
 export const replacementSchema = z.enum(['best_match', 'specific', 'refund'])
 export const weightLbSchema = z.number().positive().max(50)
 const productId = z.string().trim().min(1).max(100)
@@ -16,7 +12,7 @@ export const addItemBody = z
     replacementPreference: replacementSchema.optional(),
     replacementProductIds: z.array(productId).max(3).optional(),
     note: z.string().trim().max(140).nullable().optional(),
-    /** Start a new cart when the product belongs to another store (the current cart is saved). */
+
     replaceCart: z.boolean().optional(),
   })
   .strict()
@@ -38,12 +34,12 @@ export const lineIdParams = z.object({ lineId: z.coerce.number().int().positive(
 
 export const checkoutBody = z
   .object({
-    /** `quote.hash` from the latest GET/POST cart quote. */
+
     quoteHash: z.string().regex(/^[0-9a-f]{32}$/),
-    /** Required for guests; signed-in customers use their account email. */
+
     email: z.email().max(254).optional(),
     pickupName: z.string().trim().min(1).max(100).optional(),
-    /** A slot id from GET /api/v1/cart/slots (G4-03). */
+
     slotId: z.number().int().positive(),
   })
   .strict()
@@ -63,7 +59,6 @@ export const lookupBody = z
   })
   .strict()
 
-// ---- catalogue (G3-09) -------------------------------------------------------------------------
 const slug = z
   .string()
   .trim()
@@ -73,7 +68,6 @@ const slug = z
 const flag = z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1')
 const cents = z.coerce.number().int().min(0).max(1_000_000)
 
-/** Shared browse/search filters. `dietary` is comma-separated; every claim must match. */
 const catalogFilters = {
   merchant: slug.optional(),
   category: slug.optional(),
@@ -115,7 +109,6 @@ export const searchClickBody = z
   })
   .strict()
 
-// ---- order actions after checkout (G4-12, G4-14, G4-15, G4-19) --------------------------------
 export const orderLineParams = z
   .object({
     publicId: z.string().regex(/^SH-[0-9A-Z]{6}$/),
@@ -155,5 +148,4 @@ export const ratingBody = z
 
 export const reorderBody = z.object({ replaceCart: z.boolean().optional() }).strict()
 
-/** Empty JSON object: actions without input (cancel). */
 export const emptyBody = z.object({}).strict()

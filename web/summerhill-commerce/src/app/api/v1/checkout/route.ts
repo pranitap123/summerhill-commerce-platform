@@ -8,12 +8,6 @@ import { clientIp, HttpError, parseJson, route } from '@/server/http'
 import { cartContext, withCartCookie } from '../_lib/cart'
 import { checkoutBody } from '../_lib/schemas'
 
-/**
- * POST /api/v1/checkout (G2-07). Requires an `Idempotency-Key` header: a retried request returns
- * the same order and Checkout URL instead of creating a second order (G2-04), even after the
- * payment converted the cart. Keys are scoped to the caller (customer, else anonymous cart), so
- * one caller can never replay another's response. Rate-limited per client IP (G2-16).
- */
 export const POST = route(
   'public',
   async ({ req, user, requestId }) => {

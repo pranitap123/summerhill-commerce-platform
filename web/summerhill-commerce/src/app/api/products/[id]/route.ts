@@ -4,7 +4,6 @@ import { HttpError, parseParams, route } from '@/server/http'
 import { productParams } from '../../v1/_lib/schemas'
 import { deprecated } from '../deprecated'
 
-/** Deprecated alias of GET /api/v1/products/{slug}; the id still resolves. */
 export const GET = route<{ id: string }>('public', async ({ params }) => {
   const { slug } = parseParams({ slug: (await params).id }, productParams)
   const found = await resolveProduct(slug)

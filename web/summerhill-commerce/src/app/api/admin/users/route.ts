@@ -4,7 +4,6 @@ import { parseJson, route } from '@/server/http'
 
 import { inviteBody } from '../_lib/schemas'
 
-/** GET /api/admin/users (G5-15, A11): platform staff and store staff, with MFA and memberships. */
 export const GET = route(
   'admin',
   async () => {
@@ -14,7 +13,6 @@ export const GET = route(
   { permission: 'users.manage' },
 )
 
-/** POST: invite by email (password-setup email; MFA at first sign-in). Audited. */
 export const POST = route(
   'admin',
   async ({ req, auditContext }) => {

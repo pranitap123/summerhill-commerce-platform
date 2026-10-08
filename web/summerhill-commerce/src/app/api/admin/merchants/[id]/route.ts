@@ -2,7 +2,6 @@ import { getMerchantById, merchantHealth } from '@/modules/merchant'
 import { listPayouts } from '@/modules/payouts'
 import { HttpError, idParam, parseParams, route } from '@/server/http'
 
-/** GET /api/admin/merchants/{id} (A2): the merchant, its health and recent payouts. */
 export const GET = route<{ id: string }>(
   'admin',
   async ({ params }) => {

@@ -3,7 +3,6 @@ import { parseJson, parseParams, route } from '@/server/http'
 
 import { rolesBody, userParam } from '../../../_lib/schemas'
 
-/** PUT /api/admin/users/{id}/roles: the last active admin keeps the role; not your own. */
 export const PUT = route<{ id: string }>(
   'admin',
   async ({ req, params, auditContext }) => {

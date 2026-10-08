@@ -4,10 +4,6 @@ import { idParam, parseJson, parseParams, route } from '@/server/http'
 import { moneyAction } from '../../../_lib/helpers'
 import { payoutBody } from '../../../_lib/schemas'
 
-/**
- * POST /api/admin/merchants/{id}/payout (G5-07): a manual payout from the merchant's available
- * balance. Needs an Idempotency-Key and a reason; above $5,000 it waits for a second approver.
- */
 export const POST = route<{ id: string }>(
   'admin',
   async (ctx) => {

@@ -5,7 +5,6 @@ import { parseParams, route } from '@/server/http'
 import { csvResponse } from '../../../../../admin/_lib/helpers'
 import { consoleStatementParams } from '../../../../../admin/_lib/schemas'
 
-/** GET /api/console/merchants/{id}/statements/{YYYY-MM}: the monthly statement as CSV (owner). */
 export const GET = route<{ id: string; month: string }>(
   'staff',
   async ({ params, user, memberships }) => {

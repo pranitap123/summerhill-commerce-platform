@@ -3,7 +3,6 @@ import { parseJson, route } from '@/server/http'
 
 import { privacySubjectBody } from '../../_lib/schemas'
 
-/** POST /api/admin/privacy/export (SECURITY §7.3): JSON of everything personal we hold. */
 export const POST = route(
   'admin',
   async ({ req, auditContext }) =>

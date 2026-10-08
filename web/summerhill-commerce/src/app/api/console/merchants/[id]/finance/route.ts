@@ -5,10 +5,6 @@ import { HttpError, parseParams, parseQuery, route } from '@/server/http'
 
 import { consoleFinanceQuery, consoleMerchantParams } from '../../../../admin/_lib/schemas'
 
-/**
- * GET /api/console/merchants/{id}/finance?month=YYYY-MM (G5-13, M12): the owner's sales, fees,
- * refunds, payouts and statement months, from the same ledger as the platform's statements.
- */
 export const GET = route<{ id: string }>('staff', async ({ req, params, user, memberships }) => {
   const { id } = parseParams(params, consoleMerchantParams)
   requireMerchantOwner(staffScope(user!, memberships), id)

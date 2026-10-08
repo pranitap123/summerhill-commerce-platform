@@ -4,10 +4,6 @@ import { parseQuery, route } from '@/server/http'
 
 import { metricsQuery } from '../_lib/schemas'
 
-/**
- * GET /api/admin/metrics?from=YYYY-MM-DD&to=YYYY-MM-DD (G5-18, PRD §8): the metrics and their
- * written definitions. `to` is inclusive; default the last 30 days (Toronto business days).
- */
 export const GET = route(
   'admin',
   async ({ req }) => {

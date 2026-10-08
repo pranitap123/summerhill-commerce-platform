@@ -2,10 +2,6 @@ import { z } from 'zod'
 
 import { SLOT_MINUTES, weeklyHoursSchema } from '@/modules/scheduling'
 
-/**
- * Request schemas for the merchant console API (/api/console, G4). Strict: unknown keys are
- * rejected. Kept out of the route files so the OpenAPI generator can read them.
- */
 const publicId = z.string().regex(/^SH-[0-9A-Z]{6}$/)
 
 export const locationParams = z.object({ id: z.coerce.number().int().positive() }).strict()

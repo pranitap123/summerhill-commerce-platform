@@ -3,15 +3,10 @@ import { parseJson, route } from '@/server/http'
 
 import { createMerchantBody } from '../_lib/schemas'
 
-/** GET /api/admin/merchants: every merchant with its lifecycle and Stripe status. */
 export const GET = route('admin', async () => ({ merchants: await listMerchants() }), {
   permission: 'merchants.read',
 })
 
-/**
- * POST /api/admin/merchants (G5-02, A1): a new merchant with its first store, as a hidden draft.
- * Next: onboarding link → catalogue ingest → go live.
- */
 export const POST = route(
   'admin',
   async ({ req, audit }) => {

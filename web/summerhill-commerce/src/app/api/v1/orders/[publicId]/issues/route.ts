@@ -6,11 +6,6 @@ import { reportIssueBody } from '../../../../admin/_lib/schemas'
 import { customerActor, viewableOrder } from '../../../_lib/orders'
 import { orderQuery, publicIdParams } from '../../../_lib/schemas'
 
-/**
- * POST /api/v1/orders/{publicId}/issues?t=… (G5-11, S12): report a problem within 48 h of pickup.
- * Same access rule as the order page. Small claims are refunded at once by the policy engine;
- * the rest go to an agent.
- */
 export const POST = route<{ publicId: string }>(
   'public',
   async ({ req, user, params }) => {

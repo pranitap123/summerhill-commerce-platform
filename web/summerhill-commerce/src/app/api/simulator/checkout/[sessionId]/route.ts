@@ -4,11 +4,6 @@ import { simulateCheckout } from '@/modules/payments'
 import { getConfig } from '@/server/config'
 import { HttpError, parseJson, parseParams, route } from '@/server/http'
 
-/**
- * POST /api/simulator/checkout/{sessionId} (G4-18): the payment simulator's "Pay" button. Exists
- * only with PAYMENT_PROVIDER=simulator (which the config refuses in production); 404 otherwise. It can only
- * complete a session the app itself created, for the amount the app set.
- */
 const params = z.object({ sessionId: z.string().regex(/^cs_sim_[0-9a-f]{24}$/) }).strict()
 const body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('pay'), cardNumber: z.string().trim().min(12).max(23) }).strict(),

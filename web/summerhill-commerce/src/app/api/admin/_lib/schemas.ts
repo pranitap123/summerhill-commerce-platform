@@ -2,11 +2,6 @@ import { z } from 'zod'
 
 import { ISSUE_TYPES } from '@/modules/support'
 
-/**
- * Request schemas of the back-office API (/api/admin, G5). Shared by the routes and the OpenAPI
- * registry, so the published contract is exactly what the routes validate. Strict: unknown keys
- * are refused (GAP-10).
- */
 export const idParam = z.object({ id: z.coerce.number().int().positive() }).strict()
 export const userParam = z.object({ id: z.string().regex(/^[A-Za-z0-9-]{1,64}$/) }).strict()
 export const monthParam = z
@@ -245,7 +240,6 @@ export const privacyDeleteBody = z
   .strict()
   .refine((b) => !!b.email !== !!b.userId, { message: 'Give exactly one of email or userId' })
 
-// Customer and staff self-service
 export const mfaVerifyBody = z.object({ code: z.string().regex(/^\s*\d{6}\s*$/) }).strict()
 export const deleteAccountBody = z.object({ confirm: z.literal('DELETE') }).strict()
 export const consoleFinanceQuery = z

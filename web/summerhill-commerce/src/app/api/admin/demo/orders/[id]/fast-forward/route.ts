@@ -7,18 +7,13 @@ import { assertDemoToolsEnabled, idParam, parseJson, parseParams, route } from '
 
 const body = z
   .object({
-    /** Make weighed items heavier (+) or lighter (−) than estimated, in percent. */
+
     weightChangePercent: z.number().int().min(-50).max(50).default(0),
-    /** Line numbers the "picker" couldn't find. */
+
     unavailableLineNos: z.array(z.number().int().positive()).max(50).default([]),
   })
   .strict()
 
-/**
- * POST /api/admin/demo/orders/{id}/fast-forward (demo tool, never in production): accept, pick and
- * complete picking of a placed order as if a store worker did it, which triggers the capture job.
- * Replaced by the merchant console in G4.
- */
 export const POST = route<{ id: string }>('admin', async ({ req, params, user, requestId }) => {
   assertDemoToolsEnabled()
   const { id } = parseParams(params, idParam)

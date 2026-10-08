@@ -4,11 +4,6 @@ import type { Permission } from '@/modules/identity'
 
 import * as s from './schemas'
 
-/**
- * The back-office API (/api/admin, G5) and the G5 storefront/console additions, for the OpenAPI
- * document. Every admin operation names the permission it needs (SECURITY §4.1); all of them need
- * a staff session with a verified second factor (G5-12) and every mutation is audited (G5-09).
- */
 type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
 export interface G5Operation {
   path: string
@@ -44,7 +39,7 @@ const a = (
 })
 
 export const G5_OPERATIONS: G5Operation[] = [
-  // ---- storefront and console additions
+
   {
     path: '/api/v1/status',
     method: 'get',
@@ -128,7 +123,6 @@ export const G5_OPERATIONS: G5Operation[] = [
     responses: { '200': 'text/csv', '403': 'FORBIDDEN', '404': 'NOT_FOUND' },
   },
 
-  // ---- back office (/api/admin)
   a('get', '/me', 'ops.enter', 'Who is signed in to /ops, their permissions and MFA state'),
   a('get', '/orders', 'orders.read', 'Order search by id, email or pickup name (G5-03)', {
     query: s.orderSearchQuery,
@@ -385,7 +379,7 @@ export const G5_OPERATIONS: G5Operation[] = [
     "Anonymise an account and its orders' contact data",
     { body: s.privacyDeleteBody, responses: { '409': 'STAFF_ACCOUNT' } },
   ),
-  // Pre-G5 admin tools (admin only)
+
   a(
     'post',
     '/merchants/{id}/create-account',

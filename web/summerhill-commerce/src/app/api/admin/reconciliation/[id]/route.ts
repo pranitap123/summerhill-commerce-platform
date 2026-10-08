@@ -1,7 +1,6 @@
 import { getReconRun } from '@/modules/payouts'
 import { HttpError, idParam, parseParams, route } from '@/server/http'
 
-/** GET /api/admin/reconciliation/{id}: the run and every mismatch it found. */
 export const GET = route<{ id: string }>(
   'admin',
   async ({ params }) => {

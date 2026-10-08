@@ -4,7 +4,6 @@ import { parseParams, parseQuery, route } from '@/server/http'
 import { csvResponse } from '../../../../_lib/helpers'
 import { monthParam, statementQuery } from '../../../../_lib/schemas'
 
-/** GET /api/admin/merchants/{id}/statements/{YYYY-MM}[?format=csv] (G5-08): from the ledger. */
 export const GET = route<{ id: string; month: string }>(
   'admin',
   async ({ req, params }) => {

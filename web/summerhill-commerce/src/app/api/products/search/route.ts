@@ -5,7 +5,6 @@ import { clientIp, parseQuery, route } from '@/server/http'
 import { searchQuery } from '../../v1/_lib/schemas'
 import { deprecated } from '../deprecated'
 
-/** Deprecated alias of GET /api/v1/search. */
 export const GET = route('public', async ({ req }) => {
   const query = parseQuery(req, searchQuery)
   await consume(LIMITS.search, `ip:${clientIp(req) ?? 'unknown'}`)

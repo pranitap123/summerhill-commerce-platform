@@ -5,11 +5,6 @@ import { getConfig } from '@/server/config'
 import { HttpError } from '@/server/http'
 import type { Logger } from '@/server/logger'
 
-/**
- * Shared by /api/webhooks/stripe and /api/webhooks/stripe-connect (G2-08): verify the signature
- * over the RAW body, refuse live-mode events (this project is test mode only), store the event and
- * enqueue its processing, answer 200. Processing happens in the worker.
- */
 export async function receiveStripeWebhook(
   req: NextRequest,
   source: WebhookSource,

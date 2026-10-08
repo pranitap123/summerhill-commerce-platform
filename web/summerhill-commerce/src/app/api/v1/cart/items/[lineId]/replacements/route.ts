@@ -7,10 +7,6 @@ import { HttpError, parseParams, route } from '@/server/http'
 import { cartContext, withCartCookie } from '../../../../_lib/cart'
 import { lineIdParams } from '../../../../_lib/schemas'
 
-/**
- * GET /api/v1/cart/items/{lineId}/replacements (G4-04): products the customer can rank as
- * specific replacements (same store and subcategory, closest in price).
- */
 export const GET = route<{ lineId: string }>(
   'public',
   async ({ req, user, params }) => {

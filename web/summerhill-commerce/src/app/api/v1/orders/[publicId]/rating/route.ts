@@ -5,7 +5,6 @@ import { parseJson, parseParams, parseQuery, route } from '@/server/http'
 import { customerActor, orderView, viewableOrder } from '../../../_lib/orders'
 import { orderQuery, publicIdParams, ratingBody } from '../../../_lib/schemas'
 
-/** POST /api/v1/orders/{publicId}/rating?t=… (G4-19): 1–5 stars and tags after pickup. */
 export const POST = route<{ publicId: string }>(
   'public',
   async ({ req, user, params }) => {

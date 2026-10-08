@@ -3,7 +3,6 @@ import { parseJson, parseParams, route } from '@/server/http'
 
 import { membershipBody, membershipParam } from '../../../../_lib/schemas'
 
-/** PUT /api/admin/users/{id}/memberships/{merchantId}: store role (owner/manager/picker). */
 export const PUT = route<{ id: string; merchantId: string }>(
   'admin',
   async ({ req, params, auditContext }) => {
@@ -15,7 +14,6 @@ export const PUT = route<{ id: string; merchantId: string }>(
   { permission: 'users.manage', audit: 'service' },
 )
 
-/** DELETE: remove the user's access to that store. */
 export const DELETE = route<{ id: string; merchantId: string }>(
   'admin',
   async ({ params, auditContext }) => {

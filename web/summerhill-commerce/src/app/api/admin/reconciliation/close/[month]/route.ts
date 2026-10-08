@@ -4,7 +4,6 @@ import { parseParams, route } from '@/server/http'
 import { csvResponse } from '../../../_lib/helpers'
 import { closeMonthParam } from '../../../_lib/schemas'
 
-/** GET /api/admin/reconciliation/close/{YYYY-MM}: monthly close export (A10), every ledger entry. */
 export const GET = route<{ month: string }>(
   'admin',
   async ({ params }) => {

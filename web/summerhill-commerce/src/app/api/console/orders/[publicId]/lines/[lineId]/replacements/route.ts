@@ -5,11 +5,6 @@ import { HttpError, parseParams, route } from '@/server/http'
 import { scopeOf } from '../../../../../_lib/scope'
 import { lineParams } from '../../../../../_lib/schemas'
 
-/**
- * GET …/lines/{lineId}/replacements: what the picker may offer, following the customer's
- * preference (ORDERS §6): their specific choices in their order, else best matches from the same
- * subcategory by price closeness; nothing when they asked for a refund.
- */
 export const GET = route<{ publicId: string; lineId: string }>('staff', async (ctx) => {
   const { publicId, lineId } = parseParams(ctx.params, lineParams)
   const order = await consoleOrder(scopeOf(ctx), publicId)

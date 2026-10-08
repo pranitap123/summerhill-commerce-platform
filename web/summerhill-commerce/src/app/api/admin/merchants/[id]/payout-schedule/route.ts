@@ -3,7 +3,6 @@ import { idParam, parseJson, parseParams, route } from '@/server/http'
 
 import { payoutScheduleBody } from '../../../_lib/schemas'
 
-/** POST /api/admin/merchants/{id}/payout-schedule: Stripe's automatic payout interval. Audited. */
 export const POST = route<{ id: string }>(
   'admin',
   async ({ req, params, auditContext }) => {

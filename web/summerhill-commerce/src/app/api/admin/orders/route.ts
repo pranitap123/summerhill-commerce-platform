@@ -3,10 +3,6 @@ import { parseQuery, route } from '@/server/http'
 
 import { orderSearchQuery } from '../_lib/schemas'
 
-/**
- * GET /api/admin/orders?q=&status=&merchantId=&from=&to=&hasIssue= (G5-03): order search by public
- * id, email or pickup name, newest first.
- */
 export const GET = route(
   'admin',
   async ({ req }) => {

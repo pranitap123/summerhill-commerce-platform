@@ -16,7 +16,6 @@ import {
   route,
 } from '@/server/http'
 
-/** Demo tool: pushes a TEST account into a verified, failed or restricted state. 404 in production. */
 const body = z.object({ outcome: z.enum(['success', 'failure', 'restricted']) }).strict()
 
 export const POST = route<{ id: string }>('admin', async ({ req, params }) => {

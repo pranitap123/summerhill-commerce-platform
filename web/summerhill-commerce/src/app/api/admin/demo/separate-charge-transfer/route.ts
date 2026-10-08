@@ -6,10 +6,6 @@ import { calculatePlatformFee } from '@/modules/pricing'
 import { getConfig } from '@/server/config'
 import { assertDemoToolsEnabled, HttpError, parseJson, route } from '@/server/http'
 
-/**
- * Demo tool (404 in production): Separate Charges and Transfers, for comparison with the
- * destination charges used at checkout. The charge and the transfer are two independent calls.
- */
 const body = z.object({ amountCents: z.number().int().min(50).max(1_000_000) }).strict()
 
 export const POST = route('admin', async ({ req, requestId }) => {

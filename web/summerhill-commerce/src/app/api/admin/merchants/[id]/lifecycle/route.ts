@@ -4,11 +4,6 @@ import { idParam, parseJson, parseParams, route } from '@/server/http'
 
 import { lifecycleBody } from '../../../_lib/schemas'
 
-/**
- * POST /api/admin/merchants/{id}/lifecycle (G5-02, A1): go_live (blocked unless Stripe charges are
- * enabled and a catalogue is published), pause, resume, offboard, finish_offboarding (all orders
- * closed, then a final payout of the whole balance). Audited with before/after.
- */
 export const POST = route<{ id: string }>(
   'admin',
   async ({ req, params, audit, auditContext }) => {

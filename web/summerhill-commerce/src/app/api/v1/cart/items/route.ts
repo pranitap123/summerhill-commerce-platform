@@ -5,7 +5,6 @@ import { parseJson, route } from '@/server/http'
 import { cartContext, cartView, toMlb, withCartCookie } from '../../_lib/cart'
 import { addItemBody } from '../../_lib/schemas'
 
-/** POST /api/v1/cart/items: add a product (adds to the quantity if it's already in the cart). */
 export const POST = route(
   'public',
   async ({ req, user }) => {

@@ -3,12 +3,10 @@ import { HttpError, parseJson, route } from '@/server/http'
 
 import { reconRunBody } from '../_lib/schemas'
 
-/** GET /api/admin/reconciliation: recent runs (daily at 06:00 for the previous day, and manual). */
 export const GET = route('admin', async () => ({ runs: await listReconRuns() }), {
   permission: 'recon.run',
 })
 
-/** POST: reconcile one business day now (G5-05). */
 export const POST = route(
   'admin',
   async ({ req, user, audit }) => {

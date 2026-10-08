@@ -7,7 +7,6 @@ import {
 import { getStripe } from '@/modules/payments'
 import { clientIp, HttpError, idParam, parseParams, route } from '@/server/http'
 
-/** Creates a Custom connected account for a merchant (test mode; ADR-0011 decides the live flow). */
 export const POST = route<{ id: string }>('admin', async ({ req, params, log }) => {
   const { id } = parseParams(params, idParam)
   const merchant = await getMerchantById(id)
@@ -36,7 +35,7 @@ export const POST = route<{ id: string }>('admin', async ({ req, params, log }) 
       tos_acceptance: stripeTestFixtures.testTosAcceptance(ip, req.headers.get('user-agent')),
       metadata: { merchant_id: String(merchant.id) },
     },
-    // One account per merchant, even if the request is retried.
+
     { idempotencyKey: `create-account:merchant:${merchant.id}` },
   )
 

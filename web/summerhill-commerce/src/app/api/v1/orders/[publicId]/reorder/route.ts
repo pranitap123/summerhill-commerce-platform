@@ -7,11 +7,6 @@ import { cartContext, cartView, withCartCookie } from '../../../_lib/cart'
 import { viewableOrder } from '../../../_lib/orders'
 import { orderQuery, publicIdParams, reorderBody } from '../../../_lib/schemas'
 
-/**
- * POST /api/v1/orders/{publicId}/reorder?t=… (G4-19): buy again. Adds every product still sold
- * to the cart and reports the ones that aren't. 409 CART_MIXED_MERCHANTS when the cart holds
- * another store's items (retry with replaceCart: the current cart is saved).
- */
 export const POST = route<{ publicId: string }>(
   'public',
   async ({ req, user, params }) => {

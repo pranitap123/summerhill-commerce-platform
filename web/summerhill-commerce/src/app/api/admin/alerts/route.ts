@@ -3,7 +3,6 @@ import { parseQuery, route } from '@/server/http'
 
 import { alertQuery } from '../_lib/schemas'
 
-/** GET /api/admin/alerts?open=true: operational alerts (auth expiry, disputes, recon, payouts…). */
 export const GET = route(
   'admin',
   async ({ req }) => ({

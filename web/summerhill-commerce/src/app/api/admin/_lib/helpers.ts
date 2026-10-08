@@ -4,15 +4,10 @@ import { can, SUPPORT_REFUND_LIMIT_CENTS, type SessionUser } from '@/modules/ide
 import { consume, LIMITS, readIdempotencyKey, requestHash, withIdempotency } from '@/modules/ops'
 import { HttpError, type RouteContext } from '@/server/http'
 
-/** Support's refund cap per order (threat T16); finance and admins have none. */
 export function refundLimitFor(user: SessionUser | null): number | null {
   return can(user, 'refunds.unlimited') ? null : SUPPORT_REFUND_LIMIT_CENTS
 }
 
-/**
- * Money actions (refunds, payouts, recoveries): rate-limited per user (SECURITY §5) and made
- * idempotent with the Idempotency-Key header (G2-04), so a double click never pays twice.
- */
 export async function moneyAction<T>(
   ctx: Pick<RouteContext<unknown>, 'req' | 'user'>,
   scope: string,

@@ -13,7 +13,6 @@ import { getPaymentForOrder, listRefundsForOrder } from '@/modules/payments'
 import { canReportIssue, listIssues } from '@/modules/support'
 import { HttpError } from '@/server/http'
 
-/** The order behind a customer action: its owner or a guest link holder, else 404 (G2-13). */
 export async function viewableOrder(
   publicId: string,
   user: SessionUser | null,
@@ -29,13 +28,8 @@ export function customerActor(user: SessionUser | null): Actor {
   return { type: 'customer', id: user ? String(user.id) : null }
 }
 
-/** Statuses in which the customer holds a pickup code worth showing. */
 const CODE_STATUSES = new Set(['placed', 'accepted', 'picking', 'picked', 'ready', 'no_show'])
 
-/**
- * The customer-facing view of an order (G2-13). Never includes the platform fee, internal ids or
- * payment identifiers; only what the customer paid for and where the order stands.
- */
 export async function orderView(order: Order) {
   const [lines, events, payment, refunds, issues] = await Promise.all([
     getOrderLines(order.id),
@@ -57,7 +51,7 @@ export async function orderView(order: Order) {
     pickup: {
       startsAt: order.pickupStartsAt,
       endsAt: order.pickupEndsAt,
-      // Shown to the customer only: staff type what the customer tells them (ORDERS §7)
+
       code: CODE_STATUSES.has(order.status) ? order.pickupCode : null,
       arrivedAt: order.arrivedAt,
       collectedAt: order.collectedAt,
@@ -73,7 +67,7 @@ export async function orderView(order: Order) {
         ['accepted', 'picking', 'picked', 'ready', 'no_show'].includes(order.status) &&
         !order.arrivedAt,
       rate: order.status === 'collected',
-      // G5-11: within 48 h of pickup, and not while a report is being reviewed
+
       reportIssue: canReportIssue(order) && !issues.some((i) => i.status === 'open'),
       reorder: order.status !== 'pending_payment',
     },
@@ -102,7 +96,7 @@ export async function orderView(order: Order) {
           capturedCents: payment.amountCapturedCents,
         }
       : null,
-    // G5-04/G5-11: refunds that went through, and problem reports with their outcome
+
     refunds: refunds
       .filter((r) => r.status === 'succeeded')
       .map((r) => ({
@@ -150,7 +144,7 @@ function lineView(l: OrderLine, all: OrderLine[]) {
     status: l.status,
     finalLineTotalCents: l.finalLineTotalCents,
     unavailableReason: l.unavailableReason,
-    /** On a substitute: the item it replaces and the customer's answer (G4-12). */
+
     replaces: original ? { lineNo: original.lineNo, name: original.name } : null,
     customerDecision: l.customerDecision,
     replacementPreference: l.replacementPreference,

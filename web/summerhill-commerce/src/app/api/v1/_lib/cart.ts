@@ -12,12 +12,10 @@ import type { SessionUser } from '@/modules/identity'
 import { toPublicQuote, type PublicQuote, type QuoteLine } from '@/modules/pricing'
 import { getConfig } from '@/server/config'
 
-/** Shared by the /api/v1/cart routes: cookie handling, input schemas and the cart view. */
 export function cartContext(req: NextRequest, user: SessionUser | null): CartContext {
   return { user, cookieCartId: cartIdFromCookie(req.cookies.get(CART_COOKIE)?.value) }
 }
 
-/** Applies a cart cookie change: a value sets it (30 days), '' clears it, undefined leaves it. */
 export function withCartCookie<T extends NextResponse>(res: T, value: string | undefined): T {
   if (value === undefined) return res
   res.cookies.set(CART_COOKIE, value, {
@@ -30,7 +28,6 @@ export function withCartCookie<T extends NextResponse>(res: T, value: string | u
   return res
 }
 
-/** Weights arrive as decimal pounds; the server works in integer thousandths. */
 export const toMlb = (lb: number | null | undefined) =>
   lb === null || lb === undefined ? lb : Math.round(lb * 1000)
 
@@ -59,7 +56,6 @@ export interface CartView {
   quote: PublicQuote | null
 }
 
-/** The cart with a fresh quote (the hash the client must send back to check out). */
 export async function cartView(cart: Cart | null): Promise<CartView> {
   if (!cart) return { cart: null, quote: null }
   const { quote } = await quoteCart(cart)

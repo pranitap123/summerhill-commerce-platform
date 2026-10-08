@@ -22,10 +22,6 @@ const body = z
   .strict()
   .refine((b) => Object.keys(b).length > 0, { message: 'Send at least one field' })
 
-/**
- * PUT /api/admin/products/{id}/override: hide, rename, recategorise or block a product (G3-11).
- * Survives re-ingest, audited, and pushed to search and the storefront. `null` clears one field.
- */
 export const PUT = route<{ id: string }>(
   'admin',
   async ({ req, params: raw, user, requestId }) => {
@@ -43,7 +39,6 @@ export const PUT = route<{ id: string }>(
   { permission: 'catalog.manage', audit: 'service' },
 )
 
-/** DELETE: remove the override; the product shows the source's data again. */
 export const DELETE = route<{ id: string }>(
   'admin',
   async ({ params: raw, user, requestId }) => {

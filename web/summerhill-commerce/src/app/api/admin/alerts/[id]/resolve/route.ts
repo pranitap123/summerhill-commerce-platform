@@ -1,7 +1,6 @@
 import { resolveAlert } from '@/modules/ops'
 import { HttpError, idParam, parseParams, route } from '@/server/http'
 
-/** POST /api/admin/alerts/{id}/resolve: mark an alert handled. Audited. */
 export const POST = route<{ id: string }>(
   'admin',
   async ({ params, audit }) => {

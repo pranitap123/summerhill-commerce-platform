@@ -7,11 +7,6 @@ import { route } from '@/server/http'
 
 import { cartContext, withCartCookie } from '../../_lib/cart'
 
-/**
- * GET /api/v1/cart/slots (G4-03): the pickup times this cart can book: open slots with room,
- * after the store's lead time, within 5 days (card authorisations expire after ~7), and only on
- * weekdays every item is available. Checkout takes one of these ids.
- */
 export const GET = route(
   'public',
   async ({ req, user }) => {

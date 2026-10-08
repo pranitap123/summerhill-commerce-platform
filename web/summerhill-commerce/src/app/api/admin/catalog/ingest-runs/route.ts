@@ -6,10 +6,6 @@ import { ingestRunBody } from '../../_lib/schemas'
 
 const query = z.object({ limit: z.coerce.number().int().min(1).max(100).default(20) }).strict()
 
-/**
- * GET /api/admin/catalog/ingest-runs (G5-14, A3): recent runs with counts, anomalies and errors,
- * and the requests waiting for the pipeline.
- */
 export const GET = route(
   'admin',
   async ({ req }) => {
@@ -20,7 +16,6 @@ export const GET = route(
   { permission: 'catalog.manage' },
 )
 
-/** POST: ask the pipeline for a run (it picks the request up within ~30 s). */
 export const POST = route(
   'admin',
   async ({ req, auditContext }) => {

@@ -5,7 +5,6 @@ import { HttpError, parseJson, parseParams, route } from '@/server/http'
 import { cartContext, cartView, toMlb, withCartCookie } from '../../../_lib/cart'
 import { lineIdParams as params, updateItemBody } from '../../../_lib/schemas'
 
-/** PATCH /api/v1/cart/items/{lineId}: set quantity / weight / replacement preference / note. */
 export const PATCH = route<{ lineId: string }>(
   'public',
   async ({ req, user, params: raw }) => {
@@ -19,7 +18,6 @@ export const PATCH = route<{ lineId: string }>(
   { session: 'optional' },
 )
 
-/** DELETE /api/v1/cart/items/{lineId} */
 export const DELETE = route<{ lineId: string }>(
   'public',
   async ({ req, user, params: raw }) => {

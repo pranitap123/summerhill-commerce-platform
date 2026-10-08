@@ -4,10 +4,6 @@ import { idParam, parseJson, parseParams, route } from '@/server/http'
 import { moneyAction, refundLimitFor } from '../../../_lib/helpers'
 import { resolveIssueBody } from '../../../_lib/schemas'
 
-/**
- * POST /api/admin/issues/{id}/resolve (ORDERS §10): approve (refund, liability per the matrix,
- * role limits apply) or reject (liability: customer; the customer is emailed the note).
- */
 export const POST = route<{ id: string }>(
   'admin',
   async (ctx) => {

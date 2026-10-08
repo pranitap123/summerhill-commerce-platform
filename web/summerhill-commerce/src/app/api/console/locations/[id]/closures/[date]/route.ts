@@ -5,7 +5,6 @@ import { HttpError, parseParams, route } from '@/server/http'
 import { scopeOf } from '../../../../_lib/scope'
 import { closureParams } from '../../../../_lib/schemas'
 
-/** DELETE /api/console/locations/{id}/closures/{date}: reopen a closed day (owner only). */
 export const DELETE = route<{ id: string; date: string }>('staff', async (ctx) => {
   const { id, date } = parseParams(ctx.params, closureParams)
   const settings = await getLocationSettings(id)

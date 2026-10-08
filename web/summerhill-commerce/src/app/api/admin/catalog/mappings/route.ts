@@ -3,7 +3,6 @@ import { parseQuery, route } from '@/server/http'
 
 import { mappingQuery } from '../../_lib/schemas'
 
-/** GET /api/admin/catalog/mappings?unmapped=true: source categories and our subcategories. */
 export const GET = route(
   'admin',
   async ({ req }) => {

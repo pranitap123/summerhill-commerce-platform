@@ -1,7 +1,6 @@
 import { getDispute } from '@/modules/payments'
 import { HttpError, idParam, parseParams, route } from '@/server/http'
 
-/** GET /api/admin/disputes/{id}: the dispute with its evidence pack. */
 export const GET = route<{ id: string }>(
   'admin',
   async ({ params }) => {

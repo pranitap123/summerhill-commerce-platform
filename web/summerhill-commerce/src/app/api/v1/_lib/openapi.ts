@@ -43,18 +43,12 @@ import {
   updateItemBody,
 } from './schemas'
 
-/**
- * OpenAPI 3.1 for the storefront API (G2-18), generated from the same zod schemas the routes use
- * to validate requests. `npm run openapi` writes docs/openapi.yaml; the contract test fails if the
- * file is stale or an /api/v1 or /api/console route is missing here.
- */
 type Method = 'get' | 'post' | 'put' | 'patch' | 'delete'
 interface Operation {
   path: string
   method: Method
   summary: string
-  /** staff: merchant console (G4), an active staff membership scoped to the store, or an admin;
-   *  admin: back office (G5), a platform role holding `permission`; both need a verified MFA */
+
   auth: 'public' | 'optional-session' | 'customer' | 'staff' | 'admin'
   permission?: Permission
   params?: z.ZodObject
@@ -280,7 +274,7 @@ export const OPERATIONS: Operation[] = [
     auth: 'customer',
     responses: { '200': '{ orders: OrderSummary[] }', '401': 'UNAUTHENTICATED' },
   },
-  // ---- merchant console (G4) ------------------------------------------------------------------
+
   {
     path: '/api/console/locations',
     method: 'get',

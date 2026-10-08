@@ -1,7 +1,6 @@
 import { getIngestRun } from '@/modules/catalog'
 import { HttpError, idParam, parseParams, route } from '@/server/http'
 
-/** GET /api/admin/catalog/ingest-runs/{id}: one run with its quarantined rows and flags. */
 export const GET = route<{ id: string }>(
   'admin',
   async ({ params }) => {
