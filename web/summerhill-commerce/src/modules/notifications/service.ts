@@ -20,14 +20,8 @@ import {
   type Rendered,
 } from './templates'
 
-/**
- * Transactional email through the outbox (G2-14). The `notify.order` consumer receives order
- * events after their transaction committed, so an email is never sent for a rolled-back change.
- * Each notification has a dedupe key and is logged in ops.notifications (recipient stored only as
- * a hash, ORDERS §11).
- */
 export const NOTIFY_QUEUE = 'notify.order'
-/** Operational alerts to staff channels (G6-09). */
+
 export const ALERT_NOTIFY_QUEUE = 'notify.alert'
 
 export function orderUrl(order: Pick<Order, 'publicId' | 'accessVersion'>): string {
@@ -70,7 +64,6 @@ async function deliver(
   return enabled ? 'sent' : 'skipped'
 }
 
-/** Consumer for order.* outbox events. */
 export async function handleOrderNotification(event: OutboxEvent): Promise<void> {
   await handleOnce(NOTIFY_QUEUE, event.eventId, async (tx) => {
     const orderId = Number(event.payload.orderId)
@@ -152,7 +145,7 @@ export async function handleOrderNotification(event: OutboxEvent): Promise<void>
       const lines = await getOrderLines(orderId, tx)
       const original = lines.find((l) => l.id === Number(event.payload.lineId))
       const substitute = lines.find((l) => l.id === Number(event.payload.substituteLineId))
-      // The picker may have undone it before this ran: then there's nothing to tell.
+
       if (original && substitute)
         await deliver(
           tx,
@@ -165,12 +158,8 @@ export async function handleOrderNotification(event: OutboxEvent): Promise<void>
   })
 }
 
-/**
- * Guest order lookup (G2-20): emails a fresh link to the address on the order. Called only when
- * both the order id and the email matched; the HTTP response is identical either way.
- */
 export async function sendOrderLookupLink(order: Order): Promise<void> {
-  const bucket = Math.floor(Date.now() / 60_000) // at most one link per order per minute
+  const bucket = Math.floor(Date.now() / 60_000)
   await deliver(
     getDb(),
     order.email,
@@ -180,10 +169,6 @@ export async function sendOrderLookupLink(order: Order): Promise<void> {
   )
 }
 
-/**
- * Emails an `ops.alert_raised` event to its channel's address (G6-09): ALERT_EMAIL_PAGE for
- * SEV1/paging kinds, ALERT_EMAIL_OPS, ALERT_EMAIL_FINANCE. One email per alert (dedupe key).
- */
 export async function handleAlertNotification(event: OutboxEvent): Promise<void> {
   const p = event.payload as {
     alertId: number

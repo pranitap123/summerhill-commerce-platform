@@ -17,12 +17,6 @@ import {
 import { listIssues } from '@/modules/support'
 import { getDb } from '@/server/db'
 
-/**
- * Order search and the full order page for /ops (G5-03, A5): "any order fully explained on one
- * page". The dossier gathers every record about an order from the modules that own them, and the
- * timeline merges them in time order: state changes and staff actions, notifications, Stripe
- * webhooks, payment, refunds, disputes, support issues, ledger journals and audit entries.
- */
 export interface OrderSearchRow {
   id: number
   publicId: string

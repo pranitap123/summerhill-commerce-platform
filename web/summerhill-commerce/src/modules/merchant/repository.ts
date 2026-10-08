@@ -28,7 +28,6 @@ export interface Merchant {
 
 export type LifecycleStatus = 'draft' | 'live' | 'paused' | 'offboarding' | 'offboarded'
 
-// Explicit column list (never SELECT *). Bigint columns are cast because pg returns them as strings.
 const COLUMNS = `id::int AS id, name, stripe_account_id, onboarding_status, charges_enabled,
   payouts_enabled, disabled_reason, payout_schedule_interval, accepting_orders,
   min_order_cents::int AS min_order_cents, weight_buffer_bp, hst_registration_number, slug,
@@ -86,10 +85,6 @@ export async function updateMerchantStripeAccount(
   )
 }
 
-/**
- * Columns callers may update through `updateMerchantStatus`. Column names are interpolated into
- * SQL, so they must come from this fixed list and never from input (threat T5, GAP-09).
- */
 export const UPDATABLE_STATUS_COLUMNS = [
   'onboarding_status',
   'charges_enabled',

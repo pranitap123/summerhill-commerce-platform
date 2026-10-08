@@ -5,12 +5,6 @@ import { getLogger } from '@/server/logger'
 import { routeFor } from './alertRules'
 import { emit } from './outbox'
 
-/**
- * Operational alerts (auth expiry, capture failures, dead jobs…). Stored once per dedupe key and
- * logged at error/warn level with their route (G6-09, alertRules.ts), so a log platform can page
- * on `alert.channel = "page"`; in the same transaction `ops.alert_raised` is emitted, and the
- * notifications module emails the route's channel once the alert is committed.
- */
 export async function raiseAlert(
   db: Db,
   alert: {
@@ -63,7 +57,6 @@ export interface AlertRow {
   resolvedAt: Date | null
 }
 
-/** Open alerts, newest first (the /ops dashboard; G6-09 routes them to a channel). */
 export async function listAlerts(
   filter: { open?: boolean; limit?: number } = {},
   db: Db = getDb(),

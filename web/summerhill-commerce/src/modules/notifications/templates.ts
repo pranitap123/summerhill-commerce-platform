@@ -1,9 +1,5 @@
 import type { Order, OrderLine } from '@/modules/ordering'
 
-/**
- * Versioned email templates (ORDERS §11). The version is logged with every notification, so a
- * support agent can see exactly which wording a customer received.
- */
 export interface Rendered {
   template: string
   version: number
@@ -28,7 +24,6 @@ function layout(title: string, body: string): string {
 </body></html>`
 }
 
-/** "Tue, Nov 3, 11:00 a.m. – 12:00 p.m." in the store's time zone. */
 export function pickupWindow(
   order: Pick<Order, 'pickupStartsAt' | 'pickupEndsAt'>,
   timeZone = 'America/Toronto',
@@ -99,7 +94,6 @@ ${pickupLines.length ? `<p><strong>${pickupLines.map(escapeHtml).join('<br>')}</
   }
 }
 
-/** Why an order was cancelled, in the customer's words (ORDERS §5 and §8). */
 function cancellationText(reason: string | null): string {
   if (reason === 'customer_cancelled') return 'You cancelled your order.'
   if (reason === 'auto_rejected')
@@ -135,12 +129,6 @@ export interface ReceiptMerchant {
   hstRegistrationNumber: string | null
 }
 
-/**
- * Ready for pickup + receipt (G4-17, ORDERS §11): final lines with HST per line, what was
- * released from the hold, the pickup code and time. Names the merchant as the seller (with its
- * HST number) and the platform as the marketplace facilitator. Built from the captured order, so
- * its total is the amount the ledger recorded.
- */
 export function orderReady(
   order: Order,
   lines: OrderLine[],
@@ -211,7 +199,6 @@ export function orderReady(
   }
 }
 
-/** A picker replaced an item (G4-12): the customer can reject it until packing is finished. */
 export function orderSubstitution(
   order: Order,
   original: OrderLine,
@@ -245,7 +232,6 @@ export function orderLookupLink(publicId: string, orderUrl: string): Rendered {
   }
 }
 
-/** A refund went through (G5-04). Card refunds take 5–10 business days to appear. */
 export function orderRefunded(
   order: Order,
   refund: { amountCents: number; lines: Array<{ name: string }> },
@@ -266,7 +252,6 @@ export function orderRefunded(
   }
 }
 
-/** A reported problem was reviewed and not refunded (G5-11). */
 export function issueRejected(order: Order, note: string, orderUrl: string): Rendered {
   return {
     template: 'issue_rejected',
@@ -281,7 +266,6 @@ export function issueRejected(order: Order, note: string, orderUrl: string): Ren
   }
 }
 
-/** An operational alert for a staff channel (G6-09). */
 export function opsAlert(alert: {
   alertId: number
   kind: string

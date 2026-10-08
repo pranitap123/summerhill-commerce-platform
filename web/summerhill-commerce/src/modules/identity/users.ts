@@ -13,14 +13,6 @@ import { getUserDirectory, type DirectoryUser } from './directory'
 import { getMfaStatus, resetMfa, type MfaStatus } from './mfa'
 import { PLATFORM_ROLES, type Role } from './roles'
 
-/**
- * Platform user and role management (G5-15, A11). Rules:
- *  - every change is audited with before/after
- *  - the last active admin can't lose the role or be deactivated, and nobody changes their own
- *    roles or deactivates themselves (no lock-out by accident)
- *  - deactivation ends every session at once and deactivates store memberships
- *  - invited users get an email to choose their password; MFA is set up at first sign-in
- */
 export interface TeamMember extends DirectoryUser {
   mfa: MfaStatus
   memberships: StaffMembershipRow[]
@@ -63,7 +55,7 @@ function assertNotSelf(ctx: AuditContext, userId: string, what: string): void {
 
 const normaliseRoles = (roles: Role[]): Role[] => {
   const set = new Set(roles)
-  set.add('customer') // everyone can still shop
+  set.add('customer')
   return [...set].sort()
 }
 
@@ -159,7 +151,6 @@ export async function reactivateUser(ctx: AuditContext, userId: string): Promise
   return updated
 }
 
-/** Lost authenticator: the user sets MFA up again at the next sign-in; sessions end now. */
 export async function resetUserMfa(ctx: AuditContext, userId: string): Promise<void> {
   const target = await requireUser(userId)
   const removed = await resetMfa(userId)

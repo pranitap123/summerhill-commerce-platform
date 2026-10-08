@@ -4,16 +4,6 @@ import { HttpError } from '@/server/http'
 
 import { getMerchantById, type LifecycleStatus, type Merchant } from './repository'
 
-/**
- * Merchant lifecycle (G5-02, A1): draft → live ⇄ paused → offboarding → offboarded.
- *
- *  go live   only with Stripe charges enabled and a published catalogue (at least one listed
- *            product); the storefront shows the store and checkout accepts orders
- *  pause     no new orders (checkout refuses); placed orders are still handled
- *  offboard  no new orders and hidden from the storefront; finishing it needs every open order
- *            closed and a final payout (payouts module)
- * `accepting_orders` and `storefront_visible` are derived from the status here, nowhere else.
- */
 export const OPEN_ORDER_STATUSES = [
   'placed',
   'accepted',
@@ -66,7 +56,6 @@ const TRANSITIONS: Record<string, { from: LifecycleStatus[]; to: LifecycleStatus
 }
 export type LifecycleAction = keyof typeof TRANSITIONS | 'finish_offboarding'
 
-/** Applies a lifecycle action; returns the merchant before and after. */
 export async function changeLifecycle(
   merchantId: number,
   action: keyof typeof TRANSITIONS,
@@ -108,7 +97,6 @@ export async function markOffboarded(merchantId: number, db: Db = getDb()): Prom
   )
 }
 
-/** Admin creates a merchant with its first store; it starts as a hidden draft. */
 export async function createMerchant(input: {
   slug: string
   name: string
@@ -178,7 +166,6 @@ export interface MerchantHealth {
   lastIngest: { id: number; status: string; startedAt: Date } | null
 }
 
-/** A2: Stripe requirements (on the merchant row), SLA stats, open orders, catalogue status. */
 export async function merchantHealth(merchant: Merchant): Promise<MerchantHealth> {
   const db = getDb()
   const [goLive, openOrders, stats, ingest] = await Promise.all([

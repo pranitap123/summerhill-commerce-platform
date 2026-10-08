@@ -3,15 +3,6 @@ import { randomUUID } from 'node:crypto'
 import type { Db } from '@/server/db'
 import { getDb } from '@/server/db'
 
-/**
- * Postgres job queue (G2-03, ADR-0008 as amended). Consumers claim jobs with
- * `FOR UPDATE SKIP LOCKED`, so several workers can run side by side without taking the same job.
- * A failed job is retried with exponential backoff and jitter; after `max_attempts` it becomes
- * `dead` (the dead-letter state) and the queue's `onDead` hook runs (alert, compensating action).
- *
- * Jobs are enqueued inside the caller's transaction when a `Db` client is passed, so "state changed"
- * and "job exists" commit together. `dedupe_key` makes enqueueing idempotent per queue.
- */
 export interface Job<P = Record<string, unknown>> {
   id: number
   queue: string
@@ -27,7 +18,6 @@ export interface EnqueueOptions {
   maxAttempts?: number
 }
 
-/** Returns the job id, or null when a job with the same dedupe key already exists. */
 export async function enqueue(
   db: Db,
   queue: string,
@@ -84,13 +74,11 @@ export async function completeJob(id: number): Promise<void> {
   )
 }
 
-/** Delay before retry n (1-based): 2^n seconds, capped at 15 min, with ±25% jitter. */
 export function backoffMs(attempt: number, random: () => number = Math.random): number {
   const base = Math.min(2 ** attempt * 1000, 15 * 60_000)
   return Math.round(base * (0.75 + random() * 0.5))
 }
 
-/** Returns 'retry' or 'dead'. */
 export async function failJob(job: Job, error: unknown): Promise<'retry' | 'dead'> {
   const message = (error instanceof Error ? error.message : String(error)).slice(0, 2000)
   if (job.attempts >= job.maxAttempts) {
@@ -109,7 +97,6 @@ export async function failJob(job: Job, error: unknown): Promise<'retry' | 'dead
   return 'retry'
 }
 
-/** Puts jobs back in the queue whose worker died while running them. */
 export async function recoverStuckJobs(olderThanMs = 5 * 60_000): Promise<number> {
   const { rowCount } = await getDb().query(
     `UPDATE ops.jobs SET status = 'queued', locked_at = NULL, last_error = 'recovered after worker timeout'

@@ -1,15 +1,5 @@
 import type { PlatformRole, SessionUser } from './roles'
 
-/**
- * What each platform role may do (SECURITY §4.1). Permissions are code constants and the map is
- * reviewed like code; `can()` is the single check used by the API gate (`route('admin', …,
- * { permission })`) and the /ops pages. Admin routes that declare no permission are admin-only.
- *
- *  support  read orders, merchants and customers; cancel before capture; refunds ≤ $50 per order;
- *           resolve support issues
- *  finance  refunds of any amount, payouts, reconciliation, disputes, statements, audit log
- *  admin    everything, including users, roles, flags, merchants and the catalogue
- */
 export const PERMISSIONS = {
   'ops.enter': ['admin', 'support', 'finance'],
   'orders.read': ['admin', 'support', 'finance'],
@@ -34,10 +24,8 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS
 
-/** Support refunds up to this much per order (cumulative) without finance/admin (threat T16). */
 export const SUPPORT_REFUND_LIMIT_CENTS = 5_000
 
-/** Manual payouts above this need a second person's approval (PAYMENTS §8). */
 export const PAYOUT_APPROVAL_THRESHOLD_CENTS = 500_000
 
 export function can(user: SessionUser | null, permission: Permission): boolean {
@@ -46,7 +34,6 @@ export function can(user: SessionUser | null, permission: Permission): boolean {
   return user.roles.some((r) => allowed.includes(r))
 }
 
-/** Every permission a user holds (for menus and the /api/admin/me answer). */
 export function permissionsOf(user: SessionUser | null): Permission[] {
   return (Object.keys(PERMISSIONS) as Permission[]).filter((p) => can(user, p))
 }

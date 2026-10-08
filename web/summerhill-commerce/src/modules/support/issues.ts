@@ -15,11 +15,6 @@ import { HttpError } from '@/server/http'
 
 import { decideIssue, ISSUE_SCENARIO, type IssueType, type PolicyDecision } from './policy'
 
-/**
- * "Report a problem" (G5-11, S12, ORDERS §10). A customer reports within 48 h of collecting;
- * the policy engine refunds small claims at once (liability per the matrix), everything else
- * waits in the agent queue at /ops/issues. Every resolution records who bears it.
- */
 export const ISSUE_WINDOW_MS = 48 * 3600_000
 const SYSTEM_CTX: AuditContext = { actor: { type: 'system', id: 'support-policy' } }
 
@@ -81,7 +76,6 @@ export async function listIssues(
   return rows.map(toIssue)
 }
 
-/** Can this order still take a report? (The order page shows the form only then.) */
 export function canReportIssue(
   order: Pick<Order, 'status' | 'collectedAt'>,
   now = new Date(),
@@ -149,7 +143,7 @@ export async function reportIssue(
         s + r.lines.filter((l) => l.lineId === line.id).reduce((a, l) => a + l.amountCents, 0),
       0,
     )
-    // What is claimed now, up to what is still unrefunded on the line
+
     const left =
       (line.finalLineTotalCents ?? 0) +
       (line.finalTaxCents ?? 0) +
@@ -252,7 +246,6 @@ async function approveWithRefund(
   return refund
 }
 
-/** An agent decides a queued issue. Approving refunds it (role limits apply). */
 export async function resolveIssue(
   ctx: AuditContext,
   issueId: number,
@@ -326,7 +319,6 @@ export async function resolveIssue(
   return (await getIssue(issueId))!
 }
 
-/** Agent view: the issue, its order and the customer's earlier issues (ORDERS §10). */
 export async function issueContext(issueId: number) {
   const issue = await getIssue(issueId)
   if (!issue) throw new HttpError(404, 'NOT_FOUND', 'Issue not found')

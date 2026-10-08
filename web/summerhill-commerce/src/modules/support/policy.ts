@@ -1,16 +1,6 @@
-/**
- * Support auto-approval policy (G5-11, ORDERS §10). Pure: the issue service loads the numbers,
- * this decides. An issue is refunded automatically when all of these hold:
- *  - the type maps to a liability-matrix row (missing, damaged, wrong item, quality)
- *  - the claim is at most `maxIssueCents` ($15 by default)
- *  - the customer's refunds over 90 days, including this one, stay within `max90DayCents` ($30)
- *  - the `support.auto_refund` kill switch is on
- * Anything else waits for an agent. The reasons are stored with the issue (auditable).
- */
 export const ISSUE_TYPES = ['missing', 'damaged', 'wrong_item', 'quality', 'other'] as const
 export type IssueType = (typeof ISSUE_TYPES)[number]
 
-/** Issue type → the liability matrix scenario (ORDERS §9); `other` needs an agent. */
 export const ISSUE_SCENARIO = {
   missing: 'missing_item',
   damaged: 'damaged',

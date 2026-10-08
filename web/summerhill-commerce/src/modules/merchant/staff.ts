@@ -1,11 +1,6 @@
 import type { Db } from '@/server/db'
 import { getDb } from '@/server/db'
 
-/**
- * Merchant staff (G4-05). A Payload user becomes staff through a membership row that scopes them
- * to one merchant and optionally one location (NULL = every location of that merchant).
- * Roles are ordered: owner ⊃ manager ⊃ picker.
- */
 export const STAFF_ROLES = ['picker', 'manager', 'owner'] as const
 export type StaffRole = (typeof STAFF_ROLES)[number]
 
@@ -18,7 +13,6 @@ export interface StaffMembership {
   role: StaffRole
 }
 
-/** True when `role` is at least `minimum` (owner ≥ manager ≥ picker). */
 export function roleAtLeast(role: StaffRole, minimum: StaffRole): boolean {
   return STAFF_ROLES.indexOf(role) >= STAFF_ROLES.indexOf(minimum)
 }
@@ -43,7 +37,6 @@ export async function listStaffMemberships(
   }))
 }
 
-/** Creates or updates a membership (demo seed, and G5-15's user management later). */
 export async function upsertStaffMembership(
   db: Db,
   m: { userId: string; merchantId: number; locationId: number | null; role: StaffRole },
@@ -62,7 +55,6 @@ export interface StaffMembershipRow extends StaffMembership {
   locationName: string | null
 }
 
-/** Every membership, active or not, for the user management page (G5-15). */
 export async function listAllStaffMemberships(db: Db = getDb()): Promise<StaffMembershipRow[]> {
   const { rows } = await db.query(
     `SELECT s.id, s.user_id, s.merchant_id, m.name AS merchant_name, s.location_id,
@@ -83,7 +75,6 @@ export async function listAllStaffMemberships(db: Db = getDb()): Promise<StaffMe
   }))
 }
 
-/** Deactivates one membership (merchantId given) or all of a user's memberships. */
 export async function deactivateStaffMemberships(
   db: Db,
   userId: string,

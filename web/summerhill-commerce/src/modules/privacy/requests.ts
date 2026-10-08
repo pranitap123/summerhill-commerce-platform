@@ -8,15 +8,6 @@ import { HttpError } from '@/server/http'
 
 import { ANONYMISED_DOMAIN } from './retention'
 
-/**
- * Data subject requests (G5-17, SECURITY §7.3):
- *  export    JSON of the account, orders (with lines and ratings), support issues and the emails
- *            we sent: every field listed in PERSONAL_FIELDS
- *  deletion  the account is anonymised and closed; orders stay for 7 years (tax records) with the
- *            contact data anonymised; carts are detached; issue descriptions are removed
- * Customers ask from their account page; admins act on email requests at /ops/privacy. Each
- * request is recorded (with a hash of the subject, never the data) in ops.privacy_requests.
- */
 export const PERSONAL_FIELDS = {
   account: ['email', 'name', 'roles', 'defaultReplacementPreference', 'createdAt'],
   order: [
@@ -39,7 +30,6 @@ export type Subject = { userId: string; email: string } | { userId: null; email:
 const hashSubject = (email: string) =>
   createHash('sha256').update(email.trim().toLowerCase()).digest('hex')
 
-/** Resolves who a request is about, from a user id or an email address. */
 export async function resolveSubject(input: { userId?: string; email?: string }): Promise<{
   subject: Subject
   account: DirectoryUser | null

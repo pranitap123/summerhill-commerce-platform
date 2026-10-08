@@ -1,13 +1,7 @@
 import { isMfaCookieValid, MFA_COOKIE, readCookie } from './mfa'
 import type { Role, SessionUser } from './roles'
 
-/**
- * Resolves the signed-in Payload user from request headers (cookie or Authorization). A
- * deactivated account (G5-15) has no session. `mfaVerified` says whether this session passed the
- * second factor (G5-12).
- */
 export async function getSessionUser(headers: Headers): Promise<SessionUser | null> {
-  // Loaded on demand so importing the identity module doesn't pull in the Payload config.
   const [{ getPayload }, { default: config }] = await Promise.all([
     import('payload'),
     import('@payload-config'),

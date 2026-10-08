@@ -4,10 +4,6 @@ import { HttpError } from '@/server/http'
 
 import { audit, type AuditContext } from './audit'
 
-/**
- * DB-backed feature flags / kill switches (SYSTEM_DESIGN §11), cached for 30 s so a switch takes
- * effect everywhere within half a minute without a deploy. Unknown flags are off.
- */
 const TTL_MS = 30_000
 let cache: { at: number; flags: Map<string, boolean> } | undefined
 
@@ -46,7 +42,6 @@ export async function listFlags(db: Db = getDb()): Promise<FeatureFlag[]> {
   }))
 }
 
-/** Uncached read (the storefront banner polls this, so a kill switch shows within seconds). */
 export async function readFlagNow(key: string, db: Db = getDb()): Promise<boolean> {
   const { rows } = await db.query<{ enabled: boolean }>(
     'SELECT enabled FROM ops.feature_flags WHERE key = $1',
@@ -55,7 +50,6 @@ export async function readFlagNow(key: string, db: Db = getDb()): Promise<boolea
   return rows[0]?.enabled ?? false
 }
 
-/** Flips a flag (G5-10, A13); audited with before/after. Other processes see it within 30 s. */
 export async function setFlag(
   ctx: AuditContext,
   key: string,

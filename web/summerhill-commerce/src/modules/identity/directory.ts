@@ -4,11 +4,6 @@ import type { Where } from 'payload'
 
 import { ROLES, type Role } from './roles'
 
-/**
- * The user accounts (Payload `users`, in the Payload database) behind a narrow interface, so user
- * management (G5-15) and privacy requests (G5-17) are testable without Payload: integration tests
- * install an in-memory directory with `setUserDirectoryForTests`.
- */
 export interface DirectoryUser {
   id: string
   email: string
@@ -22,19 +17,19 @@ export interface DirectoryUser {
 export interface UserDirectory {
   get(id: string): Promise<DirectoryUser | null>
   findByEmail(email: string): Promise<DirectoryUser | null>
-  /** Users holding any of `roles`, or with one of `ids`. */
+
   list(filter: { roles?: readonly Role[]; ids?: string[] }): Promise<DirectoryUser[]>
-  /** New verified account with an unusable random password; `sendPasswordSetup` follows. */
+
   create(input: { email: string; name: string | null; roles: Role[] }): Promise<DirectoryUser>
   update(
     id: string,
     patch: Partial<Pick<DirectoryUser, 'email' | 'name' | 'roles' | 'deactivatedAt'>>,
   ): Promise<DirectoryUser>
-  /** Ends every session (Payload `sessions`), so existing cookies stop working at once. */
+
   endSessions(id: string): Promise<void>
-  /** Sets a new random password nobody knows (anonymisation). */
+
   scramblePassword(id: string): Promise<void>
-  /** Emails a link to choose a password (Payload's forgot-password flow → Mailpit locally). */
+
   sendPasswordSetup(email: string): Promise<void>
 }
 
@@ -61,7 +56,6 @@ function toDirectoryUser(u: PayloadUser): DirectoryUser {
 }
 
 async function payload() {
-  // Loaded on demand: the worker and the pure services must not pull in the Payload config.
   const [{ getPayload }, { default: config }] = await Promise.all([
     import('payload'),
     import('@payload-config'),
@@ -158,7 +152,6 @@ export function getUserDirectory(): UserDirectory {
   return override ?? payloadDirectory
 }
 
-/** Test hook: replace the directory (pass undefined to restore Payload). */
 export function setUserDirectoryForTests(directory: UserDirectory | undefined): void {
   override = directory
 }

@@ -1,12 +1,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
-/**
- * Time-based one-time passwords (RFC 6238 over RFC 4226): HMAC-SHA1, 30-second steps, 6 digits,
- * the format every authenticator app understands. Pure functions; the clock is a parameter.
- */
 export const TOTP_STEP_SECONDS = 30
 export const TOTP_DIGITS = 6
-/** Codes from one step before or after are accepted (clock drift). */
+
 export const TOTP_WINDOW = 1
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
@@ -45,7 +41,6 @@ export function base32Decode(input: string): Buffer {
   return Buffer.from(out)
 }
 
-/** A new random secret: 20 bytes (160 bits, RFC 4226's recommendation), base32. */
 export function generateTotpSecret(): string {
   return base32Encode(randomBytes(20))
 }
@@ -54,7 +49,6 @@ export function totpStep(now: Date): number {
   return Math.floor(now.getTime() / 1000 / TOTP_STEP_SECONDS)
 }
 
-/** HOTP value for one counter (RFC 4226 §5.3 dynamic truncation). */
 export function hotp(secret: string, counter: number): string {
   const msg = Buffer.alloc(8)
   msg.writeBigUInt64BE(BigInt(counter))
@@ -72,10 +66,6 @@ export function totp(secret: string, now: Date = new Date()): string {
   return hotp(secret, totpStep(now))
 }
 
-/**
- * Checks a code. Returns the matching step, or null. A step at or before `lastUsedStep` is
- * refused, so a code can't be replayed (RFC 6238 §5.2).
- */
 export function verifyTotp(
   secret: string,
   code: string,
@@ -93,7 +83,6 @@ export function verifyTotp(
   return null
 }
 
-/** The URI authenticator apps import (Key Uri Format). */
 export function otpauthUri(secret: string, account: string, issuer: string): string {
   const label = encodeURIComponent(`${issuer}:${account}`)
   const params = new URLSearchParams({

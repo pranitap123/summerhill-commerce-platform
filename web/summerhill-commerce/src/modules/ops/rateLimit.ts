@@ -2,10 +2,6 @@ import type { Db } from '@/server/db'
 import { getDb } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Fixed-window rate limiter backed by Postgres (G2-16), so the limit holds across app instances.
- * `consume` counts one hit and throws 429 RATE_LIMITED (with Retry-After) past the limit.
- */
 export interface RateLimit {
   name: string
   limit: number
@@ -18,13 +14,13 @@ export const LIMITS = {
   passwordReset: { name: 'password-reset', limit: 5, windowSeconds: 3600 },
   signup: { name: 'signup', limit: 5, windowSeconds: 3600 },
   orderLookup: { name: 'order-lookup', limit: 5, windowSeconds: 3600 },
-  // Text search writes an analytics row per request (G3-15)
+
   search: { name: 'search', limit: 120, windowSeconds: 60 },
-  // Staff MFA codes (G5-12): per user, so a stolen password can't brute-force the second factor
+
   mfa: { name: 'mfa', limit: 5, windowSeconds: 300 },
-  // Admin money actions: refunds, payouts, recoveries (SECURITY §5)
+
   adminMoney: { name: 'admin-money', limit: 30, windowSeconds: 60 },
-  // Support issues from customers (G5-11), per order
+
   issues: { name: 'issues', limit: 5, windowSeconds: 3600 },
 } as const satisfies Record<string, RateLimit>
 

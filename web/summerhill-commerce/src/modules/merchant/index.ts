@@ -1,4 +1,3 @@
-// Public API of the merchant module.
 export {
   getMerchantById,
   getMerchantByStripeAccount,

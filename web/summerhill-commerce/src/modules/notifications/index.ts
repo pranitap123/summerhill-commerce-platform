@@ -1,4 +1,3 @@
-// Public API of the notifications module.
 export {
   handleOrderNotification,
   handleAlertNotification,

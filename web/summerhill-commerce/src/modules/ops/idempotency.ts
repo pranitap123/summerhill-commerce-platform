@@ -4,17 +4,6 @@ import type { Db } from '@/server/db'
 import { getDb } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Idempotency keys (G2-04, SYSTEM_DESIGN §7.2). A client repeats a money-moving request with the
- * same `Idempotency-Key` and gets the same response instead of a second order. Keys live 24 h and
- * remember a hash of the request: the same key with a different body is a client bug (422).
- *
- *  first request         → runs, stores the response
- *  same key, same body   → replays the stored response (header Idempotent-Replayed: true)
- *  same key, other body  → 422 IDEMPOTENCY_KEY_REUSED
- *  same key, still busy  → 409 IDEMPOTENCY_IN_PROGRESS
- *  handler fails (5xx)   → key released so the client can retry
- */
 const KEY = /^[A-Za-z0-9._:-]{8,255}$/
 
 export function readIdempotencyKey(headers: Headers): string {
@@ -60,7 +49,6 @@ export async function withIdempotency(
       response_body: unknown
       expired: boolean
     }>(
-      // A key stuck "in progress" for 2 minutes belongs to a crashed request: treat it as expired.
       `SELECT request_hash, status, response_status, response_body,
          expires_at < now() OR (status = 'in_progress' AND created_at < now() - interval '2 minutes') AS expired
        FROM ops.idempotency_keys WHERE scope = $1 AND key = $2`,
@@ -68,7 +56,6 @@ export async function withIdempotency(
     )
     const row = rows[0]
     if (!row || row.expired) {
-      // Expired (or deleted between the two statements): start over with a fresh key row.
       await db.query('DELETE FROM ops.idempotency_keys WHERE scope = $1 AND key = $2', [scope, key])
       return withIdempotency(scope, key, hash, run, db)
     }
@@ -91,8 +78,6 @@ export async function withIdempotency(
   try {
     result = await run()
   } catch (err) {
-    // Business-rule answers (4xx) are stored and replayed; anything else releases the key so the
-    // client can retry.
     if (err instanceof HttpError && err.status < 500 && err.status !== 429) {
       const body = { error: { code: err.code, message: err.message, details: err.details } }
       await store(db, scope, key, err.status, body)

@@ -1,10 +1,5 @@
 import { getDb } from '@/server/db'
 
-/**
- * Admin metrics (G5-18, PRD §8). Each metric has a written definition, shown next to its number
- * on /ops/metrics, and is one SQL query over a period [from, to). Integration tests check the
- * numbers against hand counts on seeded orders.
- */
 export const METRIC_DEFINITIONS = {
   ordersPlaced: 'Orders whose payment was authorised (placed) in the period.',
   gmvCents: 'Amount captured on payments captured in the period, before refunds.',

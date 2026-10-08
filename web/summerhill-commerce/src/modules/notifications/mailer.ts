@@ -3,10 +3,6 @@ import nodemailer, { type Transporter } from 'nodemailer'
 import { getConfig } from '@/server/config'
 import { guard } from '@/server/outbound'
 
-/**
- * SMTP delivery (G2-14). Locally every message lands in Mailpit (http://localhost:8025); a real
- * provider is a configuration change (SMTP_* variables), not a code change.
- */
 export interface Mail {
   to: string
   subject: string
@@ -31,8 +27,7 @@ const smtpMailer: Mailer = {
       socketTimeout: 10_000,
     })
     const smtp = transport
-    // G6-05: breaker and an overall time limit; no retry here (a resend could duplicate the email),
-    // the outbox job retries a failed notification later.
+
     const info = await guard('smtp').run(() => smtp.sendMail({ from: c.MAIL_FROM, ...mail }), {
       idempotent: false,
     })

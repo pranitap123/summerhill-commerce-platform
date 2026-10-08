@@ -1,11 +1,5 @@
 import { getConfig } from '@/server/config'
 
-/**
- * Stripe TEST-MODE onboarding values (GAP-08, G1-10). Stripe documents these magic values
- * (e.g. `address_full_match`, tax id 000000000, `file_identity_document_success`) to make Custom
- * connected accounts verify instantly in test mode. They must never reach a live account, so every
- * accessor refuses to run outside test mode or in production.
- */
 function assertTestMode(): void {
   const config = getConfig()
   if (config.stripeMode !== 'test' || config.isProduction) {
@@ -21,11 +15,6 @@ const TEST_ADDRESS = {
   country: 'CA',
 } as const
 
-/**
- * Public website Stripe records for a demo merchant. Stripe rejects reserved domains such as
- * example.com ("Not a valid URL"); accessible.stripe.com is Stripe's documented test-mode website
- * that passes URL verification.
- */
 export const DEMO_BUSINESS_URL = 'https://accessible.stripe.com'
 
 export function testCompany(merchantName: string) {
@@ -33,11 +22,6 @@ export function testCompany(merchantName: string) {
   return { name: `${merchantName} Inc.`, tax_id: '000000000' }
 }
 
-/**
- * Terms-of-service acceptance for an admin-assisted TEST account. Records the real request's IP
- * and user agent (never a hard-coded address). A live integration must capture this from the
- * merchant's own session instead (ADR-0011).
- */
 export function testTosAcceptance(requestIp: string, userAgent: string | null) {
   assertTestMode()
   return {
@@ -96,7 +80,6 @@ export function testBankAccount() {
   }
 }
 
-/** Test-mode values that make Stripe fail or restrict verification (simulate-verification). */
 export function testVerificationOutcome(
   outcome: 'success' | 'failure' | 'restricted',
   merchantUrl: string,

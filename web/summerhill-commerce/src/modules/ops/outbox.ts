@@ -4,19 +4,12 @@ import { currentTraceCarrier, type TraceCarrier } from '@/server/tracing'
 
 import { enqueue } from './jobs'
 
-/**
- * Transactional outbox (G2-03, SYSTEM_DESIGN §6.1). `emit` is called inside the same transaction
- * as the state change; `relayOutbox` later turns each event into one job per subscribed consumer
- * queue and marks it published, in a single transaction. Because the jobs live in the same
- * database, publication is exactly-once: an event is never published twice or lost.
- */
 export async function emit(
   db: Db,
   topic: string,
   key: string | number,
   payload: Record<string, unknown> = {},
 ): Promise<string> {
-  // G6-08: the emitting request's trace continues in the consumers' jobs
   const trace = currentTraceCarrier()
   const { rows } = await db.query<{ event_id: string }>(
     'INSERT INTO ops.outbox (topic, key, payload) VALUES ($1, $2, $3) RETURNING event_id',
@@ -32,7 +25,6 @@ export interface OutboxEvent {
   payload: Record<string, unknown>
 }
 
-/** topic pattern → consumer queues. A pattern ending in `*` matches by prefix. */
 export type Subscriptions = Record<string, string[]>
 
 export function queuesFor(topic: string, subscriptions: Subscriptions): string[] {
@@ -44,7 +36,6 @@ export function queuesFor(topic: string, subscriptions: Subscriptions): string[]
   return [...queues]
 }
 
-/** Publishes up to `limit` pending events. Returns how many were published. */
 export async function relayOutbox(subscriptions: Subscriptions, limit = 100): Promise<number> {
   return withTransaction(async (tx) => {
     const { rows } = await tx.query<{
@@ -79,10 +70,6 @@ export async function relayOutbox(subscriptions: Subscriptions, limit = 100): Pr
   })
 }
 
-/**
- * Consumer-side guard: runs `fn` at most once per (consumer, event), inside a transaction that also
- * records the event as processed. Returns false when the event was already handled.
- */
 export async function handleOnce(
   consumer: string,
   eventId: string,

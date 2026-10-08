@@ -8,7 +8,6 @@ export interface Actor {
   id: string | null
 }
 
-/** Who is acting, and from where: the request context every audited action carries (T6). */
 export interface AuditContext {
   actor: Actor
   requestId?: string | null
@@ -20,11 +19,10 @@ export interface AuditEntry extends AuditContext {
   action: string
   targetType: string
   targetId: string | number | null
-  /** What changed; for updates, `before` and `after`. */
+
   data?: Record<string, unknown>
 }
 
-/** Append-only audit trail for admin and money actions (ops.audit_log is INSERT-only). */
 export async function audit(db: Db, entry: AuditEntry): Promise<void> {
   await db.query(
     `INSERT INTO ops.audit_log
@@ -58,7 +56,6 @@ export interface AuditRow {
   at: Date
 }
 
-/** Audit log viewer (G5-09, A12): filter by actor, target and action; newest first. */
 export async function searchAuditLog(
   filter: {
     actorId?: string

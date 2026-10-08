@@ -1,4 +1,3 @@
-// Public API of the ops module: outbox, job queue, idempotency, rate limits, audit, flags, alerts.
 export { emit, relayOutbox, handleOnce, queuesFor } from './outbox'
 export type { OutboxEvent, Subscriptions } from './outbox'
 export {

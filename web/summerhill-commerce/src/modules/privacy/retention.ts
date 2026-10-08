@@ -1,11 +1,5 @@
 import { withTransaction } from '@/server/db'
 
-/**
- * Retention purge (G5-16, X8, SECURITY §7.1). Weekly; `now` is injectable for fake-clock tests.
- * Orders, payments and the ledger are kept 7 years (CRA); after that the order's contact data is
- * anonymised, never the amounts. Everything the app role may not delete (audit log, ledger) is
- * out of reach on purpose.
- */
 export const RETENTION = {
   orderContactYears: 7,
   notificationDays: 365,
@@ -48,7 +42,7 @@ export async function runRetentionPurge(now: Date = new Date()): Promise<PurgeRe
     const search = await tx.query('DELETE FROM ops.search_queries WHERE created_at < $1', [
       daysAgo(now, RETENTION.searchAnalyticsDays),
     ])
-    // Stripe payloads carry customer emails; the event row (id, type, status) stays for audit.
+
     const webhooks = await tx.query(
       `UPDATE ops.webhook_events SET payload = jsonb_build_object('redacted', true, 'id', event_id, 'type', type)
        WHERE received_at < $1 AND status IN ('processed', 'ignored') AND NOT (payload ? 'redacted')`,

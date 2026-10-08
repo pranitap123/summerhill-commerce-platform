@@ -3,17 +3,6 @@ import { getDb } from '@/server/db'
 
 import { raiseAlert } from './alerts'
 
-/**
- * Alert rules as code (G6-09, OPERATIONS §3). Two kinds of rule:
- *  - event rules: the code that detects the failure raises the alert where it happens (a webhook
- *    or capture job dead-lettered, a reconciliation mismatch, a failed payout…)
- *  - condition rules: checks over recent data that no single event reveals (webhooks retrying or
- *    lagging, the card-testing decline pattern, an ingest run held by the anomaly guard). The
- *    `alerts.evaluate` job runs them every minute.
- * Every kind has a route here: severity, the channel that's notified and the runbook. raiseAlert()
- * stores the alert once (dedupe key), logs it with the route, and emits `ops.alert_raised`, which
- * the notifications module turns into an email to the channel's address (ALERT_EMAIL_*).
- */
 export type AlertChannel = 'page' | 'ops' | 'finance'
 export type Sev = 'SEV1' | 'SEV2' | 'SEV3'
 
@@ -23,7 +12,6 @@ export interface AlertRoute {
   runbook: string
 }
 
-/** Runbooks live in docs/runbooks (G7-07); kinds without their own page point to the index. */
 const rb = (file: string) => `docs/runbooks/${file}`
 const RUNBOOKS = rb('README.md')
 const WEBHOOKS = rb('RB-03-webhook-replay.md')
@@ -32,9 +20,7 @@ const AUTH = rb('RB-05-auth-expiring.md')
 const RECON = rb('RB-09-reconciliation-mismatch.md')
 const DISPUTES = rb('RB-08-dispute.md')
 
-/** Where each alert kind goes. Unknown kinds fall back to `ops` (SEV3) and are logged as such. */
 export const ALERT_ROUTES: Record<string, AlertRoute> = {
-  // Payments: customers can't pay, or money is at risk
   'webhook.failed': { sev: 'SEV1', channel: 'page', runbook: WEBHOOKS },
   'webhook.lagging': { sev: 'SEV1', channel: 'page', runbook: WEBHOOKS },
   'payments.card_testing': { sev: 'SEV1', channel: 'page', runbook: rb('RB-12-kill-switches.md') },
@@ -43,7 +29,7 @@ export const ALERT_ROUTES: Record<string, AlertRoute> = {
   'payment.auth_expiring': { sev: 'SEV2', channel: 'ops', runbook: AUTH },
   'payment.authorization_canceled': { sev: 'SEV2', channel: 'ops', runbook: AUTH },
   'payment.late_authorization': { sev: 'SEV2', channel: 'ops', runbook: AUTH },
-  // Finance
+
   'recon.mismatch': { sev: 'SEV2', channel: 'finance', runbook: RECON },
   'recon.failed': { sev: 'SEV2', channel: 'finance', runbook: RECON },
   'capture.shortfall': { sev: 'SEV3', channel: 'finance', runbook: CAPTURE },
@@ -52,7 +38,7 @@ export const ALERT_ROUTES: Record<string, AlertRoute> = {
   'dispute.due_soon': { sev: 'SEV2', channel: 'finance', runbook: DISPUTES },
   'dispute.lost': { sev: 'SEV3', channel: 'finance', runbook: DISPUTES },
   'payout.failed': { sev: 'SEV2', channel: 'ops', runbook: rb('RB-07-payout-failed.md') },
-  // Store operations and catalogue
+
   'order.unaccepted': { sev: 'SEV3', channel: 'ops', runbook: RUNBOOKS },
   'slot.overbooked': { sev: 'SEV3', channel: 'ops', runbook: RUNBOOKS },
   'ingest.held': { sev: 'SEV3', channel: 'ops', runbook: rb('RB-10-ingest-held.md') },
@@ -66,7 +52,6 @@ export function routeFor(kind: string): AlertRoute & { known: boolean } {
 }
 
 export interface AlertFinding {
-  /** Distinguishes separate incidents of the same kind (e.g. one per held run). */
   subject: string
   severity: 'info' | 'warning' | 'critical'
   message: string
@@ -79,7 +64,6 @@ export interface ConditionRule {
   evaluate(db: Db, now: Date): Promise<AlertFinding[]>
 }
 
-/** Thresholds (OPERATIONS §3). */
 export const THRESHOLDS = {
   webhookMaxAttempts: 3,
   webhookLagMs: 5 * 60_000,
@@ -123,8 +107,7 @@ export const CONDITION_RULES: ConditionRule[] = [
       'Decline rate over 30% in 15 min (at least 10 attempts), or over 20 declines in 10 min',
     async evaluate(db, now) {
       const t = THRESHOLDS.cardTesting
-      // Stripe reports each declined Checkout attempt as payment_intent.payment_failed and each
-      // authorisation as checkout.session.completed (the simulator records both the same way).
+
       const { rows } = await db.query<{ burst: number; declines: number; approved: number }>(
         `SELECT
            count(*) FILTER (WHERE type = 'payment_intent.payment_failed'
@@ -167,11 +150,6 @@ export const CONDITION_RULES: ConditionRule[] = [
   },
 ]
 
-/**
- * Runs every condition rule. A condition that's still true while its alert is open doesn't raise
- * a second alert; once the alert is resolved, a condition that's still (or again) true raises a
- * new one. Returns the number of alerts raised.
- */
 export async function evaluateAlertRules(
   db: Db = getDb(),
   now: Date = new Date(),

@@ -6,17 +6,6 @@ import { decrypt, decryptWithSecret, encrypt, sign, unsign } from '@/server/sign
 
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp'
 
-/**
- * Staff MFA (G5-12, threat T2). Platform staff and merchant staff must verify a TOTP code once
- * per sign-in before any /ops, /console, /api/admin or /api/console request is served.
- *
- *  enrol   a secret is created (shown once, as a key and an otpauth:// URI) and stored encrypted;
- *          it becomes active when the first code is verified
- *  verify  code checked with ±1 step of drift, never the same step twice (replay), rate-limited
- *          per user; success sets the `mfa` cookie
- *  cookie  HMAC-signed `userId~sessionId~expiry`, bound to the Payload session id: signing out,
- *          an ended session (deactivation) or 8 hours make it worthless
- */
 export const MFA_COOKIE = 'mfa'
 export const MFA_SESSION_MS = 8 * 3600_000
 export const MFA_ISSUER = 'Grocery Marketplace Demo'
@@ -34,7 +23,6 @@ export async function getMfaStatus(userId: string, db: Db = getDb()): Promise<Mf
   return { enrolled: !!rows[0], confirmed: rows[0]?.confirmed ?? false }
 }
 
-/** Starts (or restarts, while unconfirmed) enrolment. The secret is returned only here. */
 export async function beginEnrolment(
   userId: string,
   email: string,
@@ -56,7 +44,6 @@ export async function beginEnrolment(
   return { secret, otpauthUri: otpauthUri(secret, email, MFA_ISSUER) }
 }
 
-/** Checks a code; the first valid code confirms enrolment. Throws on a wrong code. */
 export async function verifyMfaCode(
   userId: string,
   code: string,
@@ -89,18 +76,11 @@ export async function verifyMfaCode(
     throw new HttpError(400, 'MFA_CODE_INVALID', 'That code is not valid. Try the current one.')
 }
 
-/** Admin reset (lost device): the user enrols again at the next sign-in. */
 export async function resetMfa(userId: string, db: Db = getDb()): Promise<boolean> {
   const { rowCount } = await db.query('DELETE FROM ops.staff_mfa WHERE user_id = $1', [userId])
   return !!rowCount
 }
 
-/**
- * Runbook RB-13: after PAYLOAD_SECRET is rotated, every stored TOTP secret is still sealed with the
- * old key, and staff couldn't pass two-step verification. This re-seals them with the current key.
- * Safe to run twice: secrets the current key already opens are left alone. Secrets neither key opens
- * are reported; those users need an MFA reset.
- */
 export async function reencryptMfaSecrets(
   previousSecret: string,
   db: Db = getDb(),
@@ -139,7 +119,6 @@ function canOpen(read: () => string): boolean {
   }
 }
 
-/** Demo seed only: enrol with a known secret, already confirmed (see seed-demo-users). */
 export async function enrolWithSecret(db: Db, userId: string, secret: string): Promise<void> {
   await db.query(
     `INSERT INTO ops.staff_mfa (user_id, secret_encrypted, confirmed_at) VALUES ($1, $2, now())
@@ -174,7 +153,6 @@ export function isMfaCookieValid(
   return uid === userId && sid === sessionId && Number(expires) > now.getTime()
 }
 
-/** Reads one cookie from a Cookie header. */
 export function readCookie(headers: Headers, name: string): string | null {
   const header = headers.get('cookie')
   if (!header) return null

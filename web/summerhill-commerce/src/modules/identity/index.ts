@@ -1,5 +1,3 @@
-// Public API of the identity module: sessions, platform roles and permissions, staff MFA, and
-// user management over the Payload accounts.
 export { getSessionUser } from './auth'
 export { hasRole, isPlatformStaff, PLATFORM_ROLES, ROLES } from './roles'
 export type { Role, PlatformRole, SessionUser } from './roles'
