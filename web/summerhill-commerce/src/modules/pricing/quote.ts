@@ -3,29 +3,13 @@ import { createHash } from 'node:crypto'
 import { computeFee, type FeeResult, type FeeSchedule } from './fees'
 import { applyBasisPoints, priceForWeight } from './money'
 
-/**
- * The quote engine (G2-05, ORDERS §2). The only place that turns a cart into the amounts a
- * customer pays; checkout, the cart page and capture all use it, so the numbers can't disagree.
- *
- * Rules, all in integer cents and integer thousandths of a pound (mlb):
- *  - each                     qty × effective unit price
- *  - per_weight, by weight    requested weight × price/lb, rounded half-up
- *  - per_weight, by quantity  qty × estimated weight each × price/lb (shown as "est.")
- *  - effective price          the lowest active promotion, else the regular price
- *  - deposits                 qty × deposit; not taxed, not commissionable
- *  - HST                      per line, round_half_up(line total × rate); order tax = sum of lines
- *  - weight buffer            round_half_up(estimated value of weighed lines × buffer rate)
- *  - authorisation            items + deposits + HST + weight buffer
- *  - platform fee             on the item subtotal after promotions (see fees.ts)
- */
-
 export type TaxCode = 'ZERO_RATED' | 'HST_STANDARD'
 export const TAX_RATE_BP: Record<TaxCode, number> = { ZERO_RATED: 0, HST_STANDARD: 1300 }
 
 export const MAX_CART_LINES = 50
 export const MAX_QTY_PER_LINE = 99
 export const MAX_WEIGHT_MLB = 50_000
-/** Estimate for a per-weight item sold by quantity when the source has no average weight. */
+
 export const DEFAULT_ESTIMATED_WEIGHT_MLB = 1000
 
 export interface Promotion {
@@ -40,7 +24,7 @@ export interface PricingProduct {
   name: string
   merchantId: number
   locationId: number
-  /** Listed and in stock at the source (CATALOG §5). */
+
   available: boolean
   pricingModel: 'each' | 'per_weight'
   sellBy: 'quantity' | 'weight'
@@ -51,7 +35,7 @@ export interface PricingProduct {
   minWeightMlb: number
   taxCode: TaxCode
   depositCents: number
-  /** 0 = no limit */
+
   minQty: number
   maxQty: number
 }
@@ -80,7 +64,7 @@ export interface QuoteLine {
   promoLabel: string | null
   quantity: number | null
   requestedWeightMlb: number | null
-  /** Total estimated weight of a weighed line. */
+
   estimatedWeightMlb: number | null
   isWeighed: boolean
   taxCode: TaxCode
@@ -120,15 +104,14 @@ export interface Quote {
   authorizationCents: number
   minimumOrderCents: number
   meetsMinimum: boolean
-  /** Internal: never sent to customers (it's the merchant's commission). */
+
   fee: FeeResult & { scheduleId: number }
   issues: QuoteIssue[]
   canCheckout: boolean
-  /** Changes whenever anything the customer would pay changes. */
+
   hash: string
 }
 
-/** The lowest active promotion price, else the regular price (CATALOG §3.1). */
 export function effectivePrice(
   product: Pick<PricingProduct, 'unitPriceCents' | 'promotions'>,
   now: Date,
@@ -294,7 +277,6 @@ export function buildQuote(
   return { ...quote, hash: quoteHash(quote) }
 }
 
-/** A stable fingerprint of everything that affects what the customer pays. */
 export function quoteHash(q: Omit<Quote, 'hash'>): string {
   const material = {
     v: 1,
@@ -319,7 +301,6 @@ export function quoteHash(q: Omit<Quote, 'hash'>): string {
   return createHash('sha256').update(JSON.stringify(material)).digest('hex').slice(0, 32)
 }
 
-/** What customers see: everything except the platform's commission. */
 export type PublicQuote = Omit<Quote, 'fee'>
 
 export function toPublicQuote(quote: Quote): PublicQuote {

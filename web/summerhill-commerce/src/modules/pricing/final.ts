@@ -1,21 +1,6 @@
 import { computeFee, type FeeResult, type FeeSchedule } from './fees'
 import { applyBasisPoints, divideRoundHalfUp, priceForWeight } from './money'
 
-/**
- * Final amounts after picking (ORDERS §6, PAYMENTS §3). Used by the capture job: the customer is
- * charged for what was actually picked, and the platform fee is recomputed on the FINAL item
- * subtotal.
- *
- * Per line:
- *  - ordered      not touched by a picker (e.g. a fast-forwarded demo order): the estimate stands
- *  - picked       each: picked qty × unit price; weighed: actual weight × price/lb (half-up), or
- *                 the price printed on a deli-scale label when one was scanned (G4-11)
- *  - unavailable  0 (also a substitute the customer rejected, G4-12)
- *  - substituted  the original line is 0; its substitute line (substitutesLineNo set) costs the
- *                 LOWER of the substitute's price and the original line's estimate ("never pay
- *                 more for a substitute")
- * Deposits scale with the picked quantity; HST is recomputed per line on the final line total.
- */
 export interface FinalizableLine {
   lineNo: number
   status: 'ordered' | 'picked' | 'unavailable' | 'substituted'
@@ -27,9 +12,9 @@ export interface FinalizableLine {
   depositCents: number
   pickedQuantity: number | null
   actualWeightMlb: number | null
-  /** Price embedded in a scanned scale label; when set it is the line total (ORDERS §6). */
+
   labelPriceCents?: number | null
-  /** Set on a substitute line: the line it replaces. */
+
   substitutesLineNo: number | null
 }
 
@@ -56,7 +41,6 @@ function pickedTotal(line: FinalizableLine): { total: number; units: number } {
     return { total: priceForWeight(line.unitPriceCents, line.actualWeightMlb), units: 1 }
   const units = line.pickedQuantity ?? line.quantity ?? 1
   if (line.isWeighed) {
-    // A weighed line picked by count without a weight: scale the estimate by the picked count.
     return { total: divideRoundHalfUp(line.lineTotalCents * units, line.quantity ?? 1), units }
   }
   return { total: units * line.unitPriceCents, units }
@@ -115,19 +99,13 @@ export function finalizeOrder(lines: FinalizableLine[], schedule: FeeSchedule): 
 }
 
 export interface CapturePlan {
-  /** 0 → void the authorisation instead of capturing. */
   amountToCaptureCents: number
   applicationFeeCents: number
-  /** Final total the capture couldn't cover (absorbed by the platform, ORDERS §6). */
+
   shortfallCents: number
   usesOvercapture: boolean
 }
 
-/**
- * How much to capture (PAYMENTS §3 "Rules and edge cases"): the final total, limited to the
- * authorised amount, or to the overcapture maximum when the card network offers it. The fee is
- * never more than the amount captured.
- */
 export function planCapture(
   final: Pick<FinalAmounts, 'totalCents' | 'fee'>,
   authorizedCents: number,

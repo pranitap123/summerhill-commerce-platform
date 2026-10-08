@@ -2,17 +2,6 @@ import { z } from 'zod'
 
 import { applyBasisPoints, divideRoundHalfUp } from './money'
 
-/**
- * Platform fee schedules (PAYMENTS §4, ADR-0006). A schedule is versioned in
- * finance.fee_schedules and snapshotted on every order.
- *
- *  flat      one rate for the whole subtotal, chosen by the highest threshold reached (the brief's
- *            tiers: < $50 → 20%, $50–$100 → 15%, > $100 → 10%)
- *  marginal  each band of the subtotal at its own rate ("20% on the first $50, 15% on the next
- *            $50, 10% above"); continuous, so there's no cliff at the tier boundaries
- *
- * The fee is charged on the item subtotal after promotions only: never on HST or deposits.
- */
 const rateBp = z.number().int().min(0).max(10_000)
 
 export const flatTiersSchema = z
@@ -43,7 +32,6 @@ export type FeeSchedule =
       hstOnCommission: boolean
     }
 
-/** Validates a schedule row loaded from the database. Throws on malformed tiers. */
 export function parseFeeSchedule(row: {
   id: number
   mode: string
@@ -67,15 +55,14 @@ export function parseFeeSchedule(row: {
   throw new Error(`unknown fee schedule mode: ${row.mode}`)
 }
 
-/** HST charged on the commission itself when the platform is a registrant (PAYMENTS §4.5). */
 export const HST_ON_COMMISSION_BP = 1300
 
 export interface FeeResult {
   commissionCents: number
   hstOnCommissionCents: number
-  /** What Stripe takes as application_fee_amount: commission (+ HST on it, if enabled). */
+
   applicationFeeCents: number
-  /** Effective rate for display and reporting, in basis points (rounded). */
+
   effectiveRateBp: number
 }
 
@@ -90,8 +77,6 @@ export function computeFee(itemSubtotalCents: number, schedule: FeeSchedule): Fe
       .find((t) => itemSubtotalCents >= t.minCents)!
     commissionCents = applyBasisPoints(itemSubtotalCents, tier.rateBp)
   } else {
-    // Sum the exact band products first and round once, so the result never drifts by a cent
-    // per band.
     let lower = 0
     let weighted = 0
     for (const band of schedule.tiers) {
@@ -116,7 +101,6 @@ export function computeFee(itemSubtotalCents: number, schedule: FeeSchedule): Fe
   }
 }
 
-/** The brief's flat tiers; the platform default (also inserted by migration 005). */
 export const DEFAULT_FLAT_SCHEDULE: Extract<FeeSchedule, { mode: 'flat' }> = {
   id: 0,
   mode: 'flat',

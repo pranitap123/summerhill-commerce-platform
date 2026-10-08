@@ -3,10 +3,6 @@ import { getDb } from '@/server/db'
 
 import { parseFeeSchedule, type FeeSchedule } from './fees'
 
-/**
- * The fee schedule in force for a merchant at a moment: the newest merchant-specific schedule
- * whose effective_from has passed, else the newest platform default. Orders snapshot the id.
- */
 export async function getActiveFeeSchedule(
   merchantId: number,
   at: Date = new Date(),

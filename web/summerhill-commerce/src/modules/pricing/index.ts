@@ -1,4 +1,3 @@
-// Public API of the pricing module. Money maths lives only here and in `payments` (ADR-0006).
 export { calculatePlatformFee } from './revenueShare'
 export type { RevenueShareResult } from './revenueShare'
 export {
