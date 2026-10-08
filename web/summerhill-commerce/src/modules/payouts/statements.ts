@@ -4,20 +4,6 @@ import { HttpError } from '@/server/http'
 
 import { businessDayBounds, toCsv } from './reconciliation'
 
-/**
- * Monthly merchant statement (G5-08, M12, PAYMENTS §10), built from the ledger so it can't drift
- * from it: every figure is a sum over the month's journals on the merchant's orders.
- *
- *  sales (GMV)            captured amounts
- *  commission, HST        what the platform kept at capture
- *  merchant share         transferred at capture (sales − commission − HST)
- *  refunds you bore       refunds reversed from the merchant (liability merchant/split)
- *  commission returned    the platform's fee refunded on those refunds
- *  refunds we bore        platform-liable refunds (shown for transparency; not deducted)
- *  dispute recoveries     chargebacks recovered from the merchant
- *  net transfers          merchant share − refunds you bore + commission returned − recoveries
- *  payouts                payouts to the bank (Stripe), for the same month
- */
 export interface StatementLine {
   date: string
   publicId: string | null
@@ -100,7 +86,6 @@ export async function merchantStatement(
       netCents: 0,
     }
     if (r.event === 'capture') {
-      // The capture journal credits the merchant's share, then debits it for the transfer.
       const share = N('payable_cr')
       return {
         ...base,
@@ -111,7 +96,6 @@ export async function merchantStatement(
       }
     }
     if (r.event === 'refund' || r.event === 'refund_failed') {
-      // Pass-through pair: the merchant's share appears once as a debit and once as a credit.
       const sign = r.event === 'refund' ? 1 : -1
       const merchantShare = sign * (r.event === 'refund' ? N('payable_dr') : N('payable_cr'))
       const returned = -(N('fee_net') + N('hst_net'))
@@ -203,7 +187,6 @@ export function statementCsv(s: MerchantStatement): string {
   return `# ${s.merchantName} statement ${s.month} (test mode, CAD)\r\n${body}${totals}`
 }
 
-/** Months with activity for a merchant, newest first (statement picker). */
 export async function statementMonths(merchantId: number): Promise<string[]> {
   const { rows } = await getDb().query<{ month: string }>(
     `SELECT DISTINCT to_char(j.created_at AT TIME ZONE 'America/Toronto', 'YYYY-MM') AS month

@@ -6,14 +6,6 @@ import { getConfig } from '@/server/config'
 import { simulatedGateway } from './simulator'
 import { getStripe } from './stripe'
 
-/**
- * The narrow set of Stripe operations the marketplace uses: checkout, capture, void and webhooks
- * (G2), and the back office (G5): refunds and transfer reversals, connected-account onboarding,
- * balances and payouts, balance transactions for reconciliation, dispute evidence.
- * Production code talks to Stripe through `getGateway()`; integration tests swap in a fake with
- * `setGatewayForTests`, so the whole flow runs in CI without network access. Webhook signatures
- * are always verified with Stripe's real algorithm, including in tests.
- */
 export interface PaymentIntentInfo {
   id: string
   status: Stripe.PaymentIntent.Status
@@ -26,7 +18,7 @@ export interface PaymentIntentInfo {
   overcaptureMaximumCents: number | null
   incrementalAuthorizationStatus: 'available' | 'unavailable' | null
   extendedAuthorizationStatus: 'enabled' | 'disabled' | null
-  /** Stripe's processing fee on the charge, once the balance transaction exists. */
+
   processingFeeCents: number | null
 }
 
@@ -40,12 +32,9 @@ export interface RefundInfo {
   id: string
   status: 'pending' | 'succeeded' | 'failed' | 'canceled' | 'requires_action'
   amountCents: number
-  /** Set when the refund reversed the destination transfer (reverse_transfer). */
+
   transferReversalId: string | null
-  /**
-   * Total application fee refunded on this charge so far (Stripe's application fee
-   * `amount_refunded`), when the fee was touched; the caller derives this refund's share.
-   */
+
   applicationFeeRefundedTotalCents: number | null
   failureReason: string | null
 }
@@ -70,12 +59,11 @@ export interface PayoutInfo {
   arrivalDate: Date | null
 }
 
-/** One line of the platform's Stripe balance history (PAYMENTS §10). */
 export interface BalanceTransaction {
   id: string
-  /** Stripe's type: charge, payment, refund, transfer, transfer_refund, adjustment, … */
+
   type: string
-  /** The object behind it (ch_…, re_…, tr_…, trr_…, dp_…), when there is one. */
+
   sourceId: string | null
   amountCents: number
   feeCents: number
@@ -87,7 +75,7 @@ export interface PaymentGateway {
     params: Stripe.Checkout.SessionCreateParams,
     idempotencyKey: string,
   ): Promise<CheckoutSessionInfo>
-  /** Expires an open session; a session that is already complete or expired is left alone. */
+
   expireCheckoutSession(id: string): Promise<'expired' | 'complete' | 'already_expired'>
   retrievePaymentIntent(id: string): Promise<PaymentIntentInfo>
   capturePaymentIntent(
@@ -97,7 +85,6 @@ export interface PaymentGateway {
   ): Promise<PaymentIntentInfo>
   cancelPaymentIntent(id: string, idempotencyKey: string): Promise<PaymentIntentInfo>
 
-  // ---- back office (G5)
   refund(
     params: {
       paymentIntentId: string
@@ -108,7 +95,7 @@ export interface PaymentGateway {
     },
     idempotencyKey: string,
   ): Promise<RefundInfo>
-  /** Pulls part of a destination charge's transfer back from the merchant (split liability). */
+
   reverseTransfer(
     params: {
       chargeId: string
@@ -122,10 +109,7 @@ export interface PaymentGateway {
     params: { merchantId: number; name: string },
     idempotencyKey: string,
   ): Promise<{ id: string }>
-  /**
-   * A Custom connected account (ADR-0012): the platform supplies the company details and the terms
-   * acceptance. Test mode uses Stripe's documented test values.
-   */
+
   createCustomAccount(
     params: { merchantId: number; name: string; tosIp: string | null; tosUserAgent: string | null },
     idempotencyKey: string,
@@ -358,7 +342,6 @@ export function toAccountInfo(account: Stripe.Account): ConnectedAccountInfo {
   }
 }
 
-/** The application fee refunded so far on a destination charge (for the fee-refund share). */
 async function applicationFeeRefunded(
   charge: string | Stripe.Charge | null | undefined,
 ): Promise<number | null> {
@@ -373,7 +356,6 @@ async function applicationFeeRefunded(
 let override: PaymentGateway | undefined
 let simulator: PaymentGateway | undefined
 
-/** Stripe, or the payment simulator when PAYMENT_PROVIDER=simulator (G4-18; never in production). */
 export function getGateway(): PaymentGateway {
   if (override) return override
   const config = getConfig()
@@ -382,15 +364,10 @@ export function getGateway(): PaymentGateway {
   return stripeGateway
 }
 
-/** Test hook: replace the gateway (pass undefined to restore Stripe). */
 export function setGatewayForTests(gateway: PaymentGateway | undefined): void {
   override = gateway
 }
 
-/**
- * Verifies a webhook signature over the RAW body (G2-08). Uses Stripe's algorithm locally; no
- * network call. Throws on a bad or stale signature.
- */
 export function verifyWebhook(rawBody: string, signature: string, secret: string): Stripe.Event {
   return getStripe().webhooks.constructEvent(rawBody, signature, secret)
 }

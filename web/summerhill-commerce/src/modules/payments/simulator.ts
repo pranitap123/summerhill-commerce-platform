@@ -14,16 +14,6 @@ import {
   type SimIntent,
 } from './simulatorBackOffice'
 
-/**
- * Payment simulator (G4-18): a PaymentGateway that behaves like Stripe in test mode, for the
- * end-to-end tests and for demos without a Stripe account (PAYMENT_PROVIDER=simulator; refused in
- * production by the config). Checkout Sessions and PaymentIntents live in ops.payment_simulator,
- * so the web app and the worker share them. The hosted payment page is /simulator/checkout/{id}
- * (see ./simulatorCheckout.ts), which reacts to Stripe's documented test cards.
- *
- * Only what the order flow uses is modelled: manual capture, capture of a lower or equal amount,
- * void, idempotency keys, and the card-feature fields the capture job reads.
- */
 export interface SimSession {
   id: string
   status: 'open' | 'complete' | 'expired'
@@ -32,7 +22,7 @@ export interface SimSession {
   expiresAt: string
   amountCents: number
   params: Stripe.Checkout.SessionCreateParams
-  /** A 3-D Secure challenge is showing for this card. */
+
   challenge: string | null
 }
 
@@ -69,12 +59,10 @@ export async function saveSimIntent(db: Db, pi: PaymentIntentInfo): Promise<void
   await save(db, 'payment_intent', pi.id, pi)
 }
 
-/** Dates come back from JSON as strings. */
 function reviveIntent(pi: PaymentIntentInfo): PaymentIntentInfo {
   return { ...pi, captureBefore: pi.captureBefore ? new Date(pi.captureBefore) : null }
 }
 
-/** Runs `fn` once per idempotency key and replays its result afterwards (like Stripe). */
 async function idempotent<T>(key: string, fn: (tx: Db) => Promise<T>): Promise<T> {
   return withTransaction(async (tx) => {
     const id = `idem:${key}`
@@ -142,7 +130,7 @@ export function simulatedGateway(serverUrl: string): PaymentGateway {
           amountCapturableCents: 0,
           amountReceivedCents: amounts.amountToCaptureCents,
           applicationFeeCents: amounts.applicationFeeCents,
-          // Stripe's standard Canadian card pricing: 2.9% + 30¢
+
           processingFeeCents: Math.round(amounts.amountToCaptureCents * 0.029) + 30,
         }
         await saveSimIntent(tx, captured)

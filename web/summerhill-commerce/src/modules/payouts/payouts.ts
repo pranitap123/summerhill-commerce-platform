@@ -13,13 +13,6 @@ import type { Db } from '@/server/db'
 import { getDb, withTransaction } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Merchant payouts (G5-07, PAYMENTS §8). Automatic payouts follow the Stripe schedule and show up
- * here through `payout.*` Connect webhooks. A manual payout needs an available balance, an
- * Idempotency-Key (at the API) and a reason; above $5,000 it waits for a SECOND person's approval
- * (four eyes: the database refuses approved_by = requested_by). Failures alert ops and show in the
- * merchant console.
- */
 export interface Payout {
   id: number
   merchantId: number
@@ -91,7 +84,6 @@ export async function merchantBalance(merchantId: number) {
   return getGateway().retrieveBalance(accountId)
 }
 
-/** Requests a manual payout; executes it at once when no approval is needed. */
 export async function requestPayout(
   ctx: AuditContext,
   input: { merchantId: number; amountCents: number; reason: string },
@@ -143,7 +135,6 @@ export async function requestPayout(
   return executePayout(id, accountId)
 }
 
-/** Second person approves a payout above the threshold (never their own). */
 export async function approvePayout(
   ctx: AuditContext,
   payoutId: number,
@@ -188,7 +179,7 @@ async function executePayout(payoutId: number, accountId: string): Promise<Payou
       { payout_id: String(payoutId), merchant_id: String(payout.merchantId) },
       `payout:${payoutId}`,
     )
-    // The webhook may already have recorded this Stripe payout (simulator events are immediate).
+
     await getDb().query(
       `UPDATE finance.payouts SET stripe_payout_id = $2,
          status = CASE WHEN status = 'requested' THEN $3 ELSE status END,
@@ -209,7 +200,6 @@ async function executePayout(payoutId: number, accountId: string): Promise<Payou
   return (await getPayout(payoutId))!
 }
 
-/** payout.* Connect webhooks: automatic payouts appear, manual ones get their final status. */
 export async function onPayoutEvent(
   account: string | null,
   p: Pick<Stripe.Payout, 'id' | 'amount' | 'status' | 'arrival_date' | 'metadata' | 'automatic'> & {
@@ -295,11 +285,6 @@ export async function setPayoutSchedule(
   })
 }
 
-/**
- * Finishes offboarding (A1): every order closed, then the whole available balance is paid out
- * (with approval above the threshold). The merchant is offboarded once nothing is left or the
- * final payout is on its way.
- */
 export async function finishOffboarding(
   ctx: AuditContext,
   merchantId: number,

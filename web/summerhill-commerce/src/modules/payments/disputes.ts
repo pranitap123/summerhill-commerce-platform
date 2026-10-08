@@ -15,17 +15,6 @@ import { postJournal } from './ledger'
 import { postDispute, postDisputeCredit } from './ledgerRules'
 import { getPaymentByIntent, getPaymentForOrder } from './repository'
 
-/**
- * Disputes (G5-06, PAYMENTS §7). With destination charges Stripe debits the platform for the
- * disputed amount and the dispute fee, so:
- *  created   row + ledger (dispute_expense) + critical alert + evidence pack assembled
- *  deadline  alerts 72 h and 24 h before `evidence_details.due_by`
- *  submit    staff review the pack and submit it (Stripe `disputes.update … submit`)
- *  liability per the matrix (ORDERS §9); a merchant-liable loss is recovered by a transfer reversal
- *  closed    won → funds reinstated (ledger credit); lost → the expense stays
- * The evidence pack includes the handover record: the pickup code was checked by a named staff
- * member at a recorded time, the main defence against "not received" claims.
- */
 export const DISPUTE_ALERT_HOURS = [72, 24] as const
 
 export interface Dispute {
@@ -83,9 +72,9 @@ export interface EvidencePack {
     authorizedAt: string | null
     capturedAt: string | null
   }
-  /** What v1 doesn't record, stated rather than silently missing. */
+
   notRecorded: string[]
-  /** The text fields sent to Stripe. */
+
   stripeEvidence: Record<string, string>
 }
 
@@ -135,7 +124,6 @@ export async function listDisputes(
   return rows.map(toDispute)
 }
 
-/** The Stripe dispute fields we read (webhook payload). */
 export interface StripeDisputeLike {
   id: string
   amount: number
@@ -150,7 +138,6 @@ export interface StripeDisputeLike {
 const idOf = (v: string | { id: string } | null | undefined) =>
   typeof v === 'string' ? v : (v?.id ?? null)
 
-/** charge.dispute.created / updated / closed. */
 export async function onDisputeEvent(
   type: string,
   d: StripeDisputeLike,
@@ -195,7 +182,6 @@ export async function onDisputeEvent(
   return 'processed'
 }
 
-/** charge.dispute.funds_reinstated: Stripe gave the disputed amount back (dispute won). */
 export async function onDisputeFundsReinstated(
   d: StripeDisputeLike,
 ): Promise<'processed' | 'ignored'> {
@@ -292,7 +278,6 @@ async function paymentByCharge(chargeId: string | null) {
 
 const iso = (d: Date | null | undefined) => (d ? new Date(d).toISOString() : null)
 
-/** Assembles the evidence pack from our own records (re-run before submitting). */
 export async function buildEvidencePack(disputeId: number): Promise<EvidencePack> {
   const dispute = await getDispute(disputeId)
   if (!dispute) throw new HttpError(404, 'NOT_FOUND', 'Dispute not found')
@@ -325,7 +310,7 @@ export async function buildEvidencePack(disputeId: number): Promise<EvidencePack
     collected: order.status === 'collected' || !!order.collectedAt,
     collectedAt: iso(order.collectedAt),
     handedOverBy: order.handedOverBy,
-    // The console completes a handover only after the 6-digit code matched (G4-14).
+
     pickupCodeVerified: !!collected,
     wrongCodeAttempts: wrongCodes,
   }
@@ -397,7 +382,6 @@ export async function buildEvidencePack(disputeId: number): Promise<EvidencePack
   return pack
 }
 
-/** Submits the (freshly rebuilt) evidence pack to Stripe. */
 export async function submitDisputeEvidence(
   ctx: AuditContext,
   disputeId: number,
@@ -434,11 +418,6 @@ export async function submitDisputeEvidence(
   return (await getDispute(disputeId))!
 }
 
-/**
- * Who bears the loss (ORDERS §9): the platform, unless the goods were handed over without a
- * pickup-code check (the console never does that, but an order marked collected any other way
- * would be the merchant's).
- */
 export function suggestedDisputeLiability(
   order: Pick<Order, 'status' | 'collectedAt' | 'handedOverBy'>,
   codeVerified: boolean,
@@ -447,7 +426,6 @@ export function suggestedDisputeLiability(
   return handedOver && !codeVerified ? 'merchant' : 'platform'
 }
 
-/** Records who bears a dispute; a merchant-liable amount is recovered with a transfer reversal. */
 export async function setDisputeLiability(
   ctx: AuditContext,
   disputeId: number,
@@ -503,7 +481,6 @@ export async function setDisputeLiability(
   return (await getDispute(disputeId))!
 }
 
-/** Hourly: alerts 72 h and 24 h before evidence is due (fake-clock testable). */
 export async function runDisputeDeadlineAlerts(now: Date = new Date()): Promise<number> {
   let raised = 0
   for (const hours of DISPUTE_ALERT_HOURS) {

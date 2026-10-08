@@ -27,20 +27,6 @@ import {
 } from './refundMath'
 import { getPaymentForOrder, type Payment } from './repository'
 
-/**
- * Refunds after capture (G5-04, PAYMENTS §6) with the liability matrix (ORDERS §9).
- *
- * The scenario decides who pays; staff don't pick the liability for scenarios the matrix covers.
- * Stripe calls, per liability:
- *   merchant  refund { reverse_transfer, refund_application_fee }: the merchant gives back the
- *             amount and gets the commission on it back
- *   platform  refund {}: the platform pays from its balance
- *   split     refund {} + transfer reversal of the merchant's share (with its fee refund)
- * Flow: (1) a `pending` refund row is committed (one refund at a time per order), (2) Stripe, with
- * idempotency keys derived from the row id, (3) the row, a balanced ledger journal, the order's
- * refund status and an `order.refunded` event commit together. A refund Stripe reports as pending
- * is finished by the `refund.updated` webhook; one that fails later is reversed in the ledger.
- */
 export const REFUND_SCENARIOS = {
   missing_item: { liability: 'merchant', label: 'Item missing from the bag (picker error)' },
   wrong_substitute: { liability: 'merchant', label: 'Wrong or unacceptable substitute' },
@@ -52,7 +38,6 @@ export const REFUND_SCENARIOS = {
 } as const
 export type RefundScenario = keyof typeof REFUND_SCENARIOS
 
-/** Matrix rows where the customer gets nothing back (ORDERS §9). */
 export const NON_REFUNDABLE_SCENARIOS = {
   changed_mind: 'Customer changed their mind after collection: perishables are not refundable',
   no_show: 'No-show: the customer bears the cost (pickup policy)',
@@ -63,19 +48,19 @@ export type Liability = 'merchant' | 'platform' | 'split'
 export interface RefundRequest {
   orderId: number
   scenario: RefundScenario
-  /** Line refunds (missing, damaged, …): whole lines or part of a line. */
+
   lines?: Array<{ lineId: number; quantity?: number; weightMlb?: number }>
-  /** An amount instead of lines (price difference, goodwill). */
+
   amountCents?: number
-  /** Everything not yet refunded. */
+
   full?: boolean
-  /** Only for scenarios whose liability is chosen (goodwill, cancellation). */
+
   liability?: Liability
   merchantShareCents?: number
   reason: string
   source?: 'admin' | 'support_issue' | 'cancellation'
   issueId?: number | null
-  /** Cumulative per-order cap for the caller's role (support: $50), or null for no cap. */
+
   limitCents?: number | null
 }
 
@@ -141,7 +126,6 @@ export async function getRefund(id: number, db: Db = getDb()): Promise<Refund | 
   return rows[0] ? toRefund(rows[0]) : null
 }
 
-/** Refunds that count against the captured amount (pending ones included). */
 const live = (r: Refund) => r.status === 'pending' || r.status === 'succeeded'
 
 function refundableLine(l: OrderLine): RefundableLine {
@@ -156,7 +140,6 @@ function refundableLine(l: OrderLine): RefundableLine {
   }
 }
 
-/** What the refund dialog shows: per line, what was paid and what is left to refund. */
 export async function refundableSummary(orderId: number): Promise<{
   capturedCents: number
   refundedCents: number
@@ -290,7 +273,6 @@ function plan(
   return { amountCents, lines, liability, ...shares }
 }
 
-/** Creates and executes a refund. */
 export async function createRefund(ctx: AuditContext, req: RefundRequest): Promise<Refund> {
   const created = await withTransaction(async (tx) => {
     const order = await getOrderForUpdate(tx, req.orderId)
@@ -452,7 +434,6 @@ async function refundEntries(tx: Db, refund: Refund): Promise<LedgerEntry[]> {
   })
 }
 
-/** Stripe confirmed the refund: ledger, order refund status, timeline, customer email. */
 export async function finalizeRefund(refundId: number): Promise<'finalized' | 'already'> {
   return withTransaction(async (tx) => {
     const { rows } = await tx.query(
@@ -494,7 +475,6 @@ export async function finalizeRefund(refundId: number): Promise<'finalized' | 'a
   })
 }
 
-/** Stripe reports the refund failed: status, reversing journal if it was posted, alert. */
 export async function failRefund(refundId: number, reason: string): Promise<void> {
   await withTransaction(async (tx) => {
     const before = await getRefund(refundId, tx)
@@ -536,7 +516,6 @@ async function updateRefundStatus(tx: Db, orderId: number): Promise<void> {
   )
 }
 
-/** Webhook: refund.updated / refund.failed / charge.refund.updated. */
 export async function onRefundEvent(refund: {
   id: string
   status: string | null
@@ -555,10 +534,6 @@ export async function onRefundEvent(refund: {
   return 'processed'
 }
 
-/**
- * Cancel on behalf (A7, ORDERS §8): before capture the card hold is released (void); an order
- * that was charged but not collected is refunded in full and cancelled.
- */
 export async function cancelOnBehalf(
   ctx: AuditContext,
   orderId: number,
@@ -615,7 +590,6 @@ export async function cancelOnBehalf(
   return { order: (await getOrder(orderId))!, refund }
 }
 
-/** Refunds by agent over the last `days` (threat T16's weekly review). */
 export async function refundsByAgent(
   days = 7,
 ): Promise<Array<{ createdBy: string; count: number; totalCents: number; largestCents: number }>> {
@@ -634,7 +608,6 @@ export async function refundsByAgent(
   }))
 }
 
-/** A customer's refunds over the last 90 days (support auto-approval, ORDERS §10). */
 export async function customerRefundTotal(
   customer: { userId: string | null; email: string },
   now: Date = new Date(),

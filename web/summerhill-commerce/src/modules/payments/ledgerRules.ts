@@ -1,8 +1,3 @@
-/**
- * Posting rules for the double-entry ledger (PAYMENTS §9). Pure functions: they decide WHICH
- * entries a money event produces; `ledger.ts` writes them in one journal. Every rule returns
- * balanced entries (sum of debits = sum of credits), which the database checks again at commit.
- */
 export type LedgerAccount =
   | 'stripe_clearing'
   | `merchant_payable:${number}`
@@ -28,16 +23,12 @@ function pair(debit: LedgerAccount, credit: LedgerAccount, cents: number): Ledge
   ]
 }
 
-/**
- * Capture of a destination charge. Stripe keeps the application fee on the platform balance and
- * transfers the rest to the merchant automatically, so the transfer is posted with the capture.
- */
 export function postCapture(p: {
   merchantId: number
   capturedCents: number
   applicationFeeCents: number
   hstOnCommissionCents: number
-  /** Stripe's processing fee from the balance transaction; null if not known yet. */
+
   processingFeeCents: number | null
 }): LedgerEntry[] {
   if (p.applicationFeeCents > p.capturedCents)
@@ -56,7 +47,6 @@ export function postCapture(p: {
   ]
 }
 
-/** Stripe's processing fee, when it becomes known after the capture was posted. */
 export function postProcessingFee(processingFeeCents: number): LedgerEntry[] {
   return pair('processing_fee_expense', 'stripe_clearing', processingFeeCents)
 }
@@ -67,14 +57,6 @@ export function isBalanced(entries: LedgerEntry[]): boolean {
   return debits === credits
 }
 
-/**
- * Refund of a destination charge (PAYMENTS §6). The customer gets `merchantCents + platformCents`
- * back from the platform balance:
- *  - the merchant's share is paid on the merchant's behalf and pulled back by the transfer
- *    reversal (a pass-through pair, like the transfer at capture)
- *  - the platform's share is an expense
- *  - the commission refunded on the merchant's share reduces revenue (and HST on commission)
- */
 export function postRefund(p: {
   merchantId: number
   merchantCents: number
@@ -94,7 +76,6 @@ export function postRefund(p: {
   ]
 }
 
-/** A refund that failed after it was posted: the exact opposite entries. */
 export function reverseEntries(entries: LedgerEntry[]): LedgerEntry[] {
   return entries.map((e) => ({
     account: e.account,
@@ -103,12 +84,10 @@ export function reverseEntries(entries: LedgerEntry[]): LedgerEntry[] {
   }))
 }
 
-/** Stripe debits the disputed amount and its dispute fee from the platform (PAYMENTS §7). */
 export function postDispute(p: { amountCents: number; feeCents: number }): LedgerEntry[] {
   return pair('dispute_expense', 'stripe_clearing', p.amountCents + p.feeCents)
 }
 
-/** Money coming back for a dispute: recovered from the merchant, or reinstated when won. */
 export function postDisputeCredit(cents: number): LedgerEntry[] {
   return pair('stripe_clearing', 'dispute_expense', cents)
 }

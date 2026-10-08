@@ -3,12 +3,6 @@ import { getOrderLines, recordPick, transitionInTx } from '@/modules/ordering'
 import { withTransaction } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Demo/test tool until the merchant console exists (G4): walks a placed order through
- * accepted → picking → picked, recording every line as picked. Weighed lines get their estimated
- * weight adjusted by `weightChangePercent` (e.g. +10 → 10% heavier). The `order.picked` outbox
- * event then triggers the `payment.capture` job, exactly as "complete picking" will in G4-13.
- */
 export async function fastForwardToPicked(
   orderId: number,
   actor: Actor,

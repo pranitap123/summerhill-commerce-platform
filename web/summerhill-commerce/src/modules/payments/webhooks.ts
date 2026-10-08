@@ -18,14 +18,6 @@ import { onRefundEvent } from './refunds'
 import { getGateway } from './gateway'
 import { getPaymentByIntent, getPaymentForOrder, setPaymentStatus } from './repository'
 
-/**
- * Stripe webhooks (G2-08). The HTTP handler only verifies the signature and calls
- * `recordWebhookEvent`, which stores the event and enqueues `stripe.webhook.process` in one
- * transaction, then answers 200 fast. The worker processes it:
- *  - duplicates are harmless: event_id is unique, and every handler is guarded by the order state
- *  - out-of-order events are harmless: handlers act only from the state they expect, and read the
- *    PaymentIntent from Stripe rather than trusting the event's snapshot
- */
 export const WEBHOOK_QUEUE = 'stripe.webhook.process'
 
 export type WebhookSource = 'platform' | 'connect'
@@ -101,7 +93,6 @@ export async function processWebhookEvent(eventId: string): Promise<Outcome | 'a
   }
 }
 
-/** Dead-lettered webhook: mark it failed and alert. */
 export async function onWebhookDead(eventId: string, error: string): Promise<void> {
   await getDb().query(`UPDATE ops.webhook_events SET status = 'failed' WHERE event_id = $1`, [
     eventId,
@@ -115,12 +106,6 @@ export async function onWebhookDead(eventId: string, error: string): Promise<voi
   })
 }
 
-/**
- * Runbook RB-03: process a stored event again after the cause of its failure is fixed. Only a
- * failed (dead-lettered) or still-pending event can be replayed; handlers are guarded by order state,
- * so a replay never applies an event twice. An event Stripe sent but we never stored is re-sent from
- * Stripe instead (`stripe events resend`).
- */
 export async function replayWebhookEvent(eventId: string, actor: Actor) {
   return withTransaction(async (tx) => {
     const { rows } = await tx.query<{ status: string }>(
@@ -130,7 +115,7 @@ export async function replayWebhookEvent(eventId: string, actor: Actor) {
     if (!rows[0]) throw new HttpError(404, 'NOT_FOUND', `No stored webhook event ${eventId}`)
     if (rows[0].status !== 'failed' && rows[0].status !== 'pending')
       throw new HttpError(409, 'ALREADY_PROCESSED', `Event ${eventId} is already ${rows[0].status}`)
-    // A pending event whose job is still queued or running belongs to the worker: don't race it.
+
     const live = await tx.query(
       `SELECT 1 FROM ops.jobs WHERE queue = $1 AND dedupe_key = $2 AND status IN ('queued', 'running')`,
       [WEBHOOK_QUEUE, eventId],
@@ -160,25 +145,24 @@ async function dispatch(event: Stripe.Event): Promise<Outcome> {
       return sessionExpired(event.data.object)
     case 'payment_intent.canceled':
       return paymentIntentCanceled(event.data.object)
-    // G6-09: a declined attempt changes nothing (the customer can retry in Checkout); the stored
-    // event feeds the card-testing alert rule.
+
     case 'payment_intent.payment_failed':
       return 'ignored'
     case 'account.updated':
       return accountUpdated(event.data.object)
-    // G5-04: refunds are confirmed (or fail) asynchronously
+
     case 'refund.updated':
     case 'refund.failed':
     case 'charge.refund.updated':
       return onRefundEvent(event.data.object as Stripe.Refund)
-    // G5-06: disputes
+
     case 'charge.dispute.created':
     case 'charge.dispute.updated':
     case 'charge.dispute.closed':
       return onDisputeEvent(event.type, event.data.object as unknown as StripeDisputeLike)
     case 'charge.dispute.funds_reinstated':
       return onDisputeFundsReinstated(event.data.object as unknown as StripeDisputeLike)
-    // G5-07: merchant payouts (Connect events carry the connected account)
+
     case 'payout.created':
     case 'payout.updated':
     case 'payout.paid':
@@ -205,7 +189,7 @@ async function sessionCompleted(session: Stripe.Checkout.Session): Promise<Outco
     getLogger().warn({ sessionId: session.id }, 'checkout session without order metadata ignored')
     return 'ignored'
   }
-  // The event is a snapshot; the PaymentIntent from Stripe is the truth.
+
   const pi = await getGateway().retrievePaymentIntent(piId)
   if (pi.status === 'requires_capture') {
     await recordAuthorization(orderId, pi)
@@ -220,10 +204,10 @@ async function sessionExpired(session: Stripe.Checkout.Session): Promise<Outcome
   if (!orderId) return 'ignored'
   await withTransaction(async (tx) => {
     const order = await getOrderForUpdate(tx, orderId)
-    if (order?.status !== 'pending_payment') return // already placed, abandoned or superseded
+    if (order?.status !== 'pending_payment') return
     const payment = await getPaymentForOrder(orderId, tx)
     if (payment) await setPaymentStatus(tx, payment.id, 'expired')
-    // The transition releases the pickup-slot hold (G4-02).
+
     await transitionInTx(
       tx,
       orderId,
@@ -238,7 +222,6 @@ async function sessionExpired(session: Stripe.Checkout.Session): Promise<Outcome
   return 'processed'
 }
 
-/** Stripe cancelled an authorisation we didn't (e.g. it expired after 7 days). */
 async function paymentIntentCanceled(pi: Stripe.PaymentIntent): Promise<Outcome> {
   const payment = await getPaymentByIntent(pi.id)
   if (!payment || payment.status !== 'requires_capture') return 'ignored'
@@ -267,7 +250,6 @@ async function paymentIntentCanceled(pi: Stripe.PaymentIntent): Promise<Outcome>
   return 'processed'
 }
 
-/** G2-11: merchant onboarding status follows Connect `account.updated` (replaces polling). */
 async function accountUpdated(account: Stripe.Account): Promise<Outcome> {
   const merchant = await getMerchantByStripeAccount(account.id)
   if (!merchant) return 'ignored'

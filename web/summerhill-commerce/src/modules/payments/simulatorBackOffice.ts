@@ -14,26 +14,11 @@ import type {
 } from './gateway'
 import { STRIPE_API_VERSION } from './stripe'
 
-/**
- * The payment simulator's back office (G5): connected accounts with balances, refunds and
- * transfer reversals, payouts, disputes and the platform's balance history, modelled on Stripe's
- * documented destination-charge flow of funds:
- *
- *   capture C with fee F   platform: charge +C (Stripe fee), transfer −C, application_fee +F
- *                          merchant: +C −F
- *   refund R (reverse)     platform: refund −R, transfer_refund +R; merchant −R
- *   fee refund on share M  proportional: F × M / C (cumulative, half-up); platform
- *                          application_fee_refund −f; merchant +f
- *   dispute D              platform: adjustment −D, Stripe dispute fee CA$15
- *
- * Merchant-facing events (payouts, onboarding) and disputes are written to the same webhook store
- * Stripe's events use, so the worker handles them exactly as it would handle Stripe's.
- */
 export const SIM_DISPUTE_FEE_CENTS = 1500
 
 export interface SimIntent extends PaymentIntentInfo {
   destination?: string | null
-  /** Stripe's dispute test card: the charge is disputed once captured. */
+
   disputeReason?: string | null
   refundedCents?: number
   reversedCents?: number
@@ -82,7 +67,6 @@ async function save(db: Db, kind: string, id: string, data: unknown): Promise<vo
   )
 }
 
-/** Runs `fn` once per idempotency key and replays its result afterwards (like Stripe). */
 async function idempotent<T>(key: string, fn: (tx: Db) => Promise<T>): Promise<T> {
   return withTransaction(async (tx) => {
     const id = `idem:${key}`
@@ -127,14 +111,13 @@ async function credit(db: Db, accountId: string | null | undefined, cents: numbe
     returnUrl: null,
     refreshUrl: null,
   }
-  // Test mode: funds are available at once, so payouts can be demonstrated immediately.
+
   await save(db, 'account', accountId, {
     ...account,
     availableCents: account.availableCents + cents,
   })
 }
 
-/** Stripe rounds proportional fee refunds; half-up on the cumulative share keeps the total exact. */
 export function proportionalFeeRefund(
   feeCents: number,
   capturedCents: number,
@@ -161,7 +144,6 @@ async function recordEvent(
   object: Record<string, unknown>,
   account: string | null,
 ): Promise<void> {
-  // Imported here: webhooks → gateway → simulator would otherwise form an import cycle.
   const { recordWebhookEvent } = await import('./webhooks')
   const event = {
     id: newId('evt'),
@@ -178,7 +160,6 @@ async function recordEvent(
   await recordWebhookEvent(event, account ? 'connect' : 'platform')
 }
 
-/** After a capture: money moves as on Stripe, and the dispute test card opens a dispute. */
 export async function afterSimulatedCapture(tx: Db, pi: SimIntent): Promise<SimDispute | null> {
   const captured = pi.amountReceivedCents
   const fee = pi.applicationFeeCents ?? 0
@@ -217,7 +198,6 @@ export function disputeObject(d: SimDispute): Record<string, unknown> {
   }
 }
 
-/** Delivers the dispute event once the capture that caused it has committed. */
 export async function announceDispute(d: SimDispute): Promise<void> {
   await recordEvent('charge.dispute.created', disputeObject(d), null)
 }
@@ -249,10 +229,6 @@ export async function getSimAccount(id: string, db: Db = getDb()): Promise<SimAc
   return /^acct_sim_[0-9a-f]{24}$/.test(id) ? load<SimAccount>(db, id) : null
 }
 
-/**
- * The simulator's hosted onboarding page (/simulator/onboarding/{id}) was completed: the account
- * can take charges and payouts, and Stripe's `account.updated` Connect event is recorded.
- */
 export async function completeSimulatedOnboarding(accountId: string): Promise<string | null> {
   const account = await withTransaction(async (tx) => {
     const a = await load<SimAccount>(tx, accountId, true)
@@ -376,8 +352,6 @@ export function simulatedBackOffice(serverUrl: string): BackOffice {
       })
     },
 
-    // Stripe test mode verifies a Custom account at once when it is given the documented test
-    // values, so the simulated account starts enabled.
     async createCustomAccount(params, idempotencyKey) {
       return idempotent(`account:${idempotencyKey}`, async (tx) => {
         const account: SimAccount = {
@@ -429,7 +403,7 @@ export function simulatedBackOffice(serverUrl: string): BackOffice {
         await save(tx, 'payout', id, { id, accountId, amountCents, metadata, status: 'paid' })
         return { id, arrival: arrival.toISOString() }
       })
-      // Test-mode payouts arrive at once; Stripe then sends payout.paid (a Connect event).
+
       await recordEvent(
         'payout.paid',
         {

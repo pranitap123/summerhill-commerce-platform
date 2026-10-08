@@ -1,18 +1,14 @@
 import { divideRoundHalfUp } from '@/modules/pricing'
 
-/**
- * Refund amounts (PAYMENTS §6): a line refund is the line's final total + its HST + its deposit;
- * part of a line is refunded pro rata (by count, or by weight for weighed lines). Pure functions.
- */
 export interface RefundableLine {
   id: number
   isWeighed: boolean
   finalLineTotalCents: number
   finalTaxCents: number
   finalDepositCents: number
-  /** Units the customer paid for (picked quantity, or 1 for a weighed line). */
+
   paidUnits: number
-  /** Weighed lines: the weight the customer paid for, in milli-pounds. */
+
   paidWeightMlb: number | null
 }
 
@@ -20,7 +16,6 @@ export function lineFullCents(line: RefundableLine): number {
   return line.finalLineTotalCents + line.finalTaxCents + line.finalDepositCents
 }
 
-/** The refund for all or part of one line. Throws when the part is more than was paid for. */
 export function lineRefundCents(
   line: RefundableLine,
   part: { quantity?: number; weightMlb?: number } = {},
@@ -41,10 +36,6 @@ export function lineRefundCents(
   return full
 }
 
-/**
- * Who bears what: the merchant share is capped by the refund, the rest is the platform's. For
- * the fee refund Stripe returns the commission proportionally to the transfer reversed.
- */
 export function splitShares(
   liability: 'merchant' | 'platform' | 'split',
   amountCents: number,
@@ -58,7 +49,6 @@ export function splitShares(
   return { merchantCents: m, platformCents: amountCents - m }
 }
 
-/** HST on commission contained in a fee refund, in the same proportion as at capture. */
 export function hstShareOfFeeRefund(
   feeRefundCents: number,
   applicationFeeCents: number,

@@ -37,15 +37,6 @@ import {
 
 const SYSTEM: Actor = { type: 'system', id: null }
 
-/**
- * Capture after picking (G2-10, PAYMENTS §3). Runs as the `payment.capture` job:
- *  - final amounts from the pick records; platform fee on the FINAL item subtotal
- *  - capture up to the authorisation (or the overcapture maximum when the card offers it), with
- *    `amount_to_capture` and `application_fee_amount`; the rest of the hold is released by Stripe
- *  - Stripe idempotency key `capture:{orderId}`, so a retried job never captures twice
- *  - one transaction: final amounts, payment row, balanced ledger journal, picked → ready
- * Nothing left to charge (everything unavailable) → the authorisation is voided instead.
- */
 export async function captureOrder(orderId: number): Promise<'captured' | 'voided' | 'skipped'> {
   const log = getLogger().child({ job: 'payment.capture', orderId })
   const order = await getOrder(orderId)
@@ -67,7 +58,6 @@ export async function captureOrder(orderId: number): Promise<'captured' | 'voide
 
   let pi: PaymentIntentInfo
   if (payment.status === 'captured') {
-    // A previous attempt captured at Stripe but crashed before committing: re-read, don't re-capture.
     pi = await getGateway().retrievePaymentIntent(payment.paymentIntentId)
   } else {
     try {
@@ -130,7 +120,6 @@ export async function captureOrder(orderId: number): Promise<'captured' | 'voide
   return 'captured'
 }
 
-/** Pick records → the pricing module's input (substitutes point at their original by line number). */
 export function finalizableLines(lines: OrderLine[]): FinalizableLine[] {
   const lineNoById = new Map(lines.map((l) => [l.id, l.lineNo]))
   return lines.map((l) => ({
@@ -149,11 +138,6 @@ export function finalizableLines(lines: OrderLine[]): FinalizableLine[] {
   }))
 }
 
-/**
- * What the customer would be charged if picking completed now, and how capture would go. The
- * console shows it while picking (and asks before exceeding the authorisation, ORDERS §6); the
- * capture job uses the same computation.
- */
 export async function projectCapture(
   order: Order,
   lines: OrderLine[],
@@ -170,7 +154,6 @@ export async function projectCapture(
   return { final, plan, ceilingCents: Math.max(authorized, overcapture ?? 0) }
 }
 
-/** The capture job gave up (dead letter): the order needs a person (ORDERS §4 payment_issue). */
 export async function onCaptureDead(orderId: number, error: string): Promise<void> {
   await withTransaction(async (tx) => {
     const order = await getOrderForUpdate(tx, orderId)
@@ -189,12 +172,6 @@ export async function onCaptureDead(orderId: number, error: string): Promise<voi
   })
 }
 
-/**
- * Runbook RB-04: capture again after the capture job gave up (payment_issue), once the cause is
- * fixed (Stripe outage over, account restriction lifted). Same idempotency key `capture:{orderId}`,
- * so a capture that did reach Stripe is replayed, never repeated. The attempt is audited first, so
- * it's on record even when it fails again.
- */
 export async function retryCapture(orderId: number, actor: Actor, reason: string) {
   const order = await getOrder(orderId)
   if (!order) throw new HttpError(404, 'NOT_FOUND', 'Order not found')
@@ -214,10 +191,6 @@ export async function retryCapture(orderId: number, actor: Actor, reason: string
   return captureOrder(orderId)
 }
 
-/**
- * Cancels an order before capture and releases the card hold (ORDERS §8): no charge, no fee.
- * An order still waiting for payment is abandoned instead (its Checkout Session is expired).
- */
 export async function voidOrder(
   orderId: number,
   actor: Actor,
@@ -266,11 +239,6 @@ export async function voidOrder(
   return (await getOrder(orderId))!
 }
 
-/**
- * The card was authorised (checkout.session.completed): pending_payment → placed. Idempotent; an
- * authorisation for an order we already abandoned (a superseded checkout paid in another tab) is
- * voided so the customer is never charged for it.
- */
 export async function recordAuthorization(
   orderId: number,
   pi: PaymentIntentInfo,
@@ -322,10 +290,6 @@ export async function recordAuthorization(
   return result
 }
 
-/**
- * Auth-expiry guard (G2-19, PAYMENTS §3): uncaptured authorisations whose `capture_before` is
- * within 48 hours raise one alert each. Runs hourly; `now` is injectable for fake-clock tests.
- */
 export const AUTH_EXPIRY_WARNING_MS = 48 * 3600_000
 
 export async function runAuthExpiryGuard(now: Date = new Date()): Promise<number> {

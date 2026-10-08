@@ -33,21 +33,10 @@ import {
   setPaymentStatus,
 } from './repository'
 
-/**
- * Checkout v2 (G2-07, PAYMENTS §2–3). The order exists BEFORE the customer is sent to Stripe, so a
- * closed tab can never lose a paid order: the webhook finds it by `metadata.order_id`.
- *
- *  1. re-quote the cart; the client's quote hash must match (409 PRICE_CHANGED otherwise) and be
- *     less than 10 minutes old (409 QUOTE_EXPIRED)
- *  2. create the order `pending_payment` with a snapshot of every amount + a payment row + outbox
- *     and a hold on the chosen pickup slot (G4-02: atomic, so a full slot fails the whole step)
- *  3. create a Checkout Session: manual capture, destination charge with on_behalf_of, our HST
- *     line, the weighed-item hold line, overcapture / incremental authorisation if available
- */
 export const HOLD_MESSAGE =
   'Weighed items are estimated. We place a temporary hold and charge only the final amount after your order is packed.'
-export const SESSION_TTL_MS = 30 * 60_000 // Stripe's minimum session lifetime
-/** The slot hold outlives the Checkout Session, so a payment completed at the last second still finds it. */
+export const SESSION_TTL_MS = 30 * 60_000
+
 export const SLOT_HOLD_TTL_MS = SESSION_TTL_MS + 10 * 60_000
 
 export interface CheckoutInput {
@@ -56,7 +45,7 @@ export interface CheckoutInput {
   email: string
   pickupName: string | null
   quoteHash: string
-  /** The pickup slot chosen from GET /api/v1/cart/slots (G4-03). */
+
   slotId: number
   requestId: string
   now?: Date
@@ -65,13 +54,12 @@ export interface CheckoutInput {
 export interface CheckoutResult {
   publicId: string
   checkoutUrl: string
-  /** Guest link token for the order page (also carried in the Stripe success URL). */
+
   accessToken: string
 }
 
 const formatLb = (mlb: number) => `${(mlb / 1000).toFixed(2)} lb`
 
-/** Stripe line items from our quote. Their sum is exactly the authorisation amount. */
 export function buildCheckoutLineItems(
   quote: Pick<Quote, 'lines' | 'taxCents' | 'depositCents' | 'weightBufferCents'>,
 ): Stripe.Checkout.SessionCreateParams.LineItem[] {
@@ -160,9 +148,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
   if (!settings) throw new HttpError(422, 'CART_INVALID', 'This store no longer exists')
   if (settings.paused)
     throw new HttpError(422, 'MERCHANT_PAUSED', 'This store is not taking orders right now')
-  // 503: a dependency isn't ready (the merchant can't take charges yet); not a bug in our code.
-  // The payment simulator (G4-18) stands in for Stripe and its connected accounts, so a keyless
-  // demo works before any merchant is onboarded.
+
   const simulated = getConfig().PAYMENT_PROVIDER === 'simulator'
   const destination = merchant.stripe_account_id ?? (simulated ? 'acct_simulated' : null)
   if (!destination || (!merchant.charges_enabled && !simulated))
@@ -176,7 +162,6 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
     ? { type: 'customer', id: String(input.user.id) }
     : { type: 'customer', id: null }
 
-  // A checkout already open for this cart: resume it if nothing changed, else supersede it.
   const pending = await findPendingOrderForCart(input.cart.id)
   if (pending) {
     const payment = await getPaymentForOrder(pending.id)
@@ -260,7 +245,7 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
   const metadata = {
     order_id: String(order.id),
     public_id: order.publicId,
-    // G6-08: Stripe returns metadata on the webhook, which continues this trace
+
     ...currentTraceCarrier(),
   }
 
@@ -278,16 +263,15 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
         custom_text: { submit: { message: HOLD_MESSAGE } },
         payment_intent_data: {
           capture_method: 'manual',
-          // Destination charge settled on behalf of the merchant (seller of record for HST).
+
           on_behalf_of: destination,
           transfer_data: { destination },
-          // Fee on the ESTIMATE; recomputed on the final subtotal at capture (PAYMENTS §4).
+
           application_fee_amount: quote.fee.applicationFeeCents,
           description: `Order ${order.publicId}`,
           metadata,
         },
-        // Only when the platform is eligible (STRIPE_CARD_FEATURES); capture falls back to the
-        // authorised amount either way, reading availability from the charge (PAYMENTS §3).
+
         ...(config.STRIPE_CARD_FEATURES === 'if_available'
           ? {
               payment_method_options: {
@@ -326,7 +310,6 @@ export async function startCheckout(input: CheckoutInput): Promise<CheckoutResul
   return { publicId: order.publicId, checkoutUrl: session.url, accessToken }
 }
 
-/** Closes a previous open checkout of the same cart before starting a new one. */
 async function supersede(
   pending: Order,
   sessionId: string | null,
@@ -336,7 +319,6 @@ async function supersede(
   if (sessionId) {
     const outcome = await getGateway().expireCheckoutSession(sessionId)
     if (outcome === 'complete')
-      // Paid a moment ago: the webhook will place the order. Don't start a second checkout.
       throw new HttpError(
         409,
         'CHECKOUT_ALREADY_COMPLETED',
@@ -357,11 +339,6 @@ async function supersede(
   })
 }
 
-/**
- * Backstop for a lost `checkout.session.expired` webhook: orders still waiting for payment well
- * after their session expired are abandoned (their session is expired first, so a payment can't
- * slip in). Runs every 15 minutes from the worker.
- */
 export async function sweepAbandonedCheckouts(now: Date = new Date()): Promise<number> {
   const { rows } = await getDb().query<{ id: string }>(
     `SELECT id FROM commerce.orders WHERE status = 'pending_payment' AND created_at < $1`,

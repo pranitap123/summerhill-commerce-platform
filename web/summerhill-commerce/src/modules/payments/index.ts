@@ -1,4 +1,3 @@
-// Public API of the payments module. Stripe SDK access goes through here only.
 export { createStripeClient, getStripe, STRIPE_API_VERSION } from './stripe'
 export type { default as Stripe } from 'stripe'
 export {
@@ -69,7 +68,7 @@ export {
   proportionalFeeRefund,
   SIM_DISPUTE_FEE_CENTS,
 } from './simulatorBackOffice'
-// Back office (G5)
+
 export {
   REFUND_SCENARIOS,
   NON_REFUNDABLE_SCENARIOS,

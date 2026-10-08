@@ -11,18 +11,6 @@ import { getConfig } from '@/server/config'
 import { getDb } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Merchant onboarding (G5-02, ADR-0012, ADR-0011). CONNECT_ACCOUNT_TYPE picks the account type
- * for a new merchant:
- *  - `custom` (default, as the brief asks): the platform creates a Custom account with Stripe's
- *    test company data and records terms acceptance with the admin's IP; there is no hosted page,
- *    so the returned URL is the merchant page and the status is read straight away.
- *  - `express`: Stripe-hosted onboarding (Account Links). KYC, bank details and terms happen on
- *    Stripe's pages, so bank changes never go through our UI (threat T14). With the payment
- *    simulator the link goes to /simulator/onboarding/{account}.
- * An existing account keeps its type. Status follows `account.updated` webhooks;
- * `refreshAccountStatus` is the manual "check now".
- */
 export async function startOnboarding(
   ctx: AuditContext,
   merchantId: number,
@@ -88,7 +76,6 @@ export async function startOnboarding(
   return { accountId, url }
 }
 
-/** Reads the account from Stripe now (normally `account.updated` does this). */
 export async function refreshAccountStatus(merchantId: number): Promise<Merchant> {
   const merchant = await getMerchantById(merchantId)
   if (!merchant?.stripe_account_id)

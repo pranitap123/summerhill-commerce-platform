@@ -74,7 +74,6 @@ export async function setCheckoutSession(
   )
 }
 
-/** The order's current payment (the newest one). */
 export async function getPaymentForOrder(
   orderId: number,
   db: Db = getDb(),
@@ -107,7 +106,6 @@ function featureValues(pi: PaymentIntentInfo) {
   ]
 }
 
-/** Card authorised: store the amount and the card-network feature statuses (PAYMENTS §3). */
 export async function markAuthorized(
   tx: Db,
   paymentId: number,

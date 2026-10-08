@@ -10,19 +10,6 @@ import type { SimIntent } from './simulatorBackOffice'
 import { STRIPE_API_VERSION } from './stripe'
 import { recordWebhookEvent } from './webhooks'
 
-/**
- * The simulator's hosted payment page (G4-18): what happens when the customer submits a card on
- * /simulator/checkout/{id}. Follows Stripe's documented test cards, so the same numbers work here
- * and on real Stripe test mode:
- *   4242 4242 4242 4242   succeeds
- *   4000 0000 0000 0002   declined (generic_decline)
- *   4000 0000 0000 9995   declined (insufficient_funds)
- *   4000 0027 6000 3184   3-D Secure required: the customer completes or fails the challenge
- *   4000 0000 0000 0259   succeeds; the charge is disputed as fraudulent once captured (G5-06)
- * On success the session completes, the PaymentIntent is authorised (manual capture), and a
- * `checkout.session.completed` event goes into the same webhook store Stripe's events use, so the
- * worker places the order exactly as it would for Stripe.
- */
 export type SimAction =
   { action: 'pay'; cardNumber: string } | { action: 'complete_3ds' } | { action: 'fail_3ds' }
 
@@ -97,7 +84,7 @@ export async function simulateCheckout(sessionId: string, input: SimAction): Pro
     await recordWebhookEvent(result.event, 'platform')
     return { outcome: 'succeeded', redirectUrl: result.redirectUrl }
   }
-  // Like Stripe, every declined attempt is reported (the card-testing alert counts them, G6-09).
+
   if (result.outcome === 'declined' && 'event' in result && result.event) {
     await recordWebhookEvent(result.event, 'platform')
     return { outcome: 'declined', message: result.message }
@@ -105,7 +92,6 @@ export async function simulateCheckout(sessionId: string, input: SimAction): Pro
   return result as SimOutcome
 }
 
-/** Stripe's `payment_intent.payment_failed` for a declined attempt. */
 function declineEvent(session: SimSession, declineCode: string): Stripe.Event {
   return {
     id: `evt_sim_${randomBytes(12).toString('hex')}`,
@@ -179,7 +165,6 @@ async function authorize(
   return { outcome: 'succeeded' as const, redirectUrl: session.params.success_url!, event }
 }
 
-/** What the payment page shows: amounts and lines, never anything the customer can't see. */
 export async function simulatedCheckoutView(sessionId: string) {
   const s = await getSimSession(sessionId)
   if (!s) return null

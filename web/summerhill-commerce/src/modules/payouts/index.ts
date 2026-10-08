@@ -1,5 +1,3 @@
-// Public API of the payouts module (G5): merchant onboarding and payouts, daily reconciliation,
-// monthly statements. Stripe is reached through the payments module's gateway.
 export {
   requestPayout,
   approvePayout,

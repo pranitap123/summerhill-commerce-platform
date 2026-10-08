@@ -10,19 +10,6 @@ import { getDb, withTransaction } from '@/server/db'
 import { HttpError } from '@/server/http'
 import { DEFAULT_TIME_ZONE, fromWallClock, toWallClock } from '@/server/time'
 
-/**
- * Daily reconciliation (G5-05, PAYMENTS §10, X6).
- *
- * 1. Stripe side: the platform's balance transactions for the business day (America/Toronto) are
- *    matched by id to our payments (charge), refunds (refund) and disputes (adjustment); amounts
- *    and Stripe fees must agree to the cent. Transfers, application fees and payouts are the
- *    mechanics of destination charges and are counted, not matched. A charge whose Stripe fee
- *    wasn't known at capture gets it posted now (the G2 follow-up).
- * 2. Our side: captured payments and succeeded refunds of the day that Stripe doesn't show.
- * 3. Invariants over all orders (see INVARIANTS).
- * Any difference > 0¢ becomes a recon item and one critical alert per run. Scheduled at 06:00
- * for the previous day; staff can re-run any day.
- */
 export const INVARIANTS = {
   capture_split: 'Commission + merchant transfer = amount captured (capture journal)',
   lines_total:
@@ -61,7 +48,6 @@ export interface ReconRun {
   items?: Array<ReconItem & { publicId: string | null }>
 }
 
-/** [start, end) of a local business day. */
 export function businessDayBounds(
   runDate: string,
   timeZone = DEFAULT_TIME_ZONE,
@@ -82,7 +68,6 @@ export function businessDayBounds(
   return { from, to }
 }
 
-/** Yesterday's date in the business time zone, once it's past 06:00 there; else null. */
 export function dueRunDate(now: Date, timeZone = DEFAULT_TIME_ZONE): string | null {
   const w = toWallClock(now, timeZone)
   if (w.hour < RECON_HOUR_LOCAL) return null
@@ -99,7 +84,6 @@ interface PaymentRow {
   processing_fee_cents: string | null
 }
 
-/** Pure matching of Stripe balance transactions against our records (unit-tested). */
 export function matchBalanceTransactions(
   txns: BalanceTransaction[],
   ours: {
@@ -109,10 +93,7 @@ export function matchBalanceTransactions(
       capturedCents: number
       processingFeeCents: number | null
     }>
-    /**
-     * Refunds that succeeded in the window (`expectRefund`: Stripe must show the refund), and
-     * refunds that failed after succeeding (`failed`: Stripe shows a refund_failure).
-     */
+
     refunds: Array<{
       orderId: number
       stripeRefundId: string
@@ -225,7 +206,6 @@ export function matchBalanceTransactions(
         )
       else matched++
     } else if (t.type === 'refund_failure') {
-      // Stripe gives a failed refund back to the balance; it must be a refund we marked failed.
       const r = t.sourceId ? byRefund.get(t.sourceId) : undefined
       if (!r?.failed)
         items.push({
@@ -262,7 +242,6 @@ export function matchBalanceTransactions(
         continue
       }
       if (t.amountCents > 0) {
-        // A won dispute: Stripe reinstates the funds (charge.dispute.funds_reinstated)
         if (t.amountCents !== d.reinstatedCents)
           mismatch(
             'dispute_reinstated',
@@ -396,7 +375,6 @@ async function invariantItems(db: Db): Promise<ReconItem[]> {
   return results.flat()
 }
 
-/** Runs one reconciliation. Scheduled runs are unique per day (a repeat returns null). */
 export async function runReconciliation(input: {
   runDate: string
   trigger: 'schedule' | 'manual'
@@ -516,7 +494,6 @@ export async function runReconciliation(input: {
   return getReconRun(runId)
 }
 
-/** A Stripe fee learned after the capture (PAYMENTS §10, G2 follow-up). */
 async function postLateProcessingFee(orderId: number, feeCents: number): Promise<void> {
   await withTransaction(async (tx) => {
     const { rowCount } = await tx.query(
@@ -534,7 +511,6 @@ async function postLateProcessingFee(orderId: number, feeCents: number): Promise
   })
 }
 
-/** The scheduled job: yesterday's run once it's past 06:00 local, at most once per day. */
 export async function runScheduledReconciliation(now: Date = new Date()): Promise<ReconRun | null> {
   const runDate = dueRunDate(now)
   return runDate ? runReconciliation({ runDate, trigger: 'schedule' }) : null
@@ -597,10 +573,6 @@ const csvCell = (v: unknown) => {
 export const toCsv = (header: string[], rows: unknown[][]) =>
   [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n'
 
-/**
- * Monthly close export (A10): every ledger entry of the month with its journal, for an
- * accounting import (QuickBooks/Xero map accounts to their chart of accounts).
- */
 export async function monthlyCloseCsv(month: string): Promise<string> {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
     throw new HttpError(400, 'VALIDATION_FAILED', 'month must be YYYY-MM')

@@ -3,11 +3,6 @@ import { getDb } from '@/server/db'
 
 import { isBalanced, type LedgerEntry } from './ledgerRules'
 
-/**
- * Writes one balanced journal (PAYMENTS §9). The journal key (e.g. `capture:42`) is unique, so
- * posting the same money event twice is a no-op; returns false in that case. The database checks
- * the balance again at commit (finance.assert_journal_balanced) and app_rw can't UPDATE or DELETE.
- */
 export async function postJournal(
   tx: Db,
   journal: {
@@ -41,7 +36,6 @@ export interface AccountBalance {
   creditCents: number
 }
 
-/** Per-account totals for one order (order page, reconciliation, tests). */
 export async function getOrderLedger(orderId: number, db: Db = getDb()): Promise<AccountBalance[]> {
   const { rows } = await db.query<{ account: string; debit: string; credit: string }>(
     `SELECT account, sum(debit_cents) AS debit, sum(credit_cents) AS credit
