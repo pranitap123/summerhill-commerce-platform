@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        // Private and transactional pages have nothing to index
+
         disallow: ['/admin', '/ops', '/api/', '/account', '/orders', '/cart', '/checkout'],
       },
     ],

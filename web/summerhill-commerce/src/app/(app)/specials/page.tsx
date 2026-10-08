@@ -10,10 +10,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/specials' },
 }
 
-/**
- * /specials: the virtual "Specials" category (CATALOG §3.1, F-specials): every product with an
- * active promotion, sale price first.
- */
 export default async function SpecialsPage({ searchParams }: { searchParams: Promise<RawParams> }) {
   const state = parseListing(await searchParams)
   return (

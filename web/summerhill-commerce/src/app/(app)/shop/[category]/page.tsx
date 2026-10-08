@@ -19,7 +19,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-/** /shop/{category}: one category, with its subcategories as a facet (G3-13, G3-14). */
 export default async function CategoryPage({ params, searchParams }: Props) {
   const category = await categoryBySlug((await params).category)
   if (!category) notFound()

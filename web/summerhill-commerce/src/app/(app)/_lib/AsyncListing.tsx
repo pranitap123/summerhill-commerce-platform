@@ -14,11 +14,6 @@ async function Results({ fixed, ...props }: Props) {
   return <CatalogListing {...props} result={await loadListing(props.state, fixed)} />
 }
 
-/**
- * Streams a listing behind a skeleton. Pages resolve their category/store (and call notFound())
- * *before* rendering this, so unknown URLs still get a real 404 status; a route-level loading.tsx
- * would start streaming first and turn every 404/redirect into a 200.
- */
 export function AsyncListing(props: Props) {
   return (
     <Suspense key={JSON.stringify(props.state)} fallback={<ListingSkeleton />}>

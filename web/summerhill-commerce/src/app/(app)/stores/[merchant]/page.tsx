@@ -25,7 +25,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-/** /stores/{merchant}: a merchant's page with its pickup location and catalogue (G3-13). */
 export default async function MerchantPage({ params, searchParams }: Props) {
   const m = await merchantBySlug((await params).merchant)
   if (!m) notFound()

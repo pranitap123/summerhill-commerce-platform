@@ -6,7 +6,6 @@ import { getPayload } from 'payload'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Confirm your email', robots: { index: false } }
 
-/** Target of the verification email (G2-20). The token is single-use. */
 export default async function VerifyEmailPage({
   searchParams,
 }: {

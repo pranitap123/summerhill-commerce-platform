@@ -15,7 +15,6 @@ async function call(path: string, body?: unknown) {
   return data
 }
 
-/** Enrolment (secret shown once) and code entry (G5-12). */
 export function MfaForm({
   confirmed,
   next,

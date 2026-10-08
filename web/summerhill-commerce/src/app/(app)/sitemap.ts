@@ -5,7 +5,6 @@ import { getConfig } from '@/server/config'
 
 export const revalidate = 3600
 
-/** sitemap.xml (G3-16): storefront pages, categories, stores and every visible product. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getConfig().NEXT_PUBLIC_SERVER_URL
   const url = (path: string) => new URL(path, base).toString()

@@ -11,10 +11,6 @@ import { MfaForm } from './MfaForm'
 export const metadata: Metadata = { title: 'Two-step verification', robots: { index: false } }
 export const dynamic = 'force-dynamic'
 
-/**
- * Staff second factor (G5-12): set up an authenticator app once, then enter a code after each
- * sign-in before /ops or the store console opens.
- */
 export default async function MfaPage({
   searchParams,
 }: {

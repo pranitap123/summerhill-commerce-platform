@@ -23,7 +23,6 @@ const TEST_CARDS: Array<[string, string]> = [
   ['4000 0027 6000 3184', '3-D Secure challenge'],
 ]
 
-/** The simulator's payment form (G4-18). Accepts Stripe's test card numbers only. */
 export function SimulatedPayment({ view }: { view: View }) {
   const [card, setCard] = useState('')
   const [challenge, setChallenge] = useState(view.challenge)

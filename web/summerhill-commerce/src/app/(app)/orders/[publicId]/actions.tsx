@@ -6,11 +6,6 @@ import { useEffect, useState } from 'react'
 
 import { useCartStore } from '@/lib/cartStore'
 
-/**
- * What the customer can do after paying (G4-12, G4-14, G4-15, G4-19). Every action goes through
- * the same access rule as the page (owner session or the signed guest link) and refreshes the
- * server-rendered page afterwards.
- */
 function useOrderAction(publicId: string, token: string | null) {
   const router = useRouter()
   const [busy, setBusy] = useState<string | null>(null)
@@ -47,7 +42,6 @@ const Alert = ({ error }: { error: string | null }) =>
     </p>
   ) : null
 
-/** While the store works on the order, re-render every 15 s so replacements show up promptly. */
 export function LiveRefresh({ active }: { active: boolean }) {
   const router = useRouter()
   useEffect(() => {
@@ -325,10 +319,6 @@ const ISSUE_TYPES = [
   ['other', 'Something else'],
 ] as const
 
-/**
- * "Report a problem" (G5-11): within 48 h of pickup. Small claims are refunded at once; the rest
- * go to our support team, who reply by email.
- */
 export function ReportProblem({
   publicId,
   token,

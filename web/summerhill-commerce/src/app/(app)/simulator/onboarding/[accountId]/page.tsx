@@ -9,11 +9,6 @@ import { CompleteOnboarding } from './CompleteOnboarding'
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Test onboarding', robots: { index: false } }
 
-/**
- * The payment simulator's stand-in for Stripe-hosted Express onboarding (G5-02). Real Stripe
- * collects business details, bank account and terms acceptance here; the simulator only confirms.
- * 404 unless PAYMENT_PROVIDER=simulator.
- */
 export default async function SimulatorOnboardingPage({
   params,
 }: {

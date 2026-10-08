@@ -14,7 +14,6 @@ import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
 
 export const dynamic = 'force-dynamic'
 
-/** Account (G2-20): profile, default replacement preference, recent orders (own orders only). */
 export default async function AccountPage() {
   const user = await getSessionUser(await getHeaders())
   if (!user)

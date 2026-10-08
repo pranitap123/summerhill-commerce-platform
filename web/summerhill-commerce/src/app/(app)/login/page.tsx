@@ -21,8 +21,7 @@ export default async function Login({
   const { user } = await payload.auth({ headers })
 
   if (user) {
-    // Signed in already (e.g. straight after the form's own sign-in): go where the user was headed,
-    // such as /ops or /console, which then ask for the second factor (G5-12).
+
     const target = getSafeRedirect({
       fallbackTo: '',
       redirectTo: (await searchParams).redirect ?? '',

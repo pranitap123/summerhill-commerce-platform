@@ -22,7 +22,6 @@ export const metadata: Metadata = {
   openGraph: { siteName: SITE_NAME, locale: 'en_CA', type: 'website' },
 }
 
-// Downloaded at build time and served from this origin (no request to Google at runtime).
 const display = Fraunces({
   subsets: ['latin'],
   axes: ['opsz'],
@@ -32,8 +31,7 @@ const display = Fraunces({
 const body = Work_Sans({ subsets: ['latin'], variable: '--font-body', display: 'swap' })
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  // Rendered per request (G6-01): the CSP nonce Next.js puts on its scripts is new for every
-  // response, so a page can't be prerendered at build time with a stale one.
+
   await connection()
   return (
     <html
@@ -41,7 +39,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         ' ',
       )}
       lang="en-CA"
-      // Fixed light theme (G3-13): set on the server, no client script needed
+
       data-theme="light"
     >
       <head>

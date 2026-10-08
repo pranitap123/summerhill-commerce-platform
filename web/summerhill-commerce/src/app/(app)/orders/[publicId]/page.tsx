@@ -24,13 +24,6 @@ export const metadata: Metadata = { title: 'Your order', robots: { index: false 
 
 const STORE_TZ = 'America/Toronto'
 
-/**
- * Order status (G2-13) and what the customer can do with it (G4): pickup time and code, live
- * replacements to approve or reject, cancel before acceptance, "I'm here", rating and buy again.
- * Reads OUR order record, never the Stripe redirect: the order exists before payment and the
- * webhook moves it forward, so closing the tab after paying loses nothing. Visible to the
- * signed-in owner or to anyone with the signed guest link (`?t=`), else "not found".
- */
 export default async function OrderPage({
   params,
   searchParams,

@@ -33,10 +33,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-/**
- * /products/{slug} (G3-10). Old slugs (after a rename) and legacy id URLs answer with a 301 to the
- * current slug (G3-13); hidden or unknown products are 404.
- */
 export default async function ProductPage({ params }: Props) {
   const found = await load(params)
   if (!found) notFound()

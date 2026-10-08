@@ -10,12 +10,6 @@ import {
 import { findProducts, type CatalogQuery } from '@/modules/search'
 import { CATALOG_REVALIDATE_SECONDS, CATALOG_TAG, productTag } from '@/server/revalidate'
 
-/**
- * Storefront reads (G3-13). Server Components call the module services directly (SYSTEM_DESIGN
- * §7.1) through these cached wrappers: tagged `catalog` / `product:<id>` so the worker can
- * revalidate them on `product.changed`, with a time-based fallback. Text searches are never cached
- * (each one is logged for analytics).
- */
 const cached =
   <A extends unknown[], R>(
     key: string,
@@ -33,7 +27,6 @@ export const getMerchants = cached('merchants', (slug?: string) => listMerchants
 
 export const browse = cached('browse', (query: CatalogQuery) => findProducts(query, { log: false }))
 
-/** Slug → product id (changes only on rename, i.e. with an ingest: tag `catalog`). */
 const resolveSlug = cached('slug', async (param: string) => {
   const found = await resolveProduct(param)
   return found ? { id: found.product.id, slug: found.product.slug } : null
@@ -45,7 +38,6 @@ const productById = cached(
   (id) => [CATALOG_TAG, productTag(id)],
 )
 
-/** PDP lookup: the product plus whether the URL isn't its current slug (→ 301). */
 export async function getProductPage(
   param: string,
 ): Promise<{ product: ProductSummary; redirect: boolean } | null> {

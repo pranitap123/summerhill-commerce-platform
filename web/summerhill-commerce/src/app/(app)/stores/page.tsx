@@ -11,7 +11,6 @@ export const metadata: Metadata = {
   alternates: { canonical: '/stores' },
 }
 
-/** /stores: every merchant on the storefront (G3-13). */
 export default async function StoresPage() {
   const merchants = await getMerchants().catch(() => null)
   return (

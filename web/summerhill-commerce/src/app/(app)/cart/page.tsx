@@ -17,13 +17,6 @@ import {
 import { useAuth } from '@/providers/Auth'
 import { formatCad, formatLb, formatUnitPrice } from '@/utilities/money'
 
-/**
- * Cart and checkout v2 (G2-12). Every number on this page comes from the server quote (the pricing
- * module), so what's shown is exactly what checkout authorises. The "hold" is explained: weighed
- * items are estimates, the card is authorised for estimate + buffer, and only the final amount is
- * charged after packing. The customer picks a pickup time (G4-03) and, per line, what should
- * happen if an item is unavailable (G4-04).
- */
 const REPLACEMENT_LABELS: Record<ReplacementPreference, string> = {
   best_match: 'Best match',
   specific: 'Specific item',
@@ -238,7 +231,7 @@ function CartContent() {
   const [error, setError] = useState<string | null>(null)
   const [slots, setSlots] = useState<SlotsView | null>(null)
   const [slotId, setSlotId] = useState<number | null>(null)
-  // One key per checkout attempt, reused if the same attempt is retried after a network error.
+
   const idempotency = useRef<{ hash: string; key: string; slotId: number | null } | null>(null)
 
   useEffect(() => {
@@ -251,7 +244,7 @@ function CartContent() {
 
   const applySlots = useCallback((data: SlotsView) => {
     setSlots(data)
-    // Keep the choice while it's still offered
+
     setSlotId((current) => (data.slots.some((s) => s.id === current) ? current : null))
   }, [])
   const loadSlots = useCallback(
@@ -260,7 +253,6 @@ function CartContent() {
     [applySlots],
   )
 
-  // The offer depends on the items (availability days), so reload when they change.
   useEffect(() => {
     if (!itemKey) return
     let live = true

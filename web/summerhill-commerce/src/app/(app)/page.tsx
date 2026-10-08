@@ -6,7 +6,6 @@ import { browse, getCategories, getMerchants } from './_lib/catalog'
 
 export const metadata: Metadata = { alternates: { canonical: '/' } }
 
-/** Home (G3-13): reads the catalogue module directly through the tagged cache. */
 export default async function HomePage() {
   const [categories, specials, merchants] = await Promise.all([
     getCategories().catch(() => null),

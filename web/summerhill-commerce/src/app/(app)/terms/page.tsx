@@ -6,9 +6,6 @@ export const metadata: Metadata = {
   description: 'Terms for this demonstration project.',
 }
 
-// Matches the storefront's fixed light design (see the shop page): Fraunces display
-// headings in green on the cream background. Deliberately no `prose`/`dark:` classes —
-// the site background stays cream even when the theme provider reports dark.
 const heading = 'font-display text-2xl mt-10 mb-3 text-[#1F3A2E]'
 const body = 'text-[#211F1C] leading-relaxed'
 
