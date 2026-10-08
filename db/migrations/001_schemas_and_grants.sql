@@ -1,18 +1,11 @@
--- Schemas per module and least-privilege grants (ADR-0004, SYSTEM_DESIGN §5.1).
--- Login roles app_rw / ingest_rw / readonly are created outside migrations (they carry passwords):
--- locally by infra/postgres/init/01-roles.sh. Grants below are skipped for roles that don't exist,
--- so this migration also runs against a database without them (e.g. an older local database).
+
 
 CREATE SCHEMA IF NOT EXISTS catalog;
 CREATE SCHEMA IF NOT EXISTS merchant;
 CREATE SCHEMA IF NOT EXISTS commerce;
 CREATE SCHEMA IF NOT EXISTS finance;
 CREATE SCHEMA IF NOT EXISTS ops;
--- Payload (users, pages, media) lives in its own database, not a schema here: Payload's
--- schemaName option is experimental and breaks when table names repeat across schemas
--- (Payload's `categories` vs catalog.categories). See ADR-0004.
 
--- Shared trigger function: keep updated_at current.
 CREATE OR REPLACE FUNCTION ops.set_updated_at() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN

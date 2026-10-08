@@ -1,15 +1,10 @@
--- Orders, payments, ledger and the operational tables behind them (G2-01).
--- Conventions (SYSTEM_DESIGN §5.2): money is bigint cents + CAD, never negative except where a
--- ledger needs direction (debit/credit columns instead); enumerations are CHECK constraints.
--- Payload user ids live in another database, so user_id columns are plain text without a FK.
 
--- ============================================================================ finance: fee schedules
+
 CREATE TABLE finance.fee_schedules (
   id                  bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  merchant_id         bigint REFERENCES merchant.merchants(id), -- NULL = platform default
+  merchant_id         bigint REFERENCES merchant.merchants(id),
   mode                text NOT NULL CHECK (mode IN ('flat', 'marginal')),
-  -- flat:     [{"minCents": 10001, "rateBp": 1000}, …] highest threshold first; the first match applies
-  -- marginal: [{"upToCents": 5000, "rateBp": 2000}, …, {"upToCents": null, "rateBp": 1000}]
+
   tiers               jsonb NOT NULL CHECK (jsonb_typeof(tiers) = 'array' AND jsonb_array_length(tiers) > 0),
   hst_on_commission   boolean NOT NULL DEFAULT false,
   effective_from      timestamptz NOT NULL DEFAULT now(),
@@ -17,14 +12,12 @@ CREATE TABLE finance.fee_schedules (
 );
 CREATE INDEX idx_fee_schedules_lookup ON finance.fee_schedules(merchant_id, effective_from DESC);
 
--- Platform default: the brief's flat tiers (PAYMENTS §4.2). Reference data, not demo data.
 INSERT INTO finance.fee_schedules (merchant_id, mode, tiers, effective_from) VALUES (
   NULL, 'flat',
   '[{"minCents": 10001, "rateBp": 1000}, {"minCents": 5000, "rateBp": 1500}, {"minCents": 0, "rateBp": 2000}]',
   '2026-01-01T00:00:00Z'
 );
 
--- ============================================================================ commerce: carts
 CREATE TABLE commerce.carts (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         text,
@@ -37,7 +30,7 @@ CREATE TABLE commerce.carts (
   updated_at      timestamptz NOT NULL DEFAULT now(),
   CHECK ((merchant_id IS NULL) = (location_id IS NULL))
 );
--- One active cart per signed-in customer; anonymous carts are found by their signed cookie.
+
 CREATE UNIQUE INDEX uq_carts_active_user ON commerce.carts(user_id) WHERE status = 'active' AND user_id IS NOT NULL;
 CREATE INDEX idx_carts_updated_at ON commerce.carts(updated_at) WHERE status = 'active';
 
@@ -53,14 +46,13 @@ CREATE TABLE commerce.cart_items (
   created_at              timestamptz NOT NULL DEFAULT now(),
   updated_at              timestamptz NOT NULL DEFAULT now(),
   UNIQUE (cart_id, product_id),
-  -- exactly one of quantity / weight
+
   CHECK ((quantity IS NULL) <> (requested_weight_lb IS NULL))
 );
 
--- ============================================================================ commerce: orders
 CREATE TABLE commerce.orders (
   id                          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  -- Opaque, non-sequential id shown to customers and staff (e.g. SH-7K2P9Q)
+
   public_id                   text NOT NULL UNIQUE CHECK (public_id ~ '^SH-[0-9A-Z]{6}$'),
   status                      text NOT NULL DEFAULT 'pending_payment' CHECK (status IN (
                                 'pending_payment', 'placed', 'abandoned', 'accepted', 'picking', 'picked',
@@ -72,24 +64,24 @@ CREATE TABLE commerce.orders (
   email                       text NOT NULL CHECK (email ~ '^[^@\s]+@[^@\s]+$'),
   pickup_name                 text CHECK (char_length(pickup_name) <= 100),
   currency                    char(3) NOT NULL DEFAULT 'CAD' CHECK (currency = 'CAD'),
-  -- Estimate at checkout (the snapshot the customer agreed to)
+
   item_subtotal_cents         bigint NOT NULL CHECK (item_subtotal_cents >= 0),
   deposit_cents               bigint NOT NULL CHECK (deposit_cents >= 0),
   tax_cents                   bigint NOT NULL CHECK (tax_cents >= 0),
   estimated_total_cents       bigint NOT NULL CHECK (estimated_total_cents >= 0),
   weight_buffer_cents         bigint NOT NULL CHECK (weight_buffer_cents >= 0),
   authorization_cents         bigint NOT NULL CHECK (authorization_cents >= 0),
-  -- Final amounts after picking (NULL until capture)
+
   final_item_subtotal_cents   bigint CHECK (final_item_subtotal_cents >= 0),
   final_deposit_cents         bigint CHECK (final_deposit_cents >= 0),
   final_tax_cents             bigint CHECK (final_tax_cents >= 0),
   final_total_cents           bigint CHECK (final_total_cents >= 0),
-  -- Fee snapshot (ADR-0006): the schedule and the amounts computed from it
+
   fee_schedule_id             bigint NOT NULL REFERENCES finance.fee_schedules(id),
   fee_estimate_cents          bigint NOT NULL CHECK (fee_estimate_cents >= 0),
   fee_final_cents             bigint CHECK (fee_final_cents >= 0),
   quote_hash                  text NOT NULL,
-  -- Bumped to revoke every guest link issued so far
+
   access_version              integer NOT NULL DEFAULT 1,
   refund_status               text NOT NULL DEFAULT 'none' CHECK (refund_status IN ('none', 'partial', 'full')),
   placed_at                   timestamptz,
@@ -108,18 +100,18 @@ CREATE TABLE commerce.order_lines (
   id                        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   order_id                  bigint NOT NULL REFERENCES commerce.orders(id),
   line_no                   integer NOT NULL CHECK (line_no > 0),
-  -- Snapshot of the product at checkout; deliberately no FK (the catalogue may change)
+
   product_id                text NOT NULL,
   name                      text NOT NULL,
   pricing_model             text NOT NULL CHECK (pricing_model IN ('each', 'per_weight')),
   sell_by                   text NOT NULL CHECK (sell_by IN ('quantity', 'weight')),
   unit                      text NOT NULL CHECK (unit IN ('ea', 'lb')),
   regular_unit_price_cents  bigint NOT NULL CHECK (regular_unit_price_cents >= 0),
-  unit_price_cents          bigint NOT NULL CHECK (unit_price_cents >= 0), -- effective (after promo)
+  unit_price_cents          bigint NOT NULL CHECK (unit_price_cents >= 0),
   promo_label               text,
   quantity                  integer CHECK (quantity > 0),
   requested_weight_lb       numeric(7, 3) CHECK (requested_weight_lb > 0),
-  estimated_weight_lb       numeric(8, 3) CHECK (estimated_weight_lb > 0), -- total, for weighed lines
+  estimated_weight_lb       numeric(8, 3) CHECK (estimated_weight_lb > 0),
   is_weighed                boolean NOT NULL,
   tax_code                  text NOT NULL CHECK (tax_code IN ('ZERO_RATED', 'HST_STANDARD')),
   tax_rate_bp               integer NOT NULL CHECK (tax_rate_bp >= 0),
@@ -129,7 +121,7 @@ CREATE TABLE commerce.order_lines (
   replacement_preference    text NOT NULL CHECK (replacement_preference IN ('best_match', 'specific', 'refund')),
   replacement_product_ids   text[] NOT NULL DEFAULT ARRAY[]::text[],
   note                      text,
-  -- Picking results (G4); a substitute is its own line pointing at the original
+
   status                    text NOT NULL DEFAULT 'ordered' CHECK (status IN ('ordered', 'picked', 'unavailable', 'substituted')),
   substitutes_line_id       bigint REFERENCES commerce.order_lines(id),
   picked_quantity           integer CHECK (picked_quantity >= 0),
@@ -142,7 +134,6 @@ CREATE TABLE commerce.order_lines (
   UNIQUE (order_id, line_no)
 );
 
--- The order timeline. Append-only (UPDATE/DELETE revoked below).
 CREATE TABLE commerce.order_events (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   order_id     bigint NOT NULL REFERENCES commerce.orders(id),
@@ -158,7 +149,6 @@ CREATE TABLE commerce.order_events (
 );
 CREATE INDEX idx_order_events_order ON commerce.order_events(order_id, id);
 
--- ============================================================================ finance: payments
 CREATE TABLE finance.payments (
   id                                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   order_id                          bigint NOT NULL REFERENCES commerce.orders(id),
@@ -174,7 +164,7 @@ CREATE TABLE finance.payments (
   amount_captured_cents             bigint CHECK (amount_captured_cents >= 0),
   application_fee_cents             bigint CHECK (application_fee_cents >= 0),
   processing_fee_cents              bigint CHECK (processing_fee_cents >= 0),
-  -- Card-network features, read from the charge (PAYMENTS §3); never assumed from the brand
+
   capture_before                    timestamptz,
   overcapture_status                text,
   overcapture_maximum_cents         bigint CHECK (overcapture_maximum_cents >= 0),
@@ -221,9 +211,6 @@ CREATE TABLE finance.transfers (
   updated_at          timestamptz NOT NULL DEFAULT now()
 );
 
--- ============================================================================ finance: ledger
--- Double-entry and append-only (PAYMENTS §9). A journal groups the entries of one money event and
--- carries a unique key (e.g. capture:42), so posting the same event twice is a no-op.
 CREATE TABLE finance.ledger_journals (
   id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   idempotency_key  text NOT NULL UNIQUE,
@@ -248,7 +235,6 @@ CREATE INDEX idx_ledger_entries_journal ON finance.ledger_entries(journal_id);
 CREATE INDEX idx_ledger_entries_order ON finance.ledger_entries(order_id);
 CREATE INDEX idx_ledger_entries_account ON finance.ledger_entries(account);
 
--- Every journal must balance. Checked at COMMIT, so the entries of a journal can be inserted one by one.
 CREATE OR REPLACE FUNCTION finance.assert_journal_balanced() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -268,7 +254,6 @@ CREATE CONSTRAINT TRIGGER trg_ledger_entries_balanced
   DEFERRABLE INITIALLY DEFERRED
   FOR EACH ROW EXECUTE FUNCTION finance.assert_journal_balanced();
 
--- ============================================================================ ops
 CREATE TABLE ops.webhook_events (
   id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   event_id         text NOT NULL UNIQUE,
@@ -300,7 +285,6 @@ CREATE TABLE ops.idempotency_keys (
 );
 CREATE INDEX idx_idempotency_keys_expires ON ops.idempotency_keys(expires_at);
 
--- Transactional outbox (ADR-0008): written in the same transaction as the state change.
 CREATE TABLE ops.outbox (
   id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   event_id      uuid NOT NULL UNIQUE DEFAULT gen_random_uuid(),
@@ -312,8 +296,6 @@ CREATE TABLE ops.outbox (
 );
 CREATE INDEX idx_outbox_unpublished ON ops.outbox(id) WHERE published_at IS NULL;
 
--- Job queue (ADR-0008, as amended in G2-03): SELECT … FOR UPDATE SKIP LOCKED consumers,
--- exponential backoff, dead-letter status after max_attempts.
 CREATE TABLE ops.jobs (
   id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   queue         text NOT NULL,
@@ -333,7 +315,6 @@ CREATE TABLE ops.jobs (
 CREATE INDEX idx_jobs_ready ON ops.jobs(queue, run_at) WHERE status = 'queued';
 CREATE INDEX idx_jobs_running ON ops.jobs(locked_at) WHERE status = 'running';
 
--- Consumer inbox: a consumer handles each outbox event at most once (effectively-once delivery).
 CREATE TABLE ops.processed_events (
   consumer      text NOT NULL,
   event_id      uuid NOT NULL,
@@ -341,7 +322,6 @@ CREATE TABLE ops.processed_events (
   PRIMARY KEY (consumer, event_id)
 );
 
--- Append-only (UPDATE/DELETE revoked below).
 CREATE TABLE ops.audit_log (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   actor_type   text NOT NULL CHECK (actor_type IN ('customer', 'merchant_staff', 'admin', 'system', 'stripe')),
@@ -382,7 +362,6 @@ CREATE TABLE ops.notifications (
   sent_at          timestamptz
 );
 
--- Fixed-window rate-limit counters (G2-16); shared by every app instance.
 CREATE TABLE ops.rate_limits (
   bucket        text NOT NULL,
   window_start  timestamptz NOT NULL,
@@ -390,7 +369,6 @@ CREATE TABLE ops.rate_limits (
   PRIMARY KEY (bucket, window_start)
 );
 
--- Operational alerts raised by jobs (auth-expiry guard, capture failures). G6-09 routes them.
 CREATE TABLE ops.alerts (
   id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   kind        text NOT NULL,
@@ -402,7 +380,6 @@ CREATE TABLE ops.alerts (
   resolved_at timestamptz
 );
 
--- ============================================================================ triggers
 CREATE TRIGGER trg_carts_updated_at BEFORE UPDATE ON commerce.carts FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 CREATE TRIGGER trg_cart_items_updated_at BEFORE UPDATE ON commerce.cart_items FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON commerce.orders FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
@@ -411,9 +388,6 @@ CREATE TRIGGER trg_payments_updated_at BEFORE UPDATE ON finance.payments FOR EAC
 CREATE TRIGGER trg_refunds_updated_at BEFORE UPDATE ON finance.refunds FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 CREATE TRIGGER trg_transfers_updated_at BEFORE UPDATE ON finance.transfers FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- ============================================================================ grants
--- Default privileges (001) gave app_rw SELECT/INSERT/UPDATE/DELETE on every new table in commerce,
--- finance and ops. Narrow the append-only ones (G1-18 → G2-01).
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN

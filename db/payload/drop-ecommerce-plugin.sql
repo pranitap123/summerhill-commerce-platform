@@ -1,12 +1,4 @@
--- One-time cleanup of the Payload database after the ecommerce plugin was removed (G2-15, ADR-0003).
--- Needed only for Payload databases created BEFORE G2; a fresh database never has these objects.
---
---   npm run payload:cleanup        (root; runs against the compose stack's payload database)
---
--- Why: in development Payload syncs its schema with drizzle "push". With the plugin's old enums
--- still present, push can't tell a new enum from a renamed one and stops at an interactive prompt,
--- which hangs the dev server (seen on /admin). Dropping the plugin's leftovers first lets push run
--- unattended. Idempotent; refuses to run if any of the plugin's tables still hold data.
+
 
 DO $$
 DECLARE

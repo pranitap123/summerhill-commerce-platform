@@ -1,6 +1,4 @@
--- Catalogue tables (replaces schema/schema.sql, whose seed row violated its own foreign key).
--- Column set matches what the current API routes read. G2-02 moves prices to integer cents and
--- G3-04 adds the full canonical product model (units, tax codes, promotions, claims).
+
 
 CREATE TABLE catalog.categories (
   id    bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -15,7 +13,7 @@ CREATE TABLE catalog.subcategories (
 );
 
 CREATE TABLE catalog.products (
-  -- Upstream product identifier (stable; UPC and display name are not unique upstream).
+
   id              text PRIMARY KEY,
   merchant_id     bigint NOT NULL REFERENCES merchant.merchants(id),
   location_id     bigint NOT NULL REFERENCES merchant.locations(id),

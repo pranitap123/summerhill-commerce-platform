@@ -1,11 +1,7 @@
--- Catalogue v2 (G3): the full canonical product model (CATALOG §3), taxonomy mapping (§7),
--- overrides that survive re-ingest (§3.2), ingest runs with quarantine (§4), slug history for
--- 301 redirects and search analytics (§8.4). Products are written only by the /pipeline package
--- (role ingest_rw); the web app reads them through catalog.product_view.
+
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- ---- taxonomy ------------------------------------------------------------------------------
 ALTER TABLE catalog.categories
   ADD COLUMN slug text UNIQUE CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   ADD COLUMN sort_order integer NOT NULL DEFAULT 100;
@@ -14,9 +10,6 @@ ALTER TABLE catalog.subcategories
   ADD COLUMN sort_order integer NOT NULL DEFAULT 100,
   ADD CONSTRAINT subcategories_category_slug_key UNIQUE (category_id, slug);
 
--- Per-merchant mapping of the source's type/subtype to our subcategory (CATALOG §7). An empty
--- source_subtype is the fallback for the whole type. Rows with subcategory_id NULL are unknown
--- source categories the pipeline found: their products go to "Uncategorised" until an admin maps them.
 CREATE TABLE catalog.category_mappings (
   id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   merchant_id     bigint NOT NULL REFERENCES merchant.merchants(id),
@@ -33,9 +26,8 @@ CREATE TABLE catalog.category_mappings (
 CREATE TRIGGER trg_category_mappings_updated_at BEFORE UPDATE ON catalog.category_mappings
   FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- ---- canonical product model ----------------------------------------------------------------
 ALTER TABLE catalog.products
-  -- The source's stable identifier. products.id = connector id prefix + external_id.
+
   ADD COLUMN external_id text,
   ADD COLUMN slug text UNIQUE CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   ADD COLUMN brand text,
@@ -44,21 +36,20 @@ ALTER TABLE catalog.products
   ADD COLUMN source_subtype text,
   ADD COLUMN source_virtual_category text,
   ADD COLUMN organic boolean NOT NULL DEFAULT false,
-  -- As supplied by the merchant; shown with a "check the label" disclaimer (CATALOG §3)
+
   ADD COLUMN dietary_claims text[] NOT NULL DEFAULT ARRAY[]::text[],
   ADD COLUMN attributes jsonb NOT NULL DEFAULT '{}',
   ADD COLUMN nutrition_label text,
   ADD COLUMN disclaimer text,
   ADD COLUMN is_alcohol boolean NOT NULL DEFAULT false,
   ADD COLUMN pickup_only boolean NOT NULL DEFAULT false,
-  -- Set by ingest (e.g. alcohol_not_licensed); an override can also block a product
+
   ADD COLUMN blocked_reason text,
   ADD COLUMN source_status text NOT NULL DEFAULT 'listed' CHECK (source_status IN ('listed', 'unlisted')),
-  -- Change detection: hash of the normalised payload; equal hash = no write
+
   ADD COLUMN source_hash text,
   ADD COLUMN last_ingest_run_id bigint,
-  -- Soft delete: a full run that no longer sees the product sets this; it's never hard-deleted
-  -- (carts and orders reference it)
+
   ADD COLUMN deleted_at timestamptz;
 
 UPDATE catalog.products SET external_id = id WHERE external_id IS NULL;
@@ -68,7 +59,7 @@ ALTER TABLE catalog.products
 
 CREATE INDEX idx_products_upc ON catalog.products(merchant_id, upc) WHERE upc IS NOT NULL;
 CREATE INDEX idx_products_live ON catalog.products(subcategory_id) WHERE deleted_at IS NULL;
--- Postgres search fallback (ADR-0007): trigram similarity for typos and prefixes
+
 CREATE INDEX idx_products_name_trgm ON catalog.products USING gin (lower(name) gin_trgm_ops);
 CREATE INDEX idx_products_brand_trgm ON catalog.products USING gin (lower(coalesce(brand, '')) gin_trgm_ops);
 
@@ -77,18 +68,16 @@ ALTER TABLE catalog.promotions
   ADD CONSTRAINT promotions_kind_check CHECK (kind IN ('price_override', 'percent_off')),
   ADD COLUMN source_hash text;
 
--- Old slugs → product, for 301 redirects after a rename (CATALOG §3, G3-13)
 CREATE TABLE catalog.product_slug_history (
   slug        text PRIMARY KEY,
   product_id  text NOT NULL REFERENCES catalog.products(id),
   retired_at  timestamptz NOT NULL DEFAULT now()
 );
 
--- Merchant or admin edits that survive re-ingest (CATALOG §3.2). Ingest never writes this table.
 CREATE TABLE catalog.product_overrides (
   product_id           text PRIMARY KEY REFERENCES catalog.products(id),
   hidden               boolean NOT NULL DEFAULT false,
-  -- "Out of stock today": hidden until this time (CATALOG §5)
+
   hidden_until         timestamptz,
   name                 text CHECK (name IS NULL OR length(trim(name)) > 0),
   subcategory_id       bigint REFERENCES catalog.subcategories(id),
@@ -101,12 +90,8 @@ CREATE TABLE catalog.product_overrides (
 CREATE TRIGGER trg_product_overrides_updated_at BEFORE UPDATE ON catalog.product_overrides
   FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- Merchants can be kept off the storefront (e.g. while onboarding) without touching the catalogue
 ALTER TABLE merchant.merchants ADD COLUMN storefront_visible boolean NOT NULL DEFAULT true;
 
--- ---- read path ------------------------------------------------------------------------------
--- The only way the app reads products: overrides applied with COALESCE, visibility derived.
--- `hidden_until` is time-dependent, so is_visible is computed at query time, never stored.
 CREATE VIEW catalog.product_view AS
 SELECT
   p.id, p.external_id, p.slug, p.merchant_id, p.location_id,
@@ -139,7 +124,6 @@ LEFT JOIN catalog.product_overrides o ON o.product_id = p.id
 JOIN catalog.subcategories s ON s.id = COALESCE(o.subcategory_id, p.subcategory_id)
 JOIN catalog.categories c ON c.id = s.category_id;
 
--- ---- ingest runs and quarantine (CATALOG §4) -------------------------------------------------
 CREATE TABLE ops.ingest_runs (
   id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   merchant_id      bigint NOT NULL REFERENCES merchant.merchants(id),
@@ -153,11 +137,11 @@ CREATE TABLE ops.ingest_runs (
   unchanged        integer NOT NULL DEFAULT 0,
   deactivated      integer NOT NULL DEFAULT 0,
   quarantined      integer NOT NULL DEFAULT 0,
-  -- Anomaly guard results: which checks tripped and the numbers behind them
+
   anomalies        jsonb NOT NULL DEFAULT '[]',
-  -- Rule flags that don't block (price jumps, unmapped categories, missing images)
+
   flags            jsonb NOT NULL DEFAULT '[]',
-  -- Normalised feed of a held run, applied as-is on approval
+
   staged           jsonb,
   error            text,
   approved_by      text,
@@ -177,7 +161,6 @@ CREATE TABLE ops.ingest_quarantine (
 );
 CREATE INDEX idx_ingest_quarantine_run ON ops.ingest_quarantine(run_id);
 
--- ---- search analytics (CATALOG §8.4): no PII, no user or session ids --------------------------
 CREATE TABLE ops.search_queries (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   query         text NOT NULL CHECK (length(query) <= 100),
@@ -197,7 +180,6 @@ CREATE TABLE ops.search_clicks (
   PRIMARY KEY (search_id, product_id)
 );
 
--- ---- grants ---------------------------------------------------------------------------------
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN

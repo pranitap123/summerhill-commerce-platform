@@ -1,24 +1,16 @@
 #!/usr/bin/env node
-// Deterministic synthetic catalogue for demos and tests. No real merchant data.
-//
-//   node db/seed/generate.mjs            writes db/seed/catalog.fixture.json
-//
-// The output follows the canonical product model (docs/domains/CATALOG_AND_SEARCH.md §3) so the
-// G3 fixture connector can ingest it unchanged. The generator asserts that every rule the system
-// must handle is represented (pricing models, tax codes, promotions, deposits, availability days,
-// quantity limits, dietary claims), so demos and tests can't silently lose coverage.
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(DIR, 'catalog.fixture.json');
-// One public-domain/CC0 photo per base item (credits: web/summerhill-commerce/public/product-images/CREDITS.md)
+
 const IMAGES = JSON.parse(fs.readFileSync(path.join(DIR, 'product-images.json'), 'utf8'));
 const PLACEHOLDER_IMAGE = '/placeholder-product.svg';
 const SEED = 20260927;
 
-// mulberry32: small, fast, deterministic PRNG
 function rng(seed) {
   let a = seed >>> 0;
   return () => {
@@ -32,12 +24,11 @@ function rng(seed) {
 const rand = rng(SEED);
 const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 const chance = (p) => rand() < p;
-const cents = (min, max) => Math.round((min + rand() * (max - min)) * 100 / 10) * 10 - 1; // e.g. 4.99
+const cents = (min, max) => Math.round((min + rand() * (max - min)) * 100 / 10) * 10 - 1;
 
 const BRANDS = ['Maple Row', 'Harbour Kitchen', 'Northfield', 'Cedar & Salt', 'Lakeside Farms', 'Old Mill', 'Green Acre', 'Juniper Lane'];
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-// taxable: true → HST_STANDARD (13%); false → ZERO_RATED (basic groceries)
 const TAXONOMY = [
   { category: 'Produce', subs: {
       'Fresh Fruit': { taxable: false, weighed: 0.6, items: ['Honeycrisp Apples', 'Bananas', 'Bartlett Pears', 'Seedless Green Grapes', 'Navel Oranges', 'Mangoes', 'Lemons'] },
@@ -81,7 +72,7 @@ let n = 0;
 for (const { category, subs } of TAXONOMY) {
   for (const [subcategory, spec] of Object.entries(subs)) {
     for (const base of spec.items) {
-      // Three variants per base item (e.g. brand / organic) to reach ~200 products.
+
       for (const variant of [0, 1, 2]) {
         n++;
         const organic = variant === 1 && chance(0.6);
@@ -118,11 +109,7 @@ for (const { category, subs } of TAXONOMY) {
     }
   }
 }
-// Synthetic UPC-A codes (G4-10/11), derived from the item number so the random stream (and every
-// price) is unchanged. Packaged items use number system 4 (GS1 "restricted circulation": in-store
-// codes that can never collide with a real product). Weighed items use the variable-measure layout
-// 2 IIIII VVVVV C with the value zeroed: the store's scale prints the same item code with the
-// price embedded, and the console decodes it (src/modules/fulfilment/barcode.ts).
+
 const upcCheckDigit = (d11) => {
   const sum = [...d11].reduce((s, d, i) => s + Number(d) * (i % 2 === 0 ? 3 : 1), 0);
   return String((10 - (sum % 10)) % 10);
@@ -133,11 +120,9 @@ products.forEach((p, i) => {
   p.upc = d11 + upcCheckDigit(d11);
 });
 
-// Explicit edge cases the system must handle.
 products[3].min_qty = 3;
 products[10].max_qty = 6;
 
-// ---- coverage assertions
 const must = (cond, msg) => { if (!cond) throw new Error(`fixture coverage missing: ${msg}`); };
 must(products.some((p) => p.pricing_model === 'each'), 'each pricing');
 must(products.some((p) => p.pricing_model === 'per_weight' && p.sell_by === 'weight'), 'per-weight sold by weight');

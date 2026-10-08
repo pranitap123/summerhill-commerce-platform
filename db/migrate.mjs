@@ -1,16 +1,5 @@
 #!/usr/bin/env node
-// Minimal, forward-only SQL migration runner.
-//
-//   node db/migrate.mjs           apply pending migrations
-//   node db/migrate.mjs status    list applied / pending migrations
-//
-// Rules (see docs/architecture/SYSTEM_DESIGN.md §5.3):
-//  - files in db/migrations named NNN_description.sql, applied in numeric order
-//  - each migration runs in its own transaction; a failure rolls back that file only
-//  - an applied file must never change: its checksum is recorded and verified on every run
-//  - a Postgres advisory lock prevents two runners from migrating at the same time
-//
-// Connection: MIGRATION_DATABASE_URL (a role allowed to run DDL), else DATABASE_URL.
+
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
 const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
-const LOCK_ID = 727_001; // arbitrary constant shared by all runners
+const LOCK_ID = 727_001;
 const url = process.env.MIGRATION_DATABASE_URL || process.env.DATABASE_URL;
 if (!url) {
   console.error('migrate: set MIGRATION_DATABASE_URL (or DATABASE_URL)');
@@ -33,7 +22,7 @@ function loadMigrations() {
     if (!m) throw new Error(`bad migration file name: ${file} (expected NNN_snake_case.sql)`);
     if (seen.has(m[1])) throw new Error(`duplicate migration number ${m[1]}`);
     seen.add(m[1]);
-    // Normalise line endings so checksums match on Windows and Linux checkouts.
+
     const sql = fs.readFileSync(path.join(DIR, file), 'utf8').replace(/\r\n/g, '\n');
     return { id: file.replace(/\.sql$/, ''), sql, checksum: crypto.createHash('sha256').update(sql).digest('hex') };
   });

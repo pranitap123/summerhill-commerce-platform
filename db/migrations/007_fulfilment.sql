@@ -1,11 +1,5 @@
--- Fulfilment (G4, ORDERS §3–§8): location settings and closures, pickup slots with atomic holds,
--- merchant staff scoped to a merchant/location, picking, substitutions, scanning and handover.
--- Pickup only in v1 (ADR-0010); `fulfilment_type` keeps delivery additive.
 
--- ---- location settings (G4-01, M10/M13) ------------------------------------------------------
--- One row per location. `weekly_hours` maps ISO weekday (1 = Monday … 7 = Sunday) to opening
--- hours in the location's time zone: {"1": {"open": "08:00", "close": "21:00"}, "7": null, …}.
--- A missing or null day is closed.
+
 CREATE TABLE merchant.location_settings (
   location_id              bigint PRIMARY KEY REFERENCES merchant.locations(id),
   weekly_hours             jsonb NOT NULL DEFAULT '{
@@ -16,10 +10,10 @@ CREATE TABLE merchant.location_settings (
   slot_minutes             integer NOT NULL DEFAULT 60 CHECK (slot_minutes IN (15, 30, 45, 60, 90, 120)),
   slot_capacity            integer NOT NULL DEFAULT 5 CHECK (slot_capacity BETWEEN 1 AND 100),
   lead_time_minutes        integer NOT NULL DEFAULT 120 CHECK (lead_time_minutes BETWEEN 0 AND 10080),
-  -- Pause: no new checkouts for this location; placed orders must still be handled (ORDERS §5)
+
   paused                   boolean NOT NULL DEFAULT false,
   pause_reason             text CHECK (char_length(pause_reason) <= 200),
-  -- GS1 variable-measure (deli/meat scale) label layout for this store's scales (ORDERS §6, G4-11)
+
   scale_barcode            jsonb NOT NULL DEFAULT '{"itemDigits": 5, "valueDigits": 5, "priceCheckDigit": false, "value": "price"}'
                            CHECK (jsonb_typeof(scale_barcode) = 'object'),
   updated_by               text,
@@ -29,10 +23,8 @@ CREATE TABLE merchant.location_settings (
 CREATE TRIGGER trg_location_settings_updated_at BEFORE UPDATE ON merchant.location_settings
   FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- Every existing location gets the defaults.
 INSERT INTO merchant.location_settings (location_id) SELECT id FROM merchant.locations;
 
--- Holiday closures: a local date on which the location takes no pickups.
 CREATE TABLE merchant.location_closures (
   location_id  bigint NOT NULL REFERENCES merchant.locations(id),
   closed_on    date NOT NULL,
@@ -42,10 +34,6 @@ CREATE TABLE merchant.location_closures (
   PRIMARY KEY (location_id, closed_on)
 );
 
--- ---- merchant staff (G4-05) -----------------------------------------------------------------
--- Payload users live in another database, so user_id is plain text. location_id NULL = every
--- location of the merchant. owner: settings + everything; manager: + unlock handover, takeover;
--- picker: queue, picking, handover.
 CREATE TABLE merchant.staff_memberships (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   user_id      text NOT NULL,
@@ -61,10 +49,6 @@ CREATE INDEX idx_staff_memberships_user ON merchant.staff_memberships(user_id) W
 CREATE TRIGGER trg_staff_memberships_updated_at BEFORE UPDATE ON merchant.staff_memberships
   FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- ---- pickup slots (G4-02, ORDERS §3) ----------------------------------------------------------
--- Materialised ahead by a job. Holds and bookings are counters updated with
---   UPDATE … SET held = held + 1 WHERE booked + held < capacity
--- so concurrent checkouts can never overbook; the CHECK is the last line of defence.
 CREATE TABLE commerce.slots (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   location_id  bigint NOT NULL REFERENCES merchant.locations(id),
@@ -73,7 +57,7 @@ CREATE TABLE commerce.slots (
   capacity     integer NOT NULL CHECK (capacity >= 0),
   booked       integer NOT NULL DEFAULT 0 CHECK (booked >= 0),
   held         integer NOT NULL DEFAULT 0 CHECK (held >= 0),
-  -- Closed by a holiday closure or a settings change after bookings existed: no new holds
+
   closed       boolean NOT NULL DEFAULT false,
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now(),
@@ -85,8 +69,6 @@ CREATE INDEX idx_slots_location_time ON commerce.slots(location_id, starts_at);
 CREATE TRIGGER trg_slots_updated_at BEFORE UPDATE ON commerce.slots
   FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- One hold per order: created with the pending order, booked when the payment is authorised,
--- released when checkout is abandoned, the order is cancelled, or the hold expires.
 CREATE TABLE commerce.slot_holds (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   slot_id      bigint NOT NULL REFERENCES commerce.slots(id),
@@ -100,13 +82,12 @@ CREATE INDEX idx_slot_holds_expiry ON commerce.slot_holds(expires_at) WHERE stat
 CREATE TRIGGER trg_slot_holds_updated_at BEFORE UPDATE ON commerce.slot_holds
   FOR EACH ROW EXECUTE FUNCTION ops.set_updated_at();
 
--- ---- orders: pickup, acceptance, picking, handover, rating -----------------------------------
 ALTER TABLE commerce.orders
   ADD COLUMN fulfilment_type        text NOT NULL DEFAULT 'pickup' CHECK (fulfilment_type IN ('pickup')),
   ADD COLUMN slot_id                bigint REFERENCES commerce.slots(id),
   ADD COLUMN pickup_starts_at       timestamptz,
   ADD COLUMN pickup_ends_at         timestamptz,
-  -- 6 random digits, shown to the customer only (email, order page); staff type what they're told
+
   ADD COLUMN pickup_code            char(6) CHECK (pickup_code ~ '^[0-9]{6}$'),
   ADD COLUMN pickup_code_failures   integer NOT NULL DEFAULT 0 CHECK (pickup_code_failures >= 0),
   ADD COLUMN pickup_locked_at       timestamptz,
@@ -120,7 +101,7 @@ ALTER TABLE commerce.orders
   ADD COLUMN arrival_note           text CHECK (char_length(arrival_note) <= 140),
   ADD COLUMN collected_at           timestamptz,
   ADD COLUMN handed_over_by         text,
-  -- Customer rating after collection (G4-19, S14)
+
   ADD COLUMN rating                 smallint CHECK (rating BETWEEN 1 AND 5),
   ADD COLUMN rating_tags            text[] NOT NULL DEFAULT ARRAY[]::text[] CHECK (cardinality(rating_tags) <= 6),
   ADD COLUMN rating_comment         text CHECK (char_length(rating_comment) <= 500),
@@ -130,16 +111,15 @@ ALTER TABLE commerce.orders
     AND (pickup_ends_at IS NULL OR pickup_ends_at > pickup_starts_at));
 CREATE INDEX idx_orders_location_queue ON commerce.orders(location_id, status, pickup_starts_at);
 
--- ---- order lines: scans, substitutions, customer decisions ------------------------------------
 ALTER TABLE commerce.order_lines
   ADD COLUMN upc                      text,
   ADD COLUMN category                 text,
-  -- Price embedded in a deli-scale label; when set it is the line total (ORDERS §6)
+
   ADD COLUMN label_price_cents        bigint CHECK (label_price_cents >= 0),
   ADD COLUMN scanned_code             text,
   ADD COLUMN unavailable_reason       text CHECK (unavailable_reason IN ('out_of_stock', 'damaged', 'quality', 'other')),
   ADD COLUMN substitution_reason      text CHECK (char_length(substitution_reason) <= 140),
-  -- Substitute lines only: the customer's answer (they can reject until picking completes)
+
   ADD COLUMN customer_decision        text CHECK (customer_decision IN ('pending', 'approved', 'rejected')),
   ADD COLUMN customer_decided_at      timestamptz,
   ADD COLUMN picked_by                text,
@@ -149,7 +129,6 @@ ALTER TABLE commerce.order_lines
 CREATE UNIQUE INDEX uq_order_lines_one_substitute ON commerce.order_lines(substitutes_line_id)
   WHERE substitutes_line_id IS NOT NULL;
 
--- Barcodes nobody recognised, per merchant: fixes catalogue UPC gaps (ORDERS §6)
 CREATE TABLE ops.unrecognised_barcodes (
   id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   merchant_id  bigint NOT NULL REFERENCES merchant.merchants(id),
@@ -160,8 +139,6 @@ CREATE TABLE ops.unrecognised_barcodes (
 );
 CREATE INDEX idx_unrecognised_barcodes_merchant ON ops.unrecognised_barcodes(merchant_id, at DESC);
 
--- ---- "out of stock today" for a whole category (G4-20, M11) ----------------------------------
--- Per-product toggles use catalog.product_overrides.hidden_until (G3-11).
 CREATE TABLE catalog.category_availability (
   merchant_id   bigint NOT NULL REFERENCES merchant.merchants(id),
   category_id   bigint NOT NULL REFERENCES catalog.categories(id),
@@ -171,7 +148,6 @@ CREATE TABLE catalog.category_availability (
   PRIMARY KEY (merchant_id, category_id)
 );
 
--- product_view gains the category toggle in is_visible (same columns, same order).
 CREATE OR REPLACE VIEW catalog.product_view AS
 SELECT
   p.id, p.external_id, p.slug, p.merchant_id, p.location_id,
@@ -206,7 +182,6 @@ JOIN catalog.subcategories s ON s.id = COALESCE(o.subcategory_id, p.subcategory_
 JOIN catalog.categories c ON c.id = s.category_id
 LEFT JOIN catalog.category_availability ca ON ca.merchant_id = p.merchant_id AND ca.category_id = c.id;
 
--- ---- grants ---------------------------------------------------------------------------------
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_rw') THEN

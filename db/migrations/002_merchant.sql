@@ -1,6 +1,4 @@
--- Merchants (legal entity, Stripe connected account) and their store locations (G1-04).
--- Folds in the former db/migrations/004_add_merchants.sql. No merchant rows are seeded here:
--- demo data comes from db/seed (synthetic), never from migrations.
+
 
 CREATE TABLE merchant.merchants (
   id                        bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -23,7 +21,7 @@ CREATE TABLE merchant.locations (
   merchant_id           bigint NOT NULL REFERENCES merchant.merchants(id),
   slug                  text NOT NULL CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   name                  text NOT NULL,
-  -- The upstream catalogue is requested per store (the API's LOCATION_ID); null for synthetic data.
+
   external_location_id  text,
   address_line1         text,
   city                  text,
