@@ -1,10 +1,5 @@
 #!/usr/bin/env node
-// Verifies the planning docs are complete and consistent:
-//  1. every internal markdown link and anchor resolves
-//  2. every work item referenced in TRACEABILITY.md exists in IMPLEMENTATION_PLAN.md
-//  3. every requirement in the source documents has a row in TRACEABILITY.md
-//  4. every traceability row has a valid disposition
-// Usage: node docs/tools/check-docs.mjs   (exit code 1 on any failure)
+
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +9,6 @@ const read = (rel) => fs.readFileSync(path.join(DOCS, rel), 'utf8');
 const errors = [];
 const fail = (msg) => errors.push(msg);
 
-// ---------- 1. links ----------
 const mdFiles = [];
 (function walk(dir) {
   for (const f of fs.readdirSync(dir)) {
@@ -23,7 +17,7 @@ const mdFiles = [];
     else if (p.endsWith('.md')) mdFiles.push(p);
   }
 })(DOCS);
-// The repository's top-level documents (README, CHANGELOG, …) link into docs/ and are linked from it.
+
 const ROOT = path.resolve(DOCS, '..');
 for (const f of fs.readdirSync(ROOT)) if (f.endsWith('.md')) mdFiles.push(path.join(ROOT, f));
 const slug = (h) => h.trim().toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s/g, '-');
@@ -45,12 +39,10 @@ for (const f of mdFiles) {
   }
 }
 
-// ---------- 2. plan items ----------
 const plan = read('IMPLEMENTATION_PLAN.md');
 const planItems = new Set([...plan.matchAll(/^\| (G\d-\d+) \|/gm)].map((m) => m[1]));
 const phaseOf = (id) => id.split('-')[0];
 
-// ---------- 3/4. traceability rows ----------
 const rtm = read('TRACEABILITY.md');
 const DISPOSITIONS = new Set(['Plan', 'Stretch', 'Backlog', "Won't", 'OOS']);
 const rows = [];
@@ -68,7 +60,6 @@ for (const r of rows) {
   if (r.disp === 'Plan' && !/G\d/.test(r.items)) fail(`RTM ${r.req}: "Plan" without work items`);
 }
 
-// requirement sources
 const expect = (label, ids) => {
   for (const id of ids) if (!rtmReqs.has(id)) fail(`${label}: ${id} has no traceability row`);
   return ids.length;
@@ -96,7 +87,6 @@ counts.features = featureRows.length;
 const fRows = rows.filter((r) => r.req.startsWith('F-')).length;
 if (fRows < featureRows.length) fail(`FEATURE_ROADMAP has ${featureRows.length} features but TRACEABILITY has only ${fRows} F- rows`);
 
-// ---------- report ----------
 const byDisp = {};
 for (const r of rows) byDisp[r.disp] = (byDisp[r.disp] || 0) + 1;
 const usedItems = new Set(rows.flatMap((r) => [...r.items.matchAll(/G\d-\d+/g)].map((m) => m[0])));

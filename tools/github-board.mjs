@@ -1,11 +1,5 @@
 #!/usr/bin/env node
-// G7-05: the GitHub project board from docs/IMPLEMENTATION_PLAN.md: one milestone per phase, one
-// issue per work item (title "G2-07: …", body = acceptance criteria), labels core / money /
-// security / good first issue, and finished work closed. Needs GitHub, so it runs at publication
-// (pre-publish checklist, step 10). Dry run by default: prints what it would create.
-//   node tools/github-board.mjs                 # dry run, summary
-//   node tools/github-board.mjs --list          # dry run, every issue
-//   node tools/github-board.mjs --apply --repo owner/name   # create them with the gh CLI
+
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,7 +11,6 @@ const args = process.argv.slice(2)
 const apply = args.includes('--apply')
 const repo = args[args.indexOf('--repo') + 1]
 
-/** Items still open when the board is created; everything else in G0–G7 is done (tracking table). */
 const OPEN = new Set(['G0-01', 'G0-02', 'G0-03', 'G6-06', 'G6-07', 'G7-04', 'G7-05', 'G7-06'])
 const OPTIONAL_PHASE = 'G8'
 
@@ -36,7 +29,6 @@ const clean = (s) =>
     .replace(/`/g, '')
     .trim()
 
-/** Work-item tables of each phase section (not the implementation records' tables). */
 function workItems() {
   const items = []
   let phase = null
@@ -50,7 +42,7 @@ function workItems() {
       columns = null
       continue
     }
-    // Any other heading ends the phase's work-item table (e.g. "### G2 implementation record").
+
     if (line.startsWith('## ') || line.startsWith('### ')) {
       phase = null
       columns = null
@@ -123,7 +115,7 @@ const existingIssues = new Set(
   ),
 )
 for (const i of items) {
-  if (existingIssues.has(i.id)) continue // re-runs don't duplicate
+  if (existingIssues.has(i.id)) continue
   const body = `**Acceptance criteria:** ${i.acceptance}\n\nEstimate: ${i.est ?? '–'} d · From [IMPLEMENTATION_PLAN](../blob/main/docs/IMPLEMENTATION_PLAN.md)`
   const url = gh(
     'issue', 'create', '--repo', repo, '--title', `${i.id}: ${i.title}`, '--body', body,

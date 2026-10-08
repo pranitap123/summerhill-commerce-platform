@@ -1,12 +1,5 @@
 #!/usr/bin/env node
-// OWASP ZAP baseline scan (G6-02) against the running app, in Docker (compose profile "security").
-// ZAP spiders the site for a few minutes and reports passive findings; nothing is attacked.
-//
-//   npm run start:sim --prefix web/summerhill-commerce    (or any build on :3000)
-//   npm run scan:zap
-//
-// Fails on any High-risk finding, and on any rule marked FAIL in infra/zap/rules.tsv. The full
-// report is written to infra/zap/zap-report.html (git-ignored).
+
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'

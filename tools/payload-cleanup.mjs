@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// Runs db/payload/drop-ecommerce-plugin.sql against the local Payload database (G2-15).
-//   npm run payload:cleanup
-// PAYLOAD_ADMIN_DATABASE_URL overrides the compose default.
+
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

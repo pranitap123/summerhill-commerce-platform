@@ -1,11 +1,5 @@
 #!/usr/bin/env node
-// Runs the catalogue pipeline (/pipeline) with the repo's Python virtualenv (.venv), on any OS.
-//   npm run pipeline:install            create .venv and install pipeline/requirements.txt
-//   npm run pipeline:test [-- -k name]  pytest (DB tests need `npm run stack:up`)
-//   node tools/pipeline.mjs test:unit | test:db   one marker only (used by ci-local)
-//   npm run pipeline:ingest [-- --mode delta]   one ingest run (fixture connector by default)
-//   npm run pipeline:runs               recent ingest runs
-//   npm run pipeline:dagster            Dagster UI with the ingest schedules, http://localhost:3070
+
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -48,7 +42,7 @@ switch (command) {
   case 'test':
     run(python(), ['-m', 'pytest', ...rest])
     break
-  // Marker expressions contain spaces; pass them here, not through a shell (ci-local on Windows)
+
   case 'test:unit':
     run(python(), ['-m', 'pytest', '-m', 'not db', ...rest])
     break

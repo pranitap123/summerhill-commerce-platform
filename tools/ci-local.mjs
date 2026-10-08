@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// Local CI (G1-14): the same checks, in the same order, that .github/workflows/ci.yml runs.
-//   npm run ci:local                 all checks (needs `npm run stack:up` for integration tests)
-//   npm run ci:local -- --fast       skip integration tests and dependency audit
+
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,7 +17,7 @@ const steps = [
   { name: 'format (new code)', cwd: WEB, cmd: npm, args: ['run', '--silent', 'format:check'] },
   { name: 'lint', cwd: WEB, cmd: npm, args: ['run', '--silent', 'lint'] },
   { name: 'typecheck', cwd: WEB, cmd: npm, args: ['run', '--silent', 'typecheck'] },
-  // Fast mode runs unit + authz; full mode runs every project once, with the coverage gates (G6-03)
+
   { name: 'unit tests', cwd: WEB, cmd: npm, args: ['run', '--silent', 'test:unit'], fastOnly: true },
   { name: 'authorisation matrix', cwd: WEB, cmd: npm, args: ['run', '--silent', 'test:authz'], fastOnly: true },
   { name: 'all tests + coverage gates (unit, authz, integration)', cwd: WEB, cmd: npm, args: ['run', '--silent', 'test:coverage'], slow: true },

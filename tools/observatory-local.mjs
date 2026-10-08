@@ -1,14 +1,5 @@
 #!/usr/bin/env node
-// Security-header grade for the local build (G6-01), using the scoring rules of the MDN HTTP
-// Observatory (v2: https://developer.mozilla.org/en-US/observatory/docs/tests_and_scoring).
-// The hosted Observatory only scans public HTTPS sites, so this applies the same per-test
-// modifiers to the headers the running app actually sends.
-//
-//   npm run scan:headers                       against http://localhost:3000 (or E2E_BASE_URL)
-//   node tools/observatory-local.mjs --min A   fail below grade A (default)
-//
-// Transport tests (HTTP→HTTPS redirection, HSTS over TLS) need a certificate and are reported as
-// not applicable locally; the HSTS header value is still checked.
+
 const BASE = (process.env.E2E_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '')
 const minIdx = process.argv.indexOf('--min')
 const MIN_GRADE = minIdx > 0 ? process.argv[minIdx + 1] : 'A'
@@ -20,7 +11,6 @@ const GRADES = [
 const grade = (score) => GRADES.find(([min]) => score >= min)[1]
 const gradeRank = (g) => GRADES.findIndex(([, name]) => name === g)
 
-// Pages whose headers are graded (the hosted scanner grades the landing page; we check more).
 const PAGES = ['/', '/shop', '/cart', '/login', '/find-order', '/stores', '/admin/login']
 
 function parseCsp(header) {
@@ -40,7 +30,7 @@ function testCsp(headers) {
   const script = fallback('script-src')
   const style = fallback('style-src')
   const hasNonceOrHash = script.some((v) => /^'(nonce|sha(256|384|512))-/.test(v))
-  // With a nonce/hash (and strict-dynamic), browsers ignore 'unsafe-inline' for scripts.
+
   const unsafeInlineScript = script.includes("'unsafe-inline'") && !hasNonceOrHash
   const insecure = (vals) => vals.some((v) => v === 'http:' || v.startsWith('http://') || v === '*')
   if (!p.has('default-src') && !p.has('script-src')) return ['csp-header-invalid', -25]
@@ -111,7 +101,6 @@ function testSri(html) {
   return ['sri-not-implemented-and-external-scripts-not-loaded-securely', -50]
 }
 
-/** Cookie test over every Set-Cookie seen (the hosted scanner only sees the landing page's). */
 function testCookies(cookies, production) {
   if (!cookies.length) return ['cookies-not-found', 0]
   const attrs = (c) => c.split(';').slice(1).map((a) => a.trim().toLowerCase())
@@ -153,7 +142,7 @@ async function main() {
     console.error(`No app answering at ${BASE}. Start it first (npm run build:sim && npm run start:sim).`)
     process.exit(2)
   }
-  // Session-style cookies: the anonymous cart cookie comes from adding an item.
+
   const cookies = []
   const products = await (await fetch(`${BASE}/api/v1/products?limit=1`)).json().catch(() => null)
   const productId = products?.items?.[0]?.id
@@ -192,7 +181,6 @@ async function main() {
   const cookie = testCookies(cookies, production)
   console.log(`cookies        ${cookie[0]}(${cookie[1] >= 0 ? '+' : ''}${cookie[1]})  [${cookies.map((c) => c.split('=')[0]).join(', ') || 'none'}]`)
 
-  // Observatory: penalties first; bonuses only count when the score is already 90 or more.
   const all = [...worst.results, cookie]
   const base = 100 + all.filter(([, m]) => m < 0).reduce((s, [, m]) => s + m, 0)
   const bonus = base >= 90 ? all.filter(([, m]) => m > 0).reduce((s, [, m]) => s + m, 0) : 0

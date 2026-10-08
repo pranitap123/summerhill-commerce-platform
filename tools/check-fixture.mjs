@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// Fails if db/seed/catalog.fixture.json differs from what db/seed/generate.mjs produces, i.e. the
-// generator was changed without regenerating, or the fixture was edited by hand.
+
 import { execFileSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
