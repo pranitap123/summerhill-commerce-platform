@@ -1,8 +1,3 @@
-/**
- * Prints the current two-step verification code for the demo staff accounts (G5-12), computed from
- * DEMO_TOTP_SECRET in stack.env. Local demo only.
- *   npm run demo:totp
- */
 import { totp } from '@/modules/identity'
 
 const secret = process.env.DEMO_TOTP_SECRET

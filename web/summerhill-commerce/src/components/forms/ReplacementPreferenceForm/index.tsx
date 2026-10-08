@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 type Preference = 'best_match' | 'refund'
 
-/** Saves the customer's default replacement preference through Payload's own REST API (self only). */
 export function ReplacementPreferenceForm({
   userId,
   initial,

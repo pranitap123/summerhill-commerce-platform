@@ -41,7 +41,7 @@ export const AccountForm: React.FC = () => {
     async (data: FormData) => {
       if (user) {
         const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/users/${user.id}`, {
-          // Make sure to include cookies with fetch
+
           body: JSON.stringify(data),
           credentials: 'include',
           headers: {
@@ -78,7 +78,6 @@ export const AccountForm: React.FC = () => {
       )
     }
 
-    // Once user is loaded, reset form to have default values
     if (user) {
       reset({
         name: user.name,

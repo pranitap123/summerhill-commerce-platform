@@ -1,10 +1,5 @@
 import type { CatalogQuery } from '@/modules/search'
 
-/**
- * Storefront URL state ↔ catalogue query. Lenient on purpose: a bad value in a shared or old link
- * is dropped, never an error page. Prices are dollars in the URL, cents in the query.
- *   ?q=apples&sub=fresh-fruit&organic=1&sale=1&stock=1&diet=vegan&diet=glutenFree&min=2&max=10&sort=price_asc&page=2
- */
 export type RawParams = Record<string, string | string[] | undefined>
 
 export interface ListingState {
@@ -74,7 +69,6 @@ export function toQuery(
   }
 }
 
-/** URL for the same listing with some state changed (page resets unless given). */
 export function hrefWith(
   base: string,
   s: ListingState,

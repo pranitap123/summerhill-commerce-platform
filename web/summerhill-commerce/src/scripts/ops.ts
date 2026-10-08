@@ -1,12 +1,3 @@
-/**
- * Operator commands for the runbooks (docs/runbooks). Every change is written to the audit log with
- * the operator's name.
- *   npm run ops -- alerts                                   open alerts
- *   npm run ops -- jobs:dead                                dead-lettered jobs
- *   npm run ops -- webhook:replay <evt_…> --by <name>       process a failed webhook event again (RB-03)
- *   npm run ops -- capture:retry <order> --by <name> [--reason <text>]   capture again (RB-04)
- *   npm run ops -- mfa:reencrypt --by <name>   after rotating PAYLOAD_SECRET; reads PAYLOAD_SECRET_PREVIOUS (RB-13)
- */
 import { reencryptMfaSecrets } from '@/modules/identity'
 import { audit, listAlerts, type Actor } from '@/modules/ops'
 import { getOrderByPublicId } from '@/modules/ordering'
@@ -63,7 +54,6 @@ async function run(): Promise<void> {
       return
     }
     case 'mfa:reencrypt': {
-      // From the environment (put it in .env for the run), never as an argument: process lists show those.
       const previous = process.env.PAYLOAD_SECRET_PREVIOUS
       if (!previous) throw new Error('set PAYLOAD_SECRET_PREVIOUS to the secret before rotation')
       const actor = operator()

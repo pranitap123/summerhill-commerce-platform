@@ -5,7 +5,6 @@ import type { ProductSummary } from '@/modules/catalog'
 
 import { SearchResultLink } from './SearchResultLink'
 
-/** One product tile. With `searchId`, clicks are reported for search analytics (G3-15). */
 export function ProductCard({
   product,
   searchId,

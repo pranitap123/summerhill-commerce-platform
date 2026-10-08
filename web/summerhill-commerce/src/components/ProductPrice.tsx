@@ -12,10 +12,6 @@ export interface PricedProduct {
   comparisonPrice?: { cents: number; per: '100 g' | '100 ml' | 'item' } | null
 }
 
-/**
- * Price as sold: sale price with the regular price struck through, per lb for weighed items, and
- * the comparison unit price (per 100 g / 100 ml / item) shoppers expect (G3-10).
- */
 export function ProductPrice({
   product,
   className = '',

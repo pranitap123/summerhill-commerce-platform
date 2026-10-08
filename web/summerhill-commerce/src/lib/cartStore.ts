@@ -2,12 +2,6 @@
 
 import { create } from 'zustand'
 
-/**
- * Client mirror of the SERVER cart (G2-06, SYSTEM_DESIGN §8). The server owns the cart and every
- * number in it; this store only caches the last response of /api/v1/cart* so components can
- * render it. Nothing is kept in localStorage any more: the cart survives reloads and devices
- * because it lives in Postgres (anonymous carts via an httpOnly cookie).
- */
 export type ReplacementPreference = 'best_match' | 'specific' | 'refund'
 
 export interface QuoteLine {
@@ -34,7 +28,7 @@ export interface CartItemView {
   effectivePriceCents: number | null
   promoLabel: string | null
   replacementPreference: ReplacementPreference
-  /** Ranked specific replacements (G4-04), when the preference is 'specific'. */
+
   replacementProductIds: string[]
   note: string | null
   available: boolean
@@ -118,7 +112,7 @@ interface CartState {
     },
   ): Promise<void>
   remove(lineId: number): Promise<void>
-  /** Called after checkout redirects and on the order page, when the server cart was converted. */
+
   reset(): void
 }
 
@@ -147,5 +141,4 @@ export const useCartStore = create<CartState>()((set) => ({
   },
 }))
 
-/** Number of lines in the cart (for the header badge). */
 export const cartCount = (view: CartView | null) => view?.cart?.items.length ?? 0

@@ -7,11 +7,6 @@ import { productJsonLd, serializeJsonLd } from '@/components/storefront/jsonLd'
 import type { ProductSummary } from '@/modules/catalog'
 import { formatCad } from '@/utilities/money'
 
-/**
- * Product detail v2 (G3-10): price as sold with sale badge and comparison unit price, tax and
- * deposit, weighed-item estimate, pickup days, dietary claims with their disclaimer, label
- * information, and schema.org Product JSON-LD (G3-16).
- */
 export function ProductDetail({ product, baseUrl }: { product: ProductSummary; baseUrl: string }) {
   const days = formatDays(product.availableDays)
   const weighed = product.pricingModel === 'per_weight'
@@ -19,7 +14,7 @@ export function ProductDetail({ product, baseUrl }: { product: ProductSummary; b
     <article className="container py-8 md:py-12">
       <script
         type="application/ld+json"
-        // Escaped JSON only: see serializeJsonLd
+
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd(product, baseUrl)) }}
       />
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-neutral-700">

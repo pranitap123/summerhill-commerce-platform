@@ -9,11 +9,6 @@ import {
 
 import { getConfig } from './config'
 
-/**
- * Signed, tamper-proof values (anonymous cart cookie, guest order links). Each use gets its own
- * key derived from PAYLOAD_SECRET with HKDF and a purpose label, so a value signed for one purpose
- * is useless for another, and there's no extra secret to configure.
- */
 export type SigningPurpose =
   | 'cart-cookie'
   | 'order-link'
@@ -39,13 +34,11 @@ function mac(purpose: SigningPurpose, value: string): string {
   return createHmac('sha256', key(purpose)).update(value).digest('base64url')
 }
 
-/** `value.signature`. The value must not contain a dot. */
 export function sign(purpose: SigningPurpose, value: string): string {
   if (value.includes('.')) throw new Error('signed values must not contain "."')
   return `${value}.${mac(purpose, value)}`
 }
 
-/** Returns the value if the signature is valid, else null. Constant-time comparison. */
 export function unsign(purpose: SigningPurpose, signed: string | null | undefined): string | null {
   if (!signed) return null
   const dot = signed.lastIndexOf('.')
@@ -57,10 +50,6 @@ export function unsign(purpose: SigningPurpose, signed: string | null | undefine
   return value
 }
 
-/**
- * AES-256-GCM encryption for small secrets stored in the database (TOTP secrets). The output is
- * `iv.tag.ciphertext` in base64url; tampering makes `decrypt` throw.
- */
 export function encrypt(purpose: SigningPurpose, plaintext: string): string {
   const iv = randomBytes(12)
   const cipher = createCipheriv('aes-256-gcm', key(purpose), iv)
@@ -72,10 +61,6 @@ export function decrypt(purpose: SigningPurpose, sealed: string): string {
   return open(key(purpose), sealed)
 }
 
-/**
- * Runbook RB-13: reads a value sealed under a previous PAYLOAD_SECRET, so it can be encrypted again
- * under the current one after the secret is rotated.
- */
 export function decryptWithSecret(secret: string, purpose: SigningPurpose, sealed: string): string {
   return open(deriveKey(secret, purpose), sealed)
 }
@@ -88,7 +73,6 @@ function open(k: Buffer, sealed: string): string {
   return Buffer.concat([decipher.update(body), decipher.final()]).toString('utf8')
 }
 
-/** Test helper: forget derived keys after changing PAYLOAD_SECRET. */
 export function resetSigningKeysForTests(): void {
   keys.clear()
 }

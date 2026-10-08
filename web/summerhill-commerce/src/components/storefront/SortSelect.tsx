@@ -9,7 +9,6 @@ const OPTIONS = [
   ['name', 'Name A–Z'],
 ] as const
 
-/** Changes the sort straight away; `hrefs` are prebuilt on the server for each option. */
 export function SortSelect({ value, hrefs }: { value: string; hrefs: Record<string, string> }) {
   const router = useRouter()
   return (

@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 
 import { cartCount, useCartStore } from '@/lib/cartStore'
 
-/** Header cart badge: loads the server cart once, then follows the store. */
 export function HeaderCartLink() {
   const view = useCartStore((s) => s.view)
   const refresh = useCartStore((s) => s.refresh)

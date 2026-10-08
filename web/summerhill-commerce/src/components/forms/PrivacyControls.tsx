@@ -3,10 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-/**
- * Customer privacy self-service (G5-17, SECURITY §7.3): download your data as JSON, or close the
- * account (orders are kept for tax records with your contact details removed).
- */
 export function PrivacyControls() {
   const router = useRouter()
   const [confirming, setConfirming] = useState(false)
@@ -15,7 +11,7 @@ export function PrivacyControls() {
   return (
     <div className="space-y-4 text-sm">
       <p>
-        {/* A file download from the API, not a page: next/link doesn't apply */}
+
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/api/v1/me/data" className="underline">
           Download my data (JSON)

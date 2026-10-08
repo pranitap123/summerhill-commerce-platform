@@ -8,11 +8,6 @@ import { hasFilters, hrefWith, PAGE_SIZE, type ListingState } from './params'
 import { ProductGrid } from './ProductCard'
 import { SortSelect } from './SortSelect'
 
-/**
- * The shared product listing (G3-09, G3-13): search box, facet filters, sort, results, pagination,
- * and empty/error states. Filters are a plain GET form, so it works without JavaScript; the URL is
- * the state, so every view can be shared and cached.
- */
 export function CatalogListing({
   base,
   state,
@@ -285,7 +280,7 @@ function Filters({
   )
   return (
     <aside aria-label="Filters">
-      {/* Collapsed on small screens, always open on large ones */}
+
       <details className="rounded-xl bg-white p-4 lg:hidden">
         <summary className="cursor-pointer font-medium text-[#1F3A2E]">Filters</summary>
         <div className="mt-4">{panel('m')}</div>

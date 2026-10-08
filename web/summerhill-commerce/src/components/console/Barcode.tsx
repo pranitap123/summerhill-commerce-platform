@@ -1,8 +1,4 @@
-/**
- * EAN-13 / UPC-A barcode as inline SVG (G4-10, G4-16): printed on pick slips and demo labels so
- * scan-to-verify can be tried with a real scanner or a phone camera. UPC-A is EAN-13 with a
- * leading 0. Pure: no dependencies, renders on the server.
- */
+
 const L = [
   '0001101',
   '0011001',
@@ -39,7 +35,7 @@ const R = [
   '1001000',
   '1110100',
 ]
-// Which of the left six digits use the G code, by the first digit
+
 const PARITY = [
   'LLLLLL',
   'LLGLGG',

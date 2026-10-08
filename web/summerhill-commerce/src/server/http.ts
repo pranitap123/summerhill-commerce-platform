@@ -13,21 +13,6 @@ import { getLogger, type Logger } from './logger'
 import { inSpan, SpanKind } from './tracing'
 import { clientIpFrom } from './securityHeaders'
 
-/**
- * Every API route is declared with a policy (G1-06, G1-16):
- *  - public    anyone
- *  - customer  a signed-in user
- *  - admin     platform staff (admin, support or finance, G5-01) holding the route's `permission`
- *              (SECURITY §4.1); a route without one is admin-only
- *  - staff     merchant staff (an active staff membership, G4-05) or an admin; the handler still
- *              checks that the order/location is in the caller's merchant scope
- *  - webhook   no session; the handler must verify the provider's signature itself
- * admin and staff also need a verified second factor for the session (G5-12, MFA_REQUIRED).
- * Every successful admin mutation is audited (G5-09): the handler records a specific entry with
- * `ctx.audit`, and if it didn't, `route()` records a generic one.
- * The authorisation matrix test (tests/authz) fails if a route handler isn't wrapped by `route()`
- * or declares a policy that doesn't match its path.
- */
 export type Policy = 'public' | 'customer' | 'admin' | 'staff' | 'webhook'
 
 export class HttpError extends Error {
@@ -41,7 +26,6 @@ export class HttpError extends Error {
   }
 }
 
-/** The single error format for every API response (SYSTEM_DESIGN §7.2). */
 export interface ErrorBody {
   error: { code: string; message: string; requestId: string; details?: unknown }
 }
@@ -50,13 +34,13 @@ export interface RouteContext<P> {
   req: NextRequest
   params: P
   user: SessionUser | null
-  /** Active staff memberships of the caller (staff policy only; empty for admins without any). */
+
   memberships: StaffMembership[]
   log: Logger
   requestId: string
-  /** Actor + request id + IP + user agent, for services that audit themselves. */
+
   auditContext: AuditContext
-  /** Records an audit entry with the request context (pass a transaction to make it atomic). */
+
   audit(entry: Omit<AuditEntry, keyof AuditContext>, db?: Db): Promise<void>
 }
 
@@ -74,17 +58,10 @@ export type WrappedRoute<P> = ((
 const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/
 
 export interface RouteOptions {
-  /**
-   * Public routes only: load the session user when a session cookie or Authorization header is
-   * present (cart, checkout and order pages work for guests and signed-in customers alike).
-   */
   session?: 'optional'
-  /** Admin routes: what the caller must be allowed to do (default: the admin role only). */
+
   permission?: Permission
-  /**
-   * 'service': the module service called by this route writes its own specific audit entry, so
-   * route() doesn't add the generic one (G5-09).
-   */
+
   audit?: 'service'
 }
 
@@ -129,8 +106,6 @@ export function route<P = Record<string, never>>(
       let user: SessionUser | null = null
       let memberships: StaffMembership[] = []
       if (policy === 'admin' || policy === 'customer' || policy === 'staff') {
-        // Loaded on demand: identity pulls in the whole Payload config, which public routes
-        // (health, catalogue) must not pay for in compile time or cold starts.
         const { getSessionUser, hasRole, isPlatformStaff, can } = await import('@/modules/identity')
         user = await getSessionUser(req.headers)
         if (!user) throw new HttpError(401, 'UNAUTHENTICATED', 'Sign in required')
@@ -196,9 +171,7 @@ export function route<P = Record<string, never>>(
 
     try {
       response.headers.set('x-request-id', requestId)
-    } catch {
-      // Some Response objects have immutable headers; the id is still in the logs.
-    }
+    } catch {}
     log.info({ status: response.status, durationMs: Date.now() - started }, 'request')
     return response
   }
@@ -239,7 +212,7 @@ function toErrorResponse(err: unknown, requestId: string, log: Logger): Response
     return errorResponse(400, 'VALIDATION_FAILED', 'Request is invalid', requestId, issues)
   }
   log.error({ err }, 'unhandled error')
-  // Never leak internals in production (threat T9).
+
   const details = getConfig().isProduction
     ? undefined
     : err instanceof Error
@@ -248,7 +221,6 @@ function toErrorResponse(err: unknown, requestId: string, log: Logger): Response
   return errorResponse(500, 'INTERNAL', 'Something went wrong', requestId, details)
 }
 
-/** Parses a JSON body with a strict schema; unknown keys are rejected (GAP-10). */
 export async function parseJson<S extends z.ZodType>(
   req: NextRequest,
   schema: S,
@@ -270,15 +242,10 @@ export function parseParams<S extends z.ZodType>(params: unknown, schema: S): z.
   return schema.parse(params)
 }
 
-/**
- * Demo/test-only tools (simulated verification, the separate-charge demo) must not exist in
- * production: respond 404 there (G1-10).
- */
 export function assertDemoToolsEnabled(): void {
   if (getConfig().isProduction) throw new HttpError(404, 'NOT_FOUND', 'Not found')
 }
 
-/** Client IP from the trusted part of the proxy chain (G6-01, see clientIpFrom). */
 export function clientIp(req: NextRequest): string | null {
   return clientIpFrom(
     req.headers.get('x-forwarded-for'),
@@ -287,5 +254,4 @@ export function clientIp(req: NextRequest): string | null {
   )
 }
 
-/** Shared schema for numeric path ids such as /api/admin/merchants/[id]. */
 export const idParam = z.object({ id: z.coerce.number().int().positive() }).strict()

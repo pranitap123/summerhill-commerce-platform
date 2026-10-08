@@ -8,12 +8,6 @@ import { consume, LIMITS, type RateLimit } from '@/modules/ops'
 import { getConfig } from '@/server/config'
 import { clientIpFrom } from '@/server/securityHeaders'
 
-/**
- * Customer account security (G2-20, threat T2/T3):
- *  - email verification and password reset links point at the storefront pages (not /admin)
- *  - per-IP rate limits on login, sign-up and password reset (G2-16); Payload's own
- *    maxLoginAttempts/lockTime adds a per-account lockout on top
- */
 const escape = (s: string) =>
   s.replace(
     /[&<>"']/g,
@@ -53,8 +47,7 @@ const LIMITED: Partial<Record<string, RateLimit>> = {
 
 export const rateLimitAuth: CollectionBeforeOperationHook = async ({ operation, req, args }) => {
   const rule = LIMITED[operation]
-  // Local API calls (seed scripts, admin tooling) and signed-in admins creating users aren't
-  // public traffic.
+
   if (!rule || req.payloadAPI === 'local' || (operation === 'create' && req.user)) return args
   const ip =
     clientIpFrom(
@@ -70,13 +63,11 @@ export const rateLimitAuth: CollectionBeforeOperationHook = async ({ operation, 
   return args
 }
 
-/** "Name <address>" → parts, for Payload's email adapter. */
 export function parseMailFrom(from: string): { name: string; address: string } {
   const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from)
   return m ? { name: m[1] || m[2], address: m[2] } : { name: from, address: from }
 }
 
-/** G5-15: deactivated accounts can't sign in. Same message as a wrong password (no enumeration). */
 export const blockDeactivatedLogin: CollectionBeforeLoginHook = ({ user }) => {
   if ((user as { deactivatedAt?: string | null }).deactivatedAt)
     throw new APIError('The email or password provided is incorrect.', 401)

@@ -5,8 +5,6 @@ import './index.scss'
 
 const baseClass = 'before-dashboard'
 
-// Products are not a Payload collection (ADR-0004): the catalogue is ingest-owned and edited
-// through overrides in the ops console. This panel is the Payload admin's door to it.
 export const BeforeDashboard: React.FC = () => {
   return (
     <div className={baseClass}>

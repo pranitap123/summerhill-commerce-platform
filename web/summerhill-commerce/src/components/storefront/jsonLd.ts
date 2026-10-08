@@ -1,10 +1,5 @@
 import type { ProductSummary } from '@/modules/catalog'
 
-/**
- * schema.org Product + Offer (G3-16) for rich results: name, image, description, brand, sku, and an
- * Offer with the price actually charged, currency, availability and seller. Weighed products state
- * the price per pound as a UnitPriceSpecification.
- */
 export function productJsonLd(product: ProductSummary, baseUrl: string) {
   const url = new URL(`/products/${product.slug}`, baseUrl).toString()
   const price = (product.effectivePriceCents / 100).toFixed(2)
@@ -41,5 +36,4 @@ export function productJsonLd(product: ProductSummary, baseUrl: string) {
   }
 }
 
-/** JSON for a <script type="application/ld+json">: `<` escaped so the data can't close the tag. */
 export const serializeJsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, '\\u003c')

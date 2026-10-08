@@ -1,7 +1,4 @@
-/**
- * Pickup time display (G4-03). Times are always shown in the store's time zone, not the browser's:
- * the customer collects at the store's clock.
- */
+
 export interface PickupSlot {
   id: number
   startsAt: string
@@ -15,12 +12,10 @@ const timeFormat = (timeZone: string) =>
   new Intl.DateTimeFormat('en-CA', { timeZone, hour: 'numeric', minute: '2-digit' })
 const dateKeyFormat = (timeZone: string) => new Intl.DateTimeFormat('en-CA', { timeZone })
 
-/** "Tue, Nov 3" */
 export function formatPickupDay(iso: string | Date, timeZone: string): string {
   return dayFormat(timeZone).format(new Date(iso))
 }
 
-/** "11:00 a.m. – 12:00 p.m." */
 export function formatPickupRange(
   startsAt: string | Date,
   endsAt: string | Date,
@@ -30,7 +25,6 @@ export function formatPickupRange(
   return `${t.format(new Date(startsAt))} – ${t.format(new Date(endsAt))}`
 }
 
-/** "Tue, Nov 3, 11:00 a.m. – 12:00 p.m." */
 export function formatPickupWindow(
   startsAt: string | Date,
   endsAt: string | Date,
@@ -39,7 +33,6 @@ export function formatPickupWindow(
   return `${formatPickupDay(startsAt, timeZone)}, ${formatPickupRange(startsAt, endsAt, timeZone)}`
 }
 
-/** Slots grouped by the store's calendar day, in order. */
 export function groupSlotsByDay<S extends { startsAt: string }>(
   slots: S[],
   timeZone: string,

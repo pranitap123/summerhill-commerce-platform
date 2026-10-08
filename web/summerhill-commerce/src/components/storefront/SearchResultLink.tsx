@@ -3,10 +3,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-/**
- * A search result link that reports the click (search id, product, position) for analytics
- * (G3-15). sendBeacon survives the navigation; nothing personal is sent.
- */
 export function SearchResultLink({
   href,
   className,
@@ -38,7 +34,7 @@ export function SearchResultLink({
           keepalive: true,
         })
     } catch {
-      // analytics must never block navigation
+
     }
   }
   return (

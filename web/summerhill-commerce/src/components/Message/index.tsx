@@ -1,17 +1,6 @@
 import clsx from 'clsx'
 import React from 'react'
 
-/* [
-          classes.message,
-          className,
-          error && classes.error,
-          success && classes.success,
-          warning && classes.warning,
-          !error && !success && !warning && classes.default,
-        ]
-          .filter(Boolean)
-          .join(' '), */
-
 export const Message: React.FC<{
   className?: string
   error?: React.ReactNode

@@ -10,7 +10,6 @@ type Props = {
   className?: string
 }
 
-/** Header search: a plain GET form to /shop (works without JavaScript). */
 export const Search: React.FC<Props> = ({ className }) => {
   const searchParams = useSearchParams()
   return (

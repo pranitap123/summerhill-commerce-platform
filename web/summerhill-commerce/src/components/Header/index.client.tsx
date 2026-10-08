@@ -17,7 +17,6 @@ type Props = {
   header: Header
 }
 
-/** Storefront sections (G3-13); CMS menu items from Payload follow them. */
 const PRIMARY = [
   { href: '/shop', label: 'Shop' },
   { href: '/specials', label: 'Specials' },
@@ -80,7 +79,7 @@ export function HeaderClient({ header }: Props) {
           <HeaderCartLink />
         </div>
       </nav>
-      {/* Small screens: sections as a scrollable row */}
+
       <ul className="container flex gap-5 overflow-x-auto pb-2 text-sm md:hidden">
         {PRIMARY.map((item) => (
           <li key={item.href}>

@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { ProductGrid } from '@/components/storefront/ProductCard'
 import type { CategoryNode, MerchantStorefront, ProductSummary } from '@/modules/catalog'
 
-/** Home page body (G3-13): hero with search, categories, this week's specials, stores. */
 export default function HomeContent({
   categories,
   specials,

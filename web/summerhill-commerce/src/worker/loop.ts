@@ -1,8 +1,3 @@
-/**
- * The worker loop (G2-03, SYSTEM_DESIGN §3): relays the outbox, runs jobs and cron schedules.
- * Started by main.ts once tracing is set up. Stop with Ctrl+C: the current tick finishes, then
- * the process exits.
- */
 import { newWorkerId } from '@/modules/ops'
 import { getConfig } from '@/server/config'
 import { closeDb } from '@/server/db'

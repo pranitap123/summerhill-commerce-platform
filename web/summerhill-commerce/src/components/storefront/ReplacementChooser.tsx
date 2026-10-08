@@ -12,10 +12,6 @@ interface Option {
   unit: 'ea' | 'lb'
 }
 
-/**
- * "If unavailable, replace with…" (G4-04): the customer ranks up to three specific products from
- * the same store and aisle. The picker offers them in this order (ORDERS §6).
- */
 export function ReplacementChooser({
   lineId,
   selected,

@@ -13,7 +13,7 @@ import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
 export const Users: CollectionConfig = {
   slug: 'users',
   access: {
-    // G6-01: Payload's CMS panel needs the second factor too (G5-12), like /ops and the console.
+
     admin: ({ req: { user, headers } }) =>
       checkRole(['admin'], user) &&
       isMfaCookieValid(
@@ -34,9 +34,9 @@ export const Users: CollectionConfig = {
   },
   auth: {
     tokenExpiration: 1209600,
-    // G6-01 cookie review: HttpOnly (Payload's default), SameSite=Lax, Secure in production
+
     cookies: { sameSite: 'Lax', secure: process.env.NODE_ENV === 'production' },
-    // G2-20: per-account lockout (the per-IP limit is the beforeOperation hook below)
+
     maxLoginAttempts: 5,
     lockTime: 15 * 60 * 1000,
     verify: {
@@ -51,7 +51,7 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeOperation: [rateLimitAuth],
-    // G5-15: a deactivated account can't sign in (its sessions are ended when it's deactivated)
+
     beforeLogin: [blockDeactivatedLogin],
   },
   fields: [
@@ -60,7 +60,7 @@ export const Users: CollectionConfig = {
       type: 'text',
     },
     {
-      // G2-20: applied to new cart lines ("if an item is unavailable…"); editable per line.
+
       name: 'defaultReplacementPreference',
       type: 'select',
       defaultValue: 'best_match',
@@ -87,7 +87,7 @@ export const Users: CollectionConfig = {
           label: 'admin',
           value: 'admin',
         },
-        // Back-office roles (G5, SECURITY §4.1): managed in /ops/users
+
         { label: 'support', value: 'support' },
         { label: 'finance', value: 'finance' },
         {
@@ -97,7 +97,7 @@ export const Users: CollectionConfig = {
       ],
     },
     {
-      // G5-15: set by /ops/users; a deactivated user has no sessions and can't sign in
+
       name: 'deactivatedAt',
       type: 'date',
       access: {

@@ -1,9 +1,3 @@
-/**
- * Mirrors the catalogue into the Payload admin (ADR-0004 update): categories and one `products`
- * row per catalogue product, so staff can rename a product or mark it out of stock there. The
- * catalogue wins: every run overwrites the mirrored fields. Idempotent.
- *   npm run catalog:sync-payload
- */
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 

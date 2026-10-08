@@ -6,17 +6,17 @@ import type { Media as MediaType } from '@/payload-types'
 export interface Props {
   alt?: string
   className?: string
-  fill?: boolean // for NextImage only
+  fill?: boolean
   height?: number
   htmlElement?: ElementType | null
   imgClassName?: string
   onClick?: () => void
   onLoad?: () => void
-  priority?: boolean // for NextImage only
+  priority?: boolean
   ref?: Ref<HTMLImageElement | HTMLVideoElement | null>
-  resource?: MediaType | string | number // for Payload media
-  size?: string // for NextImage only
-  src?: StaticImageData // for static media
+  resource?: MediaType | string | number
+  size?: string
+  src?: StaticImageData
   videoClassName?: string
   width?: number
 }

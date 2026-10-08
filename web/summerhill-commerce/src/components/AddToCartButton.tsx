@@ -15,7 +15,6 @@ export interface AddableProduct {
   weightStepLb: string
 }
 
-/** Weight choices for items sold by weight: from the minimum, in the product's steps, up to 5 lb. */
 function weightOptions(p: AddableProduct): number[] {
   const min = Number(p.minWeightLb)
   const step = Number(p.weightStepLb)
@@ -24,10 +23,6 @@ function weightOptions(p: AddableProduct): number[] {
   return out
 }
 
-/**
- * Adds to the SERVER cart. Items sold by weight ask for a weight. A product from another store
- * asks before starting a new cart (the current one is saved, ORDERS §1).
- */
 export default function AddToCartButton({ product }: { product: AddableProduct }) {
   const add = useCartStore((s) => s.add)
   const byWeight = product.pricingModel === 'per_weight' && product.sellBy === 'weight'

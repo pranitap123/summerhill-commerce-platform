@@ -1,11 +1,3 @@
-/**
- * Creates the demo accounts (G1-13): an admin and a customer, store staff (G4-05), and the
- * back-office roles support and finance (G5). Local demo only.
- *   npm run seed:users      (uses DEMO_* from stack.env)
- * Staff accounts get two-step verification set up with DEMO_TOTP_SECRET (G5-12), so the demo and
- * the end-to-end tests can compute the codes (`npm run demo:totp`). Never use that secret for a
- * real account. Idempotent: existing accounts keep their data (roles are topped up).
- */
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
@@ -75,7 +67,6 @@ async function main() {
       limit: 1,
     })
     if (existing.docs.length) {
-      // Demo accounts are pre-verified (email verification arrived with G2-20).
       const doc = existing.docs[0]
       const roles = [...new Set([...((doc.roles ?? []) as Role[]), ...account.roles])]
       if (!doc._verified || roles.length !== (doc.roles ?? []).length)
@@ -111,7 +102,6 @@ async function main() {
       needsMfa.push(String(created.id))
   }
 
-  // Staff MFA (G5-12) with the demo secret, so nobody has to scan anything to try the demo.
   const totpSecret = process.env.DEMO_TOTP_SECRET
   if (totpSecret) {
     for (const userId of needsMfa) await enrolWithSecret(getDb(), userId, totpSecret)
@@ -120,7 +110,6 @@ async function main() {
     )
   }
 
-  // Store staff belong to the demo merchant (the seeded one), at every location.
   if (staff.length) {
     const { rows } = await getDb().query<{ id: string }>(
       `SELECT id FROM merchant.merchants WHERE slug = 'demo-market'`,
@@ -138,8 +127,6 @@ async function main() {
   await closeDb()
 }
 
-// Top-level await: `payload run` only awaits this module's import and then calls process.exit(0),
-// so un-awaited async work would be cut off before it finishes.
 try {
   await main()
 } catch (err) {

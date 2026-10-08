@@ -4,10 +4,6 @@ import { useState } from 'react'
 
 import { formatPickupRange, groupSlotsByDay, type PickupSlot } from './pickupTime'
 
-/**
- * Pickup time picker (G4-03): the store's days as tabs, the day's slots as a radio group. Only
- * slots the server offered are shown (lead time, 5-day window, item availability, capacity).
- */
 export function SlotPicker({
   slots,
   timeZone,

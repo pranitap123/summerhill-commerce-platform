@@ -1,8 +1,3 @@
-/**
- * Builds the search index now (G3-08): new index → verify → alias swap. The worker does this nightly
- * and on demand (POST /api/admin/search/rebuild); this is for first-time setup and demos.
- *   npm run search:rebuild
- */
 import { rebuildSearchIndex } from '@/modules/search'
 import { closeDb } from '@/server/db'
 

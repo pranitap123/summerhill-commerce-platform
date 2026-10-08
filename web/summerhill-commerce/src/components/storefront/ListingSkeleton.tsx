@@ -1,4 +1,4 @@
-/** Loading state for product listings (G3-13), shown while results stream in. */
+
 export function ListingSkeleton() {
   return (
     <div className="container py-8 md:py-12" aria-busy="true" aria-label="Loading products">
