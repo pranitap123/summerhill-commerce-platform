@@ -18,7 +18,6 @@ CONNECTORS = {
 def get_connector(name: str, env: Mapping[str, str] | None = None) -> SourceConnector:
     if name == "fixture":
         path = (env or {}).get("CATALOG_FIXTURE_PATH")
-        # Demo/test knob (G5-14): a partial feed, e.g. 0.5, to show the anomaly guard holding a run
         fraction = (env or {}).get("CATALOG_FIXTURE_FRACTION")
         return FixtureConnector(path, fraction=float(fraction) if fraction else None)
     if name == "scraped_json":

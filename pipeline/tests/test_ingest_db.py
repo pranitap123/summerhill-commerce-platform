@@ -31,10 +31,8 @@ def test_first_run_loads_every_fixture_row(db):
     assert ids == {p["external_id"] for p in FEED}
     promos = sum(1 for p in FEED if p["promotion"])
     assert db.sql("SELECT count(*) FROM catalog.promotions")[0][0] == promos
-    # every product announced to search/storefront, plus one run event
     topics = dict(db.sql("SELECT topic, count(*) FROM ops.outbox GROUP BY topic"))
     assert topics == {"product.changed": len(FEED), "catalog.ingested": 1}
-    # the canonical fields arrived
     row = db.sql(
         """SELECT v.slug, v.brand, v.organic, v.dietary_claims, v.source_type, p.source_hash, v.is_visible
            FROM catalog.product_view v JOIN catalog.products p USING (id) WHERE v.id = 'DEMO-0001'"""
@@ -49,7 +47,7 @@ def test_rerun_writes_nothing(db):
     outbox = db.sql("SELECT count(*) FROM ops.outbox")[0][0]
     r = ingest(db)
     assert (r.inserted, r.updated, r.unchanged, r.deactivated) == (0, 0, len(FEED), 0)
-    assert product_state(db) == before  # xmin unchanged → no row was rewritten
+    assert product_state(db) == before
     assert db.sql("SELECT count(*) FROM ops.outbox")[0][0] == outbox
 
 
@@ -93,7 +91,7 @@ def test_bad_rows_are_quarantined_and_good_rows_load(db):
     records = copy.deepcopy(FEED)
     records[0]["unit_price_cents"] = 0
     records[1]["name"] = ""
-    records.append({**records[2]})  # duplicate external_id
+    records.append({**records[2]})
     r = ingest(db, records)
     assert r.status == "applied" and r.quarantined == 3 and r.inserted == len(FEED) - 2
     reasons = sorted(q for (q,) in db.sql("SELECT reason FROM ops.ingest_quarantine"))
@@ -128,7 +126,6 @@ def test_full_run_soft_deletes_missing_products_and_delta_does_not(db):
     r = ingest(db, FEED[1:])
     assert r.deactivated == 1
     assert db.sql("SELECT deleted_at IS NOT NULL, is_visible FROM catalog.product_view WHERE id = %s", (missing,))[0] == (True, False)
-    # reappearing undeletes it
     r = ingest(db)
     assert r.updated == 1
     assert db.sql("SELECT deleted_at FROM catalog.products WHERE id = %s", (missing,))[0][0] is None
@@ -145,7 +142,6 @@ def test_unknown_category_goes_to_uncategorised_and_is_flagged(db):
         "SELECT status, subcategory_id FROM catalog.category_mappings WHERE source_type = 'Pet Supplies'"
     )
     assert mapping == [("unmapped", None)]
-    # every fixture category is mapped: nothing else went to Uncategorised
     assert db.sql("SELECT count(*) FROM catalog.product_view WHERE category = 'Uncategorised'")[0][0] == 1
 
 

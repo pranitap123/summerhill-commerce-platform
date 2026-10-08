@@ -10,8 +10,6 @@ from catalog_pipeline.search_sync import effective_price, sync_search, to_docume
 
 NOW = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
 
-# The fields of the index mapping (web app: modules/search/elastic.ts INDEX_MAPPINGS) except
-# popularity30d, which the pipeline leaves to the web app.
 MAPPING_FIELDS = {
     "id", "slug", "merchantId", "merchantSlug", "name", "brand", "description", "category",
     "categorySlug", "subcategory", "subcategorySlug", "organic", "dietaryClaims", "pricingModel",
@@ -28,9 +26,9 @@ def test_effective_price_is_the_lowest_active_promotion():
     day = timedelta(days=1)
     assert effective_price(500, [], NOW) == 500
     assert effective_price(500, [promo(400), promo(350)], NOW) == 350
-    assert effective_price(500, [promo(300, starts=(NOW + day).isoformat())], NOW) == 500  # not started
-    assert effective_price(500, [promo(300, ends=(NOW - day).isoformat())], NOW) == 500  # ended
-    assert effective_price(500, [promo(600)], NOW) == 500  # never above the regular price
+    assert effective_price(500, [promo(300, starts=(NOW + day).isoformat())], NOW) == 500
+    assert effective_price(500, [promo(300, ends=(NOW - day).isoformat())], NOW) == 500
+    assert effective_price(500, [promo(600)], NOW) == 500
 
 
 class FakeEs:

@@ -52,7 +52,7 @@ def test_rerun_request_runs_an_ingest(db):
 
 def test_a_failed_request_records_the_error(db):
     run = run_ingest(db.ingest_url, FixtureConnector(), "demo-market", "downtown", "full")
-    req = request(db, "approve", run_id=run.run_id)  # not held
+    req = request(db, "approve", run_id=run.run_id)
     done = process_requests(db.ingest_url, "fixture", {})
     assert done[0]["status"] == "failed"
     row = db.sql("SELECT status, error FROM ops.ingest_requests WHERE id = %s", (req,))[0]

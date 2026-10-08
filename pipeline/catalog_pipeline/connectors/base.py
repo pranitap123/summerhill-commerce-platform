@@ -12,9 +12,7 @@ Mode = Literal["full", "delta"]
 
 
 class SourceConnector(Protocol):
-    #: Registry name, recorded on every ingest run
     name: str
-    #: Prepended to external_id to form products.id, so ids from different sources never collide
     id_prefix: str
 
     def extract(self, mode: Mode) -> Iterable[dict[str, Any]]:

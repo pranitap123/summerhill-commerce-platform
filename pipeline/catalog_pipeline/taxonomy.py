@@ -8,8 +8,6 @@ from .canonical import slugify
 UNCATEGORISED = ("Uncategorised", "Uncategorised")
 GENERAL = "General"
 
-# (category, [subcategories]) in display order. Every category also gets a "General" subcategory,
-# the target of type-level mappings for sources without a usable subtype.
 TAXONOMY: list[tuple[str, list[str]]] = [
     ("Produce", ["Fresh Fruit", "Fresh Vegetables"]),
     ("Meat & Seafood", ["Beef", "Seafood"]),

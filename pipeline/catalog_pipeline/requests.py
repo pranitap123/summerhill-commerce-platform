@@ -67,7 +67,7 @@ def process_requests(conninfo: str, connector_name: str, env: Mapping[str, str],
             status = "failed" if result.status == "failed" else "done"
             _finish(conninfo, req["id"], status, summary, result.error if status == "failed" else None)
             done.append({"request": req["id"], "status": status, "run": summary})
-        except Exception as exc:  # recorded on the request; the admin page shows it
+        except Exception as exc:
             log.exception("ingest request %s failed", req["id"])
             _finish(conninfo, req["id"], "failed", None, f"{type(exc).__name__}: {exc}")
             done.append({"request": req["id"], "status": "failed", "error": str(exc)})

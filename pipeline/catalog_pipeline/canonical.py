@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, field
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
-MAX_PRICE_CENTS = 200_000  # $2,000 (CATALOG §4)
+MAX_PRICE_CENTS = 200_000
 PLACEHOLDER_IMAGE = "/placeholder-product.svg"
 ISO_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 TAX_CODES = ("ZERO_RATED", "HST_STANDARD")
@@ -40,13 +40,13 @@ class CanonicalProduct:
     source_type: str
     source_subtype: str
     unit_price_cents: int
-    pricing_model: str = "each"  # each | per_weight
-    unit: str = "ea"  # ea | lb
-    sell_by: str = "quantity"  # quantity | weight
+    pricing_model: str = "each"
+    unit: str = "ea"
+    sell_by: str = "quantity"
     brand: str | None = None
     upc: str | None = None
     description: str = ""
-    estimated_weight_lb: str | None = None  # decimal string, e.g. "1.57"
+    estimated_weight_lb: str | None = None
     weight_step_lb: str = "0.25"
     min_weight_lb: str = "0.5"
     tax_code: str = "ZERO_RATED"
@@ -55,7 +55,7 @@ class CanonicalProduct:
     pickup_only: bool = False
     min_qty: int = 0
     max_qty: int = 0
-    available_days: list[int] = field(default_factory=list)  # ISO weekdays, empty = every day
+    available_days: list[int] = field(default_factory=list)
     organic: bool = False
     dietary_claims: list[str] = field(default_factory=list)
     source_virtual_category: str | None = None
@@ -64,8 +64,8 @@ class CanonicalProduct:
     disclaimer: str | None = None
     images: list[str] = field(default_factory=list)
     sku: str | None = None
-    source_status: str = "listed"  # listed | unlisted
-    availability: str = "in_stock"  # in_stock | out_of_stock
+    source_status: str = "listed"
+    availability: str = "in_stock"
     promotions: list[CanonicalPromotion] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

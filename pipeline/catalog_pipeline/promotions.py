@@ -36,7 +36,6 @@ def attach_promotions_by_upc(
             flags.append({"rule": "promotion_duplicate_upc", "upc": upc, "external_ids": ids})
         for i in matches:
             p = out[i]
-            # A sale price at or above the regular price isn't a sale: skip it for this product
             valid = [pr for pr in promos if 0 < pr.sale_price_cents < p.unit_price_cents]
             if len(valid) < len(promos):
                 flags.append({"rule": "promotion_not_below_price", "upc": upc, "external_id": p.external_id})

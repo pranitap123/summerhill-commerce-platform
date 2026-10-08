@@ -21,7 +21,6 @@ from psycopg.rows import dict_row
 TIMEOUT = (5, 60)
 BATCH = 500
 
-# Same projection as the web app's catalog/projection.ts, minus popularity and the order tables.
 SELECT = """
 SELECT v.id, v.slug, v.merchant_id, v.merchant_slug, v.name, v.brand, v.description,
   v.category, v.category_slug, v.subcategory, v.subcategory_slug, v.organic, v.dietary_claims,
@@ -106,7 +105,6 @@ def _bulk(session: requests.Session, es_url: str, alias: str, lines: list[dict[s
         failed = []
         for item in payload["items"]:
             action, op = next(iter(item.items()))
-            # Deleting a document that was never indexed is fine
             if op.get("error") and not (action == "delete" and op.get("status") == 404):
                 failed.append(item)
         if failed:

@@ -24,7 +24,7 @@ def test_each_threshold():
     assert anomalies(Plan(fetched=90, valid=90, quarantined=0), 100, "full") == []
     deact = Plan(fetched=100, valid=100, quarantined=0, deactivations=11, active_before=100)
     assert anomalies(deact, None, "full")[0]["check"] == "mass_deactivation"
-    assert anomalies(deact, None, "delta") == []  # delta runs never deactivate
+    assert anomalies(deact, None, "delta") == []
     prices = Plan(fetched=100, valid=100, quarantined=0, updates=26, unchanged=74, price_changes=26)
     assert anomalies(prices, None, "full")[0]["check"] == "mass_price_change"
     quarantine = Plan(fetched=100, valid=94, quarantined=6)

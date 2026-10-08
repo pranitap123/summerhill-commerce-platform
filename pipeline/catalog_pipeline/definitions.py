@@ -45,7 +45,6 @@ def _ingest(context: OpExecutionContext, mode: str) -> dict:
     if result.status == "failed":
         raise Failure(f"ingest run {result.run_id} failed: {result.error}")
     if result.status == "held":
-        # Not a failure of the pipeline: the guard did its job. Surface it loudly for approval.
         context.log.warning(
             f"ingest run {result.run_id} HELD for approval: {result.anomalies}. "
             f"Approve with `python -m catalog_pipeline approve {result.run_id} --by <name>`"

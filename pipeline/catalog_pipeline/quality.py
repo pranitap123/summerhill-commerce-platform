@@ -11,12 +11,10 @@ from typing import Any
 
 from .canonical import CanonicalProduct
 
-# Anomaly guard thresholds
-MIN_FETCHED_RATIO = 0.90  # fetched < 90% of the last successful run
-MAX_DEACTIVATED_RATIO = 0.10  # > 10% of active products would be deactivated
-MAX_PRICE_CHANGED_RATIO = 0.25  # > 25% of prices changed
-MAX_QUARANTINED_RATIO = 0.05  # quarantined > 5% of the total
-# Row flag: price changed by more than ±60% (applied, but reported)
+MIN_FETCHED_RATIO = 0.90
+MAX_DEACTIVATED_RATIO = 0.10
+MAX_PRICE_CHANGED_RATIO = 0.25
+MAX_QUARANTINED_RATIO = 0.05
 PRICE_JUMP_RATIO = 0.60
 
 
@@ -57,7 +55,6 @@ def row_flags(product: CanonicalProduct, previous_price_cents: int | None) -> li
 
 
 def blocked_reason(product: CanonicalProduct) -> str | None:
-    # Alcohol is ingested but never sold until licensing is resolved (CATALOG §4)
     return "alcohol_not_licensed" if product.is_alcohol else None
 
 

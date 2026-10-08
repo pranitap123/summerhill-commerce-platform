@@ -35,8 +35,8 @@ def test_price_to_cents_rejects(value):
 
 def test_per_weight_units_convert_to_per_lb():
     assert convert_per_weight_cents(1000, "lb") == 1000
-    assert convert_per_weight_cents(1000, "kg") == 454  # $10/kg = $4.54/lb
-    assert convert_per_weight_cents(100, "100g") == 454  # $1/100 g = $4.54/lb
+    assert convert_per_weight_cents(1000, "kg") == 454
+    assert convert_per_weight_cents(100, "100g") == 454
 
 
 def test_weight_lb():

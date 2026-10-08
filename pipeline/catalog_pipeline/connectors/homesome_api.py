@@ -38,7 +38,7 @@ from ..taxonomy import type_level_mappings
 from .base import Mode
 
 REQUIRED = ("HOMESOME_BASE_URL", "HOMESOME_API_KEY", "HOMESOME_LOCATION_ID", "HOMESOME_PRICELIST_ID")
-TIMEOUT = (5, 30)  # connect, read (seconds)
+TIMEOUT = (5, 30)
 HST_RATES = {13, 0.13}
 
 
@@ -91,7 +91,6 @@ class HomesomeApiConnector:
             "location": env["HOMESOME_LOCATION_ID"],
             "pricelist": env["HOMESOME_PRICELIST_ID"],
             "accept": "application/json",
-            # Honest identification; never a browser user agent or a spoofed Origin/Referer
             "user-agent": f"grocery-marketplace-demo-pipeline/1.0{f' (+{contact})' if contact else ''}",
         }
         self.session = session or make_session()
@@ -103,8 +102,6 @@ class HomesomeApiConnector:
         return res.json()
 
     def extract(self, mode: Mode) -> Iterable[dict[str, Any]]:
-        # The API has no change feed, so a delta run reads the full list too; only the full run
-        # deactivates products that disappeared.
         products = self._get("/product/list?listType=ui").get("products", [])
         self._promotions = self._get(self.promotions_path) if self.promotions_path else None
         return products

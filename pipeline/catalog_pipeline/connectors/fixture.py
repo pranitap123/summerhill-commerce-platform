@@ -27,7 +27,7 @@ DEFAULT_PATH = REPO_ROOT / "db" / "seed" / "catalog.fixture.json"
 
 class FixtureConnector:
     name = "fixture"
-    id_prefix = ""  # fixture ids (DEMO-0001) are already unique; keeps existing carts/orders valid
+    id_prefix = ""
 
     def __init__(
         self,
@@ -45,7 +45,6 @@ class FixtureConnector:
         return json.loads(self.path.read_text(encoding="utf-8"))
 
     def extract(self, mode: Mode) -> Iterable[dict[str, Any]]:
-        # The fixture is a complete snapshot, so delta and full runs read the same feed.
         records = list(self._records) if self._records is not None else self.load()["products"]
         if self.fraction is not None:
             records = records[: max(1, int(len(records) * self.fraction))]

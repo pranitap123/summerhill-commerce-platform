@@ -34,7 +34,6 @@ class ScrapedJsonConnector:
         self._groups = groups
 
     def extract(self, mode: Mode) -> Iterable[dict[str, Any]]:
-        # A scrape is a complete snapshot, so delta and full runs read the same file.
         groups = self._groups
         if groups is None:
             if not self.path.exists():

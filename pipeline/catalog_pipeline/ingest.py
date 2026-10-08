@@ -28,7 +28,7 @@ log = logging.getLogger(__name__)
 @dataclass
 class RunResult:
     run_id: int
-    status: str  # applied | held | approved | failed
+    status: str
     fetched: int = 0
     inserted: int = 0
     updated: int = 0
@@ -51,8 +51,6 @@ def connect(conninfo: str) -> psycopg.Connection:
     return psycopg.connect(conninfo, row_factory=dict_row)
 
 
-# ---------------------------------------------------------------------------------------------
-# public entry points
 
 
 def run_ingest(
@@ -119,8 +117,6 @@ def reject_run(conninfo: str, run_id: int, rejected_by: str) -> None:
             raise IngestError(f"run {run_id} is not held")
 
 
-# ---------------------------------------------------------------------------------------------
-# steps
 
 
 def _merchant_and_location(conn, merchant_slug: str, location_slug: str) -> tuple[int, int]:
@@ -289,7 +285,6 @@ def _plan_and_apply(
     _record_quarantine(conn, run_id, quarantine)
 
     if found:
-        # Hold: nothing is applied; the normalised feed is kept for approval.
         conn.execute(
             """UPDATE ops.ingest_runs SET fetched = %s, quarantined = %s, anomalies = %s, flags = %s,
                  staged = %s WHERE id = %s""",
@@ -336,7 +331,6 @@ def _row(p: CanonicalProduct, connector: SourceConnector, merchant_id: int, loca
         "slug": product_slug(p.name, merchant_id, p.external_id),
         "blocked_reason": blocked_reason(p),
         **{k: v for k, v in p.to_dict().items() if k != "promotions"},
-        # Missing image: a placeholder until the merchant supplies one (flagged in the run report)
         "images": p.images or [PLACEHOLDER_IMAGE],
         "promotions": sorted((pr.__dict__ for pr in p.promotions), key=lambda d: d["external_id"]),
     }
@@ -369,7 +363,6 @@ def _upsert_product(conn, row: dict[str, Any], before: dict[str, Any] | None, ru
         {**values, "run_id": run_id},
     )
     if before and before["slug"] and before["slug"] != row["slug"]:
-        # Keep the old URL working: /products/<old slug> answers with a 301 (G3-13)
         conn.execute(
             """INSERT INTO catalog.product_slug_history (slug, product_id) VALUES (%s, %s)
                ON CONFLICT (slug) DO UPDATE SET product_id = EXCLUDED.product_id, retired_at = now()""",
