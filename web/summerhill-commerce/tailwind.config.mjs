@@ -1,7 +1,6 @@
 import typography from '@tailwindcss/typography'
 import plugin from 'tailwindcss/plugin'
 
-/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     './pages/**/*.{ts,tsx}',

@@ -1,4 +1,4 @@
-// Writes docs/openapi.yaml from the zod schemas (G2-18).   npm run openapi
+
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

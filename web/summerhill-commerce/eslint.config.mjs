@@ -15,11 +15,6 @@ const modules = fs.existsSync(MODULES_DIR)
 const deepImportMessage =
   "Import another module only through its public API ('@/modules/<name>'), never its internal files (ADR-0002)."
 
-/**
- * Module boundaries (G1-05, ADR-0002). Outside a module, only `@/modules/<name>` (its index.ts) may
- * be imported. Inside module X, deep imports of other modules and relative imports that climb into
- * a sibling module are errors. One config block per module is generated from the folder list.
- */
 const boundaryRules = [
   {
     files: ['src/**/*.{ts,tsx}'],
@@ -47,14 +42,6 @@ const boundaryRules = [
   })),
 ]
 
-/**
- * Lint ratchet. These files predate G1 (Payload template + stage-3 UI) and break the React
- * Compiler-era hook rules; they were hidden while the old ESLint config crashed. They're listed
- * explicitly (not disabled globally) so every NEW file still gets these rules as errors. Remove a
- * file from this list when it's rewritten; the list must only shrink.
- *   - Payload template commerce UI → deleted in G2-15 (done)
- *   - storefront UI, theme provider → rewritten in G3-13 (storefront v2, theme mismatch fix)
- */
 const LEGACY_HOOK_RULE_FILES = [
   'src/components/Header/MobileMenu.tsx', // G3-13
   'src/components/forms/LoginForm/index.tsx', // G2-20

@@ -1,12 +1,5 @@
 #!/usr/bin/env node
-// Runs a Node CLI with extra env files whose values override the shell and .env files. Several
-// files can be given comma-separated; later files win.
-//   node scripts/with-env.mjs stack.env ./node_modules/next/dist/bin/next dev
-//   node scripts/with-env.mjs stack.env,simulator.env ./node_modules/next/dist/bin/next dev
-//
-// Why not `node --env-file`: the Next.js and Payload CLIs forward Node flags to child processes
-// through NODE_OPTIONS, where --env-file is not allowed. Variables not set in the file (e.g. your
-// Stripe TEST key) still come from .env as usual.
+
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'

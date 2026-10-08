@@ -20,8 +20,7 @@ export default defineConfig({
     setupFiles: ['./tests/setup/test-env.ts'],
     include: ['tests/unit/**/*.test.ts', 'tests/authz/**/*.test.ts', 'tests/integration/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**'],
-    // Each integration file creates its own database in the compose Postgres: run files one at a
-    // time so a small machine isn't starved.
+
     fileParallelism: false,
     testTimeout: 60_000,
     hookTimeout: 120_000,

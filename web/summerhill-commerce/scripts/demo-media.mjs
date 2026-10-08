@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// G7-03: turns the store's frames from the demo recording (tests/e2e/demo.spec.ts) into the README
-// GIF, docs/media/fulfilment.gif. Needs ffmpeg on PATH.
-//   DEMO_RECORD=1 npx playwright test tests/e2e/demo.spec.ts && node scripts/demo-media.mjs
+
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -18,7 +16,7 @@ if (!count) {
   console.error(`demo-media: no frames in ${frames}; run the recording first`)
   process.exit(1)
 }
-// 2 frames a second (each step is held for a few frames), 960 px wide, one 128-colour palette.
+
 const filter =
   'scale=960:-1:flags=lanczos,split[a][b];' +
   '[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4'
