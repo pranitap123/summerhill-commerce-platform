@@ -1,17 +1,5 @@
-// k6 load test (G6-06): search, product pages and checkout against a local production build with
-// the payment simulator (no Stripe calls). Run with `npm run test:load` (k6 in Docker).
-//
-// Peak, for the one-store pilot (TESTING §2): a Saturday morning with ~30 shoppers online, each
-// searching and opening a product page about every 10 s (3/s each across the store), and about 6
-// orders a minute. The test runs at 2× that as fixed arrival rates, so slow responses don't lower
-// the load: search 6/s, product pages 6/s, checkouts 0.2/s (12 a minute).
-// Targets (OPERATIONS §1, CATALOG §8): storefront pages p95 < 800 ms, search API p95 < 300 ms,
-// checkout (order + Checkout Session) p95 < 1.5 s, and under 1% errors.
-//
-// Each iteration acts as its own client: a fresh cart per checkout, and its own X-Forwarded-For
-// address, as a proxy would report distinct shoppers (per-IP rate limits apply per shopper, not to
-// the whole test). Checkouts create real pending orders in the local database; the abandoned-
-// checkout sweep expires them.
+
+
 import http from 'k6/http'
 import { check, fail } from 'k6'
 import { Trend } from 'k6/metrics'
@@ -24,7 +12,6 @@ const searchLatency = new Trend('search_latency', true)
 const pageLatency = new Trend('page_latency', true)
 const checkoutLatency = new Trend('checkout_latency', true)
 
-/** `perSecond` iterations a second for LOAD_DURATION, with enough VUs to absorb slow responses. */
 function rate(exec, perSecond, maxVUs) {
   return {
     executor: 'constant-arrival-rate',
@@ -96,7 +83,7 @@ export function browse(data) {
 
 export function checkout(data) {
   const base = { 'content-type': 'application/json', 'x-forwarded-for': clientIp() }
-  // Enough of one product to pass the $15 minimum, within its per-order limit
+
   const p = pick(data.products.filter((x) => x.sellBy !== 'weight' && x.price >= 300))
   const quantity = Math.min(Math.max(1, Math.ceil(2000 / p.price)), p.maxQty || 99)
   const add = http.post(`${BASE}/api/v1/cart/items`, JSON.stringify({ productId: p.id, quantity }), {
@@ -104,8 +91,7 @@ export function checkout(data) {
     tags: { name: 'POST /api/v1/cart/items' },
   })
   if (!check(add, { 'add to cart 201': (r) => r.status === 201 })) return
-  // The production build marks the cart cookie Secure, which k6 won't send over plain http, so
-  // it's carried by hand, as a browser on localhost would.
+
   const h = { ...base, cookie: `cart=${add.cookies.cart[0].value}` }
   const quote = http.post(`${BASE}/api/v1/cart/quote`, '{}', {
     headers: h,
