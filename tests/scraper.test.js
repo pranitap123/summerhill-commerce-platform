@@ -1,4 +1,4 @@
-// Unit tests for scripts/scraper.js. Run with: npm run test:scraper
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadConfig, withRetry, isRetryable, retryAfterMs, fetchProducts, describe, group } = require('../scripts/scraper');

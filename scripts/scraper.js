@@ -1,12 +1,5 @@
 #!/usr/bin/env node
-// Stage 1 scraper: fetches the product list from the storefront's JSON API and writes it grouped by
-// category and subcategory.
-//
-//   node scripts/scraper.js [--out path/to/scraped.json]
-//
-// Configuration comes from the environment (a .env file in the working directory is read too);
-// see .env.example at the repo root. The full re-run instructions and assumptions are in
-// docs/SCRAPER.md.
+
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -27,7 +20,7 @@ function loadConfig(env = process.env, argv = process.argv.slice(2)) {
     imageBase: env.IMAGE_BASE.replace(/\/+$/, ''),
     currency: env.CURRENCY || 'CAD',
     out: path.resolve(outFlag >= 0 && argv[outFlag + 1] ? argv[outFlag + 1] : env.OUTPUT_PATH || 'scraped.json'),
-    // Identify the scraper honestly. ORIGIN and REFERER are only sent when you set them.
+
     userAgent: env.USER_AGENT || 'summerhill-scraper/1.0 (catalogue demo; respectful rate)',
     origin: env.ORIGIN || '',
     referer: env.REFERER || '',
@@ -39,14 +32,12 @@ function loadConfig(env = process.env, argv = process.argv.slice(2)) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A failure worth retrying: no response (network, timeout), 408, 429 or any 5xx. */
 function isRetryable(err) {
   const status = err.response?.status;
   if (status === undefined) return true;
   return status === 408 || status === 429 || status >= 500;
 }
 
-/** Retry-After in seconds or as an HTTP date, in milliseconds; null if absent or unreadable. */
 function retryAfterMs(err) {
   const raw = err.response?.headers?.['retry-after'];
   if (!raw) return null;
@@ -56,7 +47,6 @@ function retryAfterMs(err) {
   return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
 }
 
-/** Calls `fn`, retrying retryable failures with exponential backoff, jitter and Retry-After. */
 async function withRetry(fn, { maxRetries, baseDelayMs, log = console.warn, wait = sleep }) {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -89,10 +79,6 @@ async function fetchProducts(config, http = axios) {
   return products;
 }
 
-/**
- * The API has no description field, so one is built from what it does give us: brand, organic flag,
- * how the item is sold and its disclaimer. Empty when the API gives none of these.
- */
 function describe(p) {
   const parts = [];
   if (p.brand) parts.push(p.brand);
@@ -118,7 +104,6 @@ function transformProduct(p, config) {
   };
 }
 
-/** Groups products into [{ category, subcategory, products }], in first-seen order. */
 function group(products, config) {
   const groups = new Map();
   for (const p of products) {
