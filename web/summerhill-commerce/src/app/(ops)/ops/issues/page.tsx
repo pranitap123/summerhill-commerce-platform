@@ -9,7 +9,6 @@ import { requireOpsPage } from '../requireAdminPage'
 export const metadata: Metadata = { title: 'Support issues' }
 export const dynamic = 'force-dynamic'
 
-/** The support queue (G5-11, ORDERS §10): open issues first, then what the policy decided. */
 export default async function IssuesPage() {
   const ops = await requireOpsPage('/ops/issues', 'issues.resolve')
   if (!ops) return <NotAuthorised />

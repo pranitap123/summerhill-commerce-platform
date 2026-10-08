@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-/** The /ops menu (G5-01): each entry shows only for roles that may use it (SECURITY §4.1). */
 const MENU: Array<{ href: string; label: string; permission: Permission }> = [
   { href: '/ops', label: 'Dashboard', permission: 'ops.enter' },
   { href: '/ops/orders', label: 'Orders', permission: 'orders.read' },
@@ -30,18 +29,12 @@ const MENU: Array<{ href: string; label: string; permission: Permission }> = [
   { href: '/ops/privacy', label: 'Privacy', permission: 'privacy.manage' },
 ]
 
-/**
- * Root layout for the operations console (/ops). Separate from the storefront layout and from
- * Payload's /admin (which stays the content CMS). Auth is enforced by src/proxy.ts and again by
- * each page via requireOpsPage(); the menu only hides what a role can't use.
- */
 export default async function OpsLayout({ children }: { children: ReactNode }) {
   const user = await getSessionUser(await headers())
   const staff = isPlatformStaff(user) && user?.mfaVerified
   const items = staff ? MENU.filter((m) => can(user, m.permission)) : []
   return (
-    // data-theme is required: the shared globals.css keeps <html> at opacity 0 until a theme is set
-    // (the storefront sets it with a script). The console uses one fixed light design.
+
     <html lang="en-CA" data-theme="light">
       <body className="block min-h-screen bg-[#FAF6EE] text-[#211F1C]">
         <a href="#main" className="sr-only focus:not-sr-only">

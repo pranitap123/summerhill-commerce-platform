@@ -36,11 +36,6 @@ function amount(l: Line): string {
   return `× ${l.quantity}${l.isWeighed && l.estimatedWeightLb ? ` · est. ${l.estimatedWeightLb.toFixed(2)} lb` : ''}`
 }
 
-/**
- * One line of the pick list (G4-09, G4-12). "Picked" takes the quantity and, for weighed items,
- * the weight (typed, or from a scanned scale label via the scan bar). The server checks every
- * value; unusual weights come back as a confirmation question.
- */
 export function LineCard({
   publicId,
   line,
@@ -53,7 +48,7 @@ export function LineCard({
   publicId: string
   line: Line
   editable: boolean
-  /** A scanned code waiting for this line's weight. */
+
   pendingScan: string | null
   busy: boolean
   onPick(body: PickBody): void
@@ -258,7 +253,6 @@ interface Option {
   taxable: boolean
 }
 
-/** Replacement options in the customer's order of preference (G4-12). */
 export function SubstitutePanel({
   publicId,
   line,

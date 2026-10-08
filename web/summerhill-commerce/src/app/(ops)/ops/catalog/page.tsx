@@ -18,11 +18,6 @@ import { MappingSelect, OverrideForm, RequestRun } from './CatalogForms'
 export const metadata: Metadata = { title: 'Catalogue' }
 export const dynamic = 'force-dynamic'
 
-/**
- * Catalogue admin (G5-14, A3/A4): ingest runs, held-run decisions, re-runs, the category-mapping
- * editor and product overrides. Approvals and runs are carried out by the pipeline (Dagster
- * sensor every 30 s, or `npm run pipeline:requests`).
- */
 export default async function CatalogPage({
   searchParams,
 }: {

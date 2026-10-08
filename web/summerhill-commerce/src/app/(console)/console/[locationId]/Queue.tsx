@@ -40,7 +40,6 @@ const COLUMNS: Array<{ title: string; statuses: string[]; empty: string }> = [
   { title: 'Ready for pickup', statuses: ['ready', 'no_show'], empty: 'Nothing ready' },
 ]
 
-/** A short two-tone chime (Web Audio): no audio file to load. */
 function chime() {
   const Ctx =
     window.AudioContext ??
@@ -60,11 +59,6 @@ function chime() {
   setTimeout(() => ctx.close(), 1000)
 }
 
-/**
- * The queue (G4-06): polls every 10 s (a new order shows within 10–20 s, well inside the 30 s
- * target), chimes for new orders once sound is switched on (browsers only allow audio after a
- * tap), and says so when the connection drops instead of silently showing stale data.
- */
 export function Queue({ locationId, timeZone }: { locationId: number; timeZone: string }) {
   const [data, setData] = useState<QueueData | null>(null)
   const [lastOk, setLastOk] = useState<Date | null>(null)
@@ -72,13 +66,13 @@ export function Queue({ locationId, timeZone }: { locationId: number; timeZone: 
   const [sound, setSound] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const seen = useRef<Set<string> | null>(null)
-  // Read by the polling callback; kept in sync where the setting changes
+
   const soundRef = useRef(false)
 
   useEffect(() => {
     let live = true
     let inFlight = false
-    // A slow response must not stack up requests: skip the tick while one is running.
+
     const load = () => {
       if (inFlight) return
       inFlight = true

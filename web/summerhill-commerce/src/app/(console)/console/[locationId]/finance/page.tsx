@@ -16,10 +16,6 @@ const cad = (c: number | null | undefined) =>
     ? '–'
     : new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(c / 100)
 
-/**
- * Sales, fees, refunds, payouts and statements for the store owner (G5-13, M12). The figures come
- * from the same ledger as the platform's statements.
- */
 export default async function FinancePage({
   params,
   searchParams,

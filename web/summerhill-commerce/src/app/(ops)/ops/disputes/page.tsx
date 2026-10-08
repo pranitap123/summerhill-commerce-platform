@@ -9,7 +9,6 @@ import { requireOpsPage } from '../requireAdminPage'
 export const metadata: Metadata = { title: 'Disputes' }
 export const dynamic = 'force-dynamic'
 
-/** Disputes (G5-06, A8): soonest evidence deadline first. */
 export default async function DisputesPage() {
   const ops = await requireOpsPage('/ops/disputes', 'disputes.manage')
   if (!ops) return <NotAuthorised />

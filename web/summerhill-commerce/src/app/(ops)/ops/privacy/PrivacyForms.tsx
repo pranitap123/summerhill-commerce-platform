@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 import { buttonCls, inputCls, opsFetch, useOpsAction } from '../_components/actions'
 
-/** Export (download JSON) or delete (anonymise) someone's data, by email (SECURITY §7.3). */
 export function PrivacyForms() {
   const { run, busy, feedback } = useOpsAction()
   const [email, setEmail] = useState('')

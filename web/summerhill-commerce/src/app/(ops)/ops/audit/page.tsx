@@ -12,7 +12,6 @@ export const dynamic = 'force-dynamic'
 const text = (v: string | undefined, max: number) =>
   v?.trim() ? v.trim().slice(0, max) : undefined
 
-/** Audit log viewer (G5-09, A12): filter by actor, action and target. Append-only. */
 export default async function AuditPage({
   searchParams,
 }: {

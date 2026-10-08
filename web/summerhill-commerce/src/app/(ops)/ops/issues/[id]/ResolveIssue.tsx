@@ -4,7 +4,6 @@ import { useState } from 'react'
 
 import { buttonCls, inputCls, newKey, opsFetch, useOpsAction } from '../../_components/actions'
 
-/** Approve (refund per the liability matrix) or reject with a note the customer receives. */
 export function ResolveIssue({
   issueId,
   needsScenario,

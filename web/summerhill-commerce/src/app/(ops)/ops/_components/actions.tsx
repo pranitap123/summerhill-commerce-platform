@@ -3,10 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 
-/**
- * Client helpers for /ops mutations. Money actions send an Idempotency-Key that stays the same
- * while the form is open, so a double click or a retry never refunds or pays twice.
- */
 export async function opsFetch(
   method: 'POST' | 'PUT' | 'DELETE',
   path: string,
@@ -74,7 +70,6 @@ export function useOpsAction() {
   return { run, busy, error, feedback }
 }
 
-/** A button that calls one API action (with an optional confirmation) and refreshes the page. */
 export function ActionButton({
   method = 'POST',
   path,

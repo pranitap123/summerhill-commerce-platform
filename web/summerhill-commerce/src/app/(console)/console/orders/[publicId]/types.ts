@@ -1,4 +1,4 @@
-/** The console order as the API returns it (JSON of fulfilment.consoleOrder). */
+
 export interface Line {
   id: number
   lineNo: number

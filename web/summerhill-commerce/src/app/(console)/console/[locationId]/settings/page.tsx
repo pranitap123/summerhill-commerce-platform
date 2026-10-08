@@ -11,7 +11,6 @@ import { SettingsForm } from './SettingsForm'
 export const metadata: Metadata = { title: 'Settings' }
 export const dynamic = 'force-dynamic'
 
-/** Location settings (G4-01): everyone on staff can read them, only the owner can change them. */
 export default async function SettingsPage({
   params,
 }: {

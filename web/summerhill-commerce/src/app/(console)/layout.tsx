@@ -19,15 +19,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-/**
- * Root layout of the merchant console (G4-06): tablet-first, installable (web app manifest),
- * separate from the storefront and from /ops. Every page checks the caller's store scope itself
- * (requireStaffPage); src/proxy.ts only checks that a session cookie exists.
- */
 export default async function ConsoleLayout({ children }: { children: ReactNode }) {
-  await connection() // per-request CSP nonce (G6-01)
+  await connection()
   return (
-    // data-theme is required: globals.css keeps <html> hidden until a theme is set
+
     <html
       lang="en-CA"
       data-theme="light"

@@ -1,9 +1,5 @@
 'use client'
 
-/**
- * Client for /api/console (G4). Errors keep the API's code and details so screens can react to
- * them (e.g. WEIGHT_CONFIRMATION_REQUIRED asks the picker to confirm).
- */
 export class ConsoleApiError extends Error {
   constructor(
     public status: number,
@@ -43,7 +39,6 @@ export async function consoleApi<T = unknown>(
   return data as T
 }
 
-/** "11:05 a.m." in the store's time zone. */
 export function storeTime(iso: string | null | undefined, timeZone: string): string {
   if (!iso) return ''
   return new Intl.DateTimeFormat('en-CA', { timeZone, hour: 'numeric', minute: '2-digit' }).format(

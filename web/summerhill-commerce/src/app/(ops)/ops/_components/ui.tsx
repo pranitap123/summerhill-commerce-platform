@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-/** Small presentational pieces shared by the /ops pages (server-safe). */
 export const cad = (cents: number | string | null | undefined) =>
   cents === null || cents === undefined
     ? '–'
@@ -160,11 +159,6 @@ export const A = ({ href, children }: { href: string; children: ReactNode }) => 
   </Link>
 )
 
-/**
- * A file from an API route (CSV, JSON). A plain link, not next/link: Link prefetches its target on
- * every view and routes clicks through client navigation, which for an export means building the
- * file in the background each time the page is shown.
- */
 export const Download = ({ href, children }: { href: string; children: ReactNode }) => (
   <a href={href} download className="text-[#1F3A2E] underline underline-offset-2">
     {children}

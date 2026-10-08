@@ -11,10 +11,6 @@ import { requireOpsPage } from '../requireAdminPage'
 export const metadata: Metadata = { title: 'Payouts' }
 export const dynamic = 'force-dynamic'
 
-/**
- * Payouts (G5-07, A9): manual payouts above the threshold wait here for a second person; nobody
- * approves their own request. Automatic payouts arrive from Stripe's payout.* webhooks.
- */
 export default async function PayoutsPage() {
   const ops = await requireOpsPage('/ops/payouts', 'payouts.manage')
   if (!ops) return <NotAuthorised />

@@ -12,7 +12,6 @@ import { requireOpsPage } from '../../requireAdminPage'
 export const metadata: Metadata = { title: 'Dispute' }
 export const dynamic = 'force-dynamic'
 
-/** One dispute (G5-06): the evidence pack (incl. the handover record), submit, liability. */
 export default async function DisputePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: raw } = await params
   const ops = await requireOpsPage(`/ops/disputes/${raw}`, 'disputes.manage')

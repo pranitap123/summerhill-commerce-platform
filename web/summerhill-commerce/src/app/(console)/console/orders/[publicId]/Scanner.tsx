@@ -2,12 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-/**
- * Barcode input for the pick screen (G4-10). Two ways in:
- *  - a handheld or keyboard-wedge scanner "types" the digits and presses Enter into the field
- *  - the tablet camera, through the browser's BarcodeDetector (Chrome on Android, Edge, …)
- * Either way the code goes to the server, which decides what it is (never trusted client-side).
- */
 interface Detector {
   detect(source: CanvasImageSource): Promise<Array<{ rawValue: string }>>
 }

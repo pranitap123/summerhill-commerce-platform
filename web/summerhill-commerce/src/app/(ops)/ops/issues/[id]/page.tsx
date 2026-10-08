@@ -12,10 +12,6 @@ import { ResolveIssue } from './ResolveIssue'
 export const metadata: Metadata = { title: 'Support issue' }
 export const dynamic = 'force-dynamic'
 
-/**
- * Agent view (ORDERS §10): the report, the pick records (weights, substitutions, picker), what
- * the customer was told, their earlier issues and 90-day refunds.
- */
 export default async function IssuePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: raw } = await params
   const ops = await requireOpsPage(`/ops/issues/${raw}`, 'issues.resolve')

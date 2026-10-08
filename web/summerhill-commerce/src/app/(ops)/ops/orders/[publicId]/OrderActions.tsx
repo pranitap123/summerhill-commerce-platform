@@ -16,10 +16,6 @@ const SCENARIOS = [
 const cad = (cents: number) =>
   new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100)
 
-/**
- * Refund form (G5-04): lines or an amount, the liability-matrix scenario, and a reason. The
- * Idempotency-Key is created once per open form, so resubmitting can't refund twice.
- */
 export function RefundForm({
   orderId,
   lines,
@@ -200,7 +196,6 @@ export function RefundForm({
   )
 }
 
-/** Cancel on behalf (A7): void before capture, full refund after. */
 export function CancelForm({ orderId, charged }: { orderId: number; charged: boolean }) {
   const { run, busy, feedback } = useOpsAction()
   const [reason, setReason] = useState('')

@@ -12,7 +12,6 @@ import { PickScreen } from './PickScreen'
 export const metadata: Metadata = { title: 'Order' }
 export const dynamic = 'force-dynamic'
 
-/** One order in the console (G4-07…G4-14): accept, pick, weigh, scan, replace, hand over. */
 export default async function ConsoleOrderPage({
   params,
 }: {
@@ -21,7 +20,7 @@ export default async function ConsoleOrderPage({
   const { publicId } = await params
   const scope = await requireStaffPage(`/console/orders/${publicId}`)
   if (!scope) return <NotStaff />
-  // Same scope rule as the API: another store's order is simply "not found".
+
   const initial = await consoleOrder(scope, publicId).catch(() => null)
   const order = initial ? await getOrderByPublicId(publicId) : null
   const settings = order ? await getLocationSettings(order.locationId) : null

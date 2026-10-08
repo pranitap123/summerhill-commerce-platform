@@ -21,11 +21,6 @@ const REJECT_REASONS: Array<[string, string]> = [
   ['other', 'Other'],
 ]
 
-/**
- * The pick screen (G4-07…G4-14). Everything a store worker does with one order on a tablet:
- * accept or reject, claim it, pick line by line (scan, weigh, replace), complete (which charges
- * the final amount), and hand over with the customer's pickup code.
- */
 export function PickScreen({
   initial,
   locationId,
@@ -50,7 +45,6 @@ export function PickScreen({
   const [code, setCode] = useState('')
   const path = `orders/${order.publicId}`
 
-  // Picks up customer answers to replacements and "I'm here" while the screen is open.
   useEffect(() => {
     if (['collected', 'cancelled', 'abandoned'].includes(order.status)) return
     const t = setInterval(() => {
@@ -84,20 +78,18 @@ export function PickScreen({
     },
     [],
   )
-  /** Errors are already shown as the message: swallow them for fire-and-forget calls. */
+
   const quiet = (p: Promise<unknown>): Promise<void> =>
     p.then(
       () => undefined,
       () => undefined,
     )
 
-  /** Turns an error into a question; the question replaces the error banner. */
   const ask = (message: string, yes: string, run: () => Promise<void>) => {
     setMessage(null)
     setPending({ kind: 'confirm', message, yes, run })
   }
 
-  // ---- line actions
   function pick(line: Line, body: PickBody, confirmed = false) {
     return quiet(
       act(() =>
@@ -178,7 +170,6 @@ export function PickScreen({
     setMessage({ tone: 'error', text: "That barcode didn't read correctly. Scan it again." })
   }
 
-  // ---- order actions
   const complete = (confirmOverAuthorization = false): Promise<void> =>
     quiet(
       act(
@@ -331,7 +322,6 @@ export function PickScreen({
         </div>
       )}
 
-      {/* ---- status actions */}
       <section className="flex flex-wrap items-center gap-2">
         {order.status === 'placed' && (
           <>

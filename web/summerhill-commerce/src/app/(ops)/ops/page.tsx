@@ -14,7 +14,6 @@ import { requireOpsPage } from './requireAdminPage'
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
 
-/** /ops (G5-01): what needs a person today, filtered to what the role can act on. */
 export default async function OpsHome() {
   const ops = await requireOpsPage('/ops')
   if (!ops) return <NotAuthorised />

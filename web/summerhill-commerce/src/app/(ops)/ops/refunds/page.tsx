@@ -9,7 +9,6 @@ import { requireOpsPage } from '../requireAdminPage'
 export const metadata: Metadata = { title: 'Refunds by agent' }
 export const dynamic = 'force-dynamic'
 
-/** Weekly refund review by agent (threat T16): who refunded how much. */
 export default async function RefundsPage() {
   const ops = await requireOpsPage('/ops/refunds', 'finance.read')
   if (!ops) return <NotAuthorised />

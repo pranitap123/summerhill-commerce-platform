@@ -16,10 +16,6 @@ interface SearchItem {
   merchantId: number
 }
 
-/**
- * "Out of stock today" (G4-20, M11): hide a product or a whole category from the storefront until
- * the store next opens. It comes back by itself; "Back in stock" undoes it sooner.
- */
 export function Availability({
   locationId,
   merchantId,

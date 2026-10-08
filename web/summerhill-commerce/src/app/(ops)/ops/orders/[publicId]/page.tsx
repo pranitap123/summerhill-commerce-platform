@@ -13,10 +13,6 @@ import { CancelForm, RefundForm } from './OrderActions'
 export const metadata: Metadata = { title: 'Order' }
 export const dynamic = 'force-dynamic'
 
-/**
- * One order, fully explained (G5-03, A5): what was ordered and picked, the money (payment,
- * refunds, disputes, ledger), support issues, and one timeline of everything that happened.
- */
 export default async function OrderPage({ params }: { params: Promise<{ publicId: string }> }) {
   const { publicId } = await params
   const ops = await requireOpsPage(`/ops/orders/${publicId}`, 'orders.read')

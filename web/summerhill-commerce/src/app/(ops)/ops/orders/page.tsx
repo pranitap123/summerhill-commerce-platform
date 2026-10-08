@@ -11,7 +11,6 @@ import { requireOpsPage } from '../requireAdminPage'
 export const metadata: Metadata = { title: 'Orders' }
 export const dynamic = 'force-dynamic'
 
-/** Order search (G5-03, A5): by order id, email or pickup name; filters by status and store. */
 export default async function OrdersPage({
   searchParams,
 }: {

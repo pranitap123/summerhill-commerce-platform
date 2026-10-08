@@ -10,7 +10,6 @@ import { requireOpsPage } from '../../requireAdminPage'
 export const metadata: Metadata = { title: 'Reconciliation run' }
 export const dynamic = 'force-dynamic'
 
-/** One reconciliation run and every difference it found (G5-05). */
 export default async function ReconRunPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: raw } = await params
   const ops = await requireOpsPage(`/ops/reconciliation/${raw}`, 'recon.run')

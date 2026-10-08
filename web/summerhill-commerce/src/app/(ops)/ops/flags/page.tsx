@@ -10,10 +10,6 @@ import { requireOpsPage } from '../requireAdminPage'
 export const metadata: Metadata = { title: 'Flags' }
 export const dynamic = 'force-dynamic'
 
-/**
- * Feature flags and kill switches (G5-10, A13). Checkout off: new checkouts are refused within
- * 30 s and the storefront shows a banner. Per-merchant pause is on the merchant's page.
- */
 export default async function FlagsPage() {
   const ops = await requireOpsPage('/ops/flags', 'flags.manage')
   if (!ops) return <NotAuthorised />

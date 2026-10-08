@@ -10,10 +10,6 @@ import { PrivacyForms } from './PrivacyForms'
 export const metadata: Metadata = { title: 'Privacy' }
 export const dynamic = 'force-dynamic'
 
-/**
- * Data subject requests and retention (G5-16, G5-17, SECURITY §7). Customers can also do both
- * from their account page.
- */
 export default async function PrivacyPage() {
   const ops = await requireOpsPage('/ops/privacy', 'privacy.manage')
   if (!ops) return <NotAuthorised />

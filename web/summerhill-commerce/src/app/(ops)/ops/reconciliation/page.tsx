@@ -10,7 +10,6 @@ import { RunReconciliation } from './RunReconciliation'
 export const metadata: Metadata = { title: 'Reconciliation' }
 export const dynamic = 'force-dynamic'
 
-/** Reconciliation (G5-05, A10): daily runs, manual re-runs, the monthly close export. */
 export default async function ReconciliationPage() {
   const ops = await requireOpsPage('/ops/reconciliation', 'recon.run')
   if (!ops) return <NotAuthorised />

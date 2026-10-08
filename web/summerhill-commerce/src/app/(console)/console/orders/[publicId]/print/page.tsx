@@ -16,11 +16,6 @@ export const dynamic = 'force-dynamic'
 const money = (cents: number) =>
   new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100)
 
-/**
- * Pick slip and bag labels (G4-16), printed from the browser. The slip carries each item's
- * barcode, and for weighed items a sample deli-scale label with the estimated price embedded, so
- * scan-to-verify and label decoding (G4-10/11) can be demonstrated with printouts.
- */
 export default async function PrintPage({
   params,
   searchParams,

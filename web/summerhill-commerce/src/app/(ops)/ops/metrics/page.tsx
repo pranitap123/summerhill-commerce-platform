@@ -30,7 +30,6 @@ const FORMAT: Record<MetricName, (v: number | null) => string> = {
   repeatRate30d: pct,
 }
 
-/** The last 30 days, as YYYY-MM-DD (the clock is read here, not during render). */
 function defaultRange(): { from: string; to: string } {
   const now = Date.now()
   return {
@@ -39,7 +38,6 @@ function defaultRange(): { from: string; to: string } {
   }
 }
 
-/** Admin metrics (G5-18, PRD §8), each with its written definition. */
 export default async function MetricsPage({
   searchParams,
 }: {

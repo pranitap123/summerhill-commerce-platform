@@ -96,7 +96,6 @@ export function MappingSelect({
   )
 }
 
-/** Hide, hide until, rename, recategorise one product (A4, overrides survive re-ingest). */
 export function OverrideForm({
   productId,
   hidden,

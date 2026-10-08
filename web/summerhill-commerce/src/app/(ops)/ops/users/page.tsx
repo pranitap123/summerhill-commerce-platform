@@ -12,10 +12,6 @@ import { InviteForm, MembershipEditor, RolesEditor } from './UserForms'
 export const metadata: Metadata = { title: 'Users' }
 export const dynamic = 'force-dynamic'
 
-/**
- * Users and roles (G5-15, A11): platform staff (admin, support, finance) and store staff. Every
- * change is audited; the last admin can't be removed; deactivation ends sessions at once.
- */
 export default async function UsersPage() {
   const ops = await requireOpsPage('/ops/users', 'users.manage')
   if (!ops) return <NotAuthorised />

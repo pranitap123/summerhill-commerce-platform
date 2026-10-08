@@ -11,7 +11,6 @@ import { Availability } from './Availability'
 export const metadata: Metadata = { title: 'Out of stock today' }
 export const dynamic = 'force-dynamic'
 
-/** "Out of stock today" toggles for products and whole categories (G4-20). */
 export default async function AvailabilityPage({
   params,
 }: {

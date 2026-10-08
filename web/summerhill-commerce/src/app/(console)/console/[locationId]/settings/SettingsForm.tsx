@@ -46,11 +46,6 @@ const DAYS: Array<[string, string]> = [
   ['7', 'Sunday'],
 ]
 
-/**
- * Store settings (G4-01, M10/M13): opening hours, slot length and capacity, lead time, holiday
- * closures, pause, and the scale-label layout. Saving is audited and changes future slots only;
- * slots with bookings keep them.
- */
 export function SettingsForm({
   locationId,
   canEdit,

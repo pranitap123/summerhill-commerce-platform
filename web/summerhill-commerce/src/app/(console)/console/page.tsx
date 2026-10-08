@@ -11,7 +11,6 @@ import { requireStaffPage } from './_lib/requireStaffPage'
 export const metadata: Metadata = { title: 'Stores' }
 export const dynamic = 'force-dynamic'
 
-/** /console: pick a store (straight to its queue when the caller works at only one). */
 export default async function ConsoleHome() {
   const scope = await requireStaffPage('/console')
   if (!scope) return <NotStaff />

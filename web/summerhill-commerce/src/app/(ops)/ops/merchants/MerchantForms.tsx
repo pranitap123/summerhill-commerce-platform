@@ -5,7 +5,6 @@ import { useState } from 'react'
 
 import { buttonCls, inputCls, newKey, opsFetch, useOpsAction } from '../_components/actions'
 
-/** New merchant with its first store, as a hidden draft (G5-02). */
 export function CreateMerchantForm() {
   const router = useRouter()
   const { run, busy, feedback } = useOpsAction()
@@ -71,7 +70,6 @@ export function CreateMerchantForm() {
   )
 }
 
-/** Stripe-hosted onboarding (Express): opens the link in this tab. */
 export function OnboardingButton({ merchantId, label }: { merchantId: number; label: string }) {
   const { run, busy, feedback } = useOpsAction()
   return (

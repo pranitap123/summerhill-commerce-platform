@@ -11,7 +11,6 @@ import { Queue } from './Queue'
 export const metadata: Metadata = { title: 'Orders' }
 export const dynamic = 'force-dynamic'
 
-/** The store's order queue (G4-06). The data is polled by the client every 10 seconds. */
 export default async function QueuePage({ params }: { params: Promise<{ locationId: string }> }) {
   const { locationId } = await params
   const id = Number(locationId)

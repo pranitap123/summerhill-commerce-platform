@@ -10,7 +10,6 @@ import { CreateMerchantForm } from './MerchantForms'
 export const metadata: Metadata = { title: 'Merchants' }
 export const dynamic = 'force-dynamic'
 
-/** Merchants (G5-02, A1/A2): lifecycle and Stripe status at a glance. */
 export default async function MerchantsPage() {
   const ops = await requireOpsPage('/ops/merchants', 'merchants.read')
   if (!ops) return <NotAuthorised />

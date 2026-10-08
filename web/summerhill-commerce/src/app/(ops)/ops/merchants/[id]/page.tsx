@@ -23,7 +23,6 @@ const ACTIONS: Record<string, string[]> = {
 const secs = (s: number | null) =>
   s === null ? '–' : s < 120 ? `${s} s` : `${Math.round(s / 60)} min`
 
-/** One merchant (G5-02, A1/A2): health, go-live gate, onboarding, lifecycle, payouts, statements. */
 export default async function MerchantPage({
   params,
   searchParams,
