@@ -1,9 +1,5 @@
 import type { DirectoryUser, Role, UserDirectory } from '@/modules/identity'
 
-/**
- * In-memory stand-in for the Payload user accounts (G5-15, G5-17 integration tests). Records the
- * side effects the real directory has elsewhere: password-setup emails and ended sessions.
- */
 export class MemoryDirectory implements UserDirectory {
   users = new Map<string, DirectoryUser & { password: string }>()
   passwordSetupEmails: string[] = []

@@ -15,20 +15,8 @@ import {
   stripe,
 } from '../setup/harness'
 
-/**
- * G6-05 resilience, against real Postgres and the real worker loop: the failures that matter for
- * money are the ambiguous ones, where Stripe did the work but we never heard back. Both a timeout
- * and a worker that dies mid-capture must end with exactly one capture and one ledger journal,
- * because every retry reuses the idempotency key `capture:{orderId}`. (Search down → Postgres
- * fallback with the breaker open is in catalog.test.ts, next to the index it needs.)
- */
 setupIntegrationHarness('grocery_resilience_it')
 
-/**
- * Stripe's idempotency on the shared fake gateway: the same key replays the first result instead
- * of capturing again, and `loseNextCaptureAnswer` captures at "Stripe" and then loses the answer
- * (our side timed out).
- */
 const gateway = stripe
 let loseNextCaptureAnswer = false
 const original = gateway.capturePaymentIntent.bind(gateway)
@@ -84,7 +72,7 @@ describe('Stripe timeout during capture (G6-05)', () => {
     const order = await pickedOrder('timeout@example.com', 'idem-resilience-timeout')
     loseNextCaptureAnswer = true
 
-    await drainWorker() // first attempt: captured at Stripe, but we saw a timeout
+    await drainWorker()
     const afterTimeout = await sql(
       db.adminUrl,
       `SELECT status, attempts, last_error FROM ops.jobs WHERE queue = 'payment.capture'
@@ -96,7 +84,7 @@ describe('Stripe timeout during capture (G6-05)', () => {
     expect((await orderRow(order.publicId)).status).toBe('picked')
 
     await sql(db.adminUrl, `UPDATE ops.jobs SET run_at = now() WHERE status = 'queued'`)
-    await drainWorker() // the retry replays Stripe's answer
+    await drainWorker()
 
     expect((await orderRow(order.publicId)).status).toBe('ready')
     expect(gateway.captures.filter((c) => c.id === order.pi)).toHaveLength(1)
@@ -109,8 +97,6 @@ describe('worker crash mid-capture (G6-05)', () => {
     const order = await pickedOrder('crash@example.com', 'idem-resilience-crash')
     await m.ops.relayOutbox(m.registry.SUBSCRIPTIONS)
 
-    // The dying worker claims the job and gets as far as Stripe, then the process is gone: no
-    // commit, no completeJob, no failJob.
     const [job] = await m.ops.claimJobs(['payment.capture'], 1, 'worker-that-dies')
     expect(job.payload.event).toMatchObject({ payload: { orderId: order.id } })
     const payment = await sql(
@@ -127,10 +113,9 @@ describe('worker crash mid-capture (G6-05)', () => {
       `capture:${order.id}`,
     )
 
-    // Other workers leave a running job alone...
     await drainWorker()
     expect((await orderRow(order.publicId)).status).toBe('picked')
-    // ...until the lease expires and recovery puts it back.
+
     expect(await m.registry.recoverStuckJobs(0)).toBeGreaterThanOrEqual(1)
     await drainWorker()
 
@@ -142,10 +127,6 @@ describe('worker crash mid-capture (G6-05)', () => {
   })
 })
 
-/**
- * G7-07 runbooks: the operator's way back after a job gave up. RB-04 captures a payment_issue order
- * again with the same idempotency key; RB-03 replays a stored webhook event that failed.
- */
 describe('runbook RB-04: retry a failed capture (G7-07)', () => {
   it('a dead capture job leaves payment_issue; the retry captures once, audited, order ready', async () => {
     const order = await pickedOrder('retry@example.com', 'idem-resilience-retry')
@@ -156,13 +137,13 @@ describe('runbook RB-04: retry a failed capture (G7-07)', () => {
       return wrapped(id, amounts, key)
     }
     try {
-      await drainWorker() // first attempt fails and is rescheduled
+      await drainWorker()
       await sql(
         db.adminUrl,
         `UPDATE ops.jobs SET max_attempts = attempts, run_at = now()
          WHERE queue = 'payment.capture' AND status = 'queued'`,
       )
-      await drainWorker() // last attempt: dead letter → payment_issue + alert
+      await drainWorker()
       expect((await orderRow(order.publicId)).status).toBe('payment_issue')
       const actor = { type: 'admin' as const, id: 'cli:ops' }
       failing = false
@@ -184,7 +165,6 @@ describe('runbook RB-04: retry a failed capture (G7-07)', () => {
         data: { reason: 'restriction lifted' },
       })
 
-      // Only a payment_issue order can be retried; unknown orders are 404.
       await expect(m.payments.retryCapture(order.id, actor, 'again')).rejects.toMatchObject({
         status: 409,
       })
@@ -214,12 +194,12 @@ describe('runbook RB-03: replay a failed webhook (G7-07)', () => {
     const event = sessionEvent('checkout.session.completed', sid, Number(order.id))
     await sendWebhook(event)
     const actor = { type: 'admin' as const, id: 'cli:ops' }
-    // Still queued for the worker: a replay would race it.
+
     await expect(m.payments.replayWebhookEvent(String(event.id), actor)).rejects.toMatchObject({
       status: 409,
       code: 'IN_PROGRESS',
     })
-    // As if every attempt had failed: the job is dead and the event marked failed.
+
     await sql(db.adminUrl, `UPDATE ops.jobs SET status = 'dead' WHERE dedupe_key = $1`, [event.id])
     await sql(db.adminUrl, `UPDATE ops.webhook_events SET status = 'failed' WHERE event_id = $1`, [
       event.id,

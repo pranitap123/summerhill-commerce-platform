@@ -24,13 +24,6 @@ import {
 import { MemoryDirectory } from '../setup/memoryDirectory'
 import { REPO_ROOT } from '../setup/testDb'
 
-/**
- * G5 (back office and finance) against real Postgres as app_rw: refunds with the liability matrix,
- * cancel on behalf, disputes, payouts, merchant lifecycle and onboarding, reconciliation,
- * statements, support issues, staff MFA, user management, flags, audit, retention, privacy,
- * metrics and catalogue admin. Sessions come from an `x-test-user` header (Payload's auth is
- * replaced below); every route runs its real handler, permission check and audit.
- */
 vi.mock('@/modules/identity', async () => {
   const actual = await vi.importActual<typeof import('@/modules/identity')>('@/modules/identity')
   return {
@@ -72,7 +65,6 @@ let reporting: typeof import('@/modules/reporting')
 let keySeq = 0
 const key = () => `it-key-${Date.now()}-${++keySeq}`
 
-/** An admin API call as `user` (route file under src/app/api/admin). */
 async function admin(
   user: User | null,
   method: string,
@@ -97,7 +89,6 @@ async function admin(
   )
 }
 
-/** A call whose response isn't JSON (CSV exports). */
 async function rawCall(
   user: User,
   routeFile: string,
@@ -122,7 +113,6 @@ interface Placed {
   email: string
 }
 
-/** Customer checkout, payment and webhook → placed. */
 async function place(
   items: Array<[string, { quantity?: number; weightLb?: number }]>,
   email = `shopper-${++keySeq}@example.com`,
@@ -143,7 +133,6 @@ async function place(
   return { b, publicId, orderId, token, email }
 }
 
-/** …then picked in full and captured by the worker → ready. */
 async function placeCaptured(
   items: Array<[string, { quantity?: number; weightLb?: number }]>,
   email?: string,
@@ -155,7 +144,6 @@ async function placeCaptured(
   return o
 }
 
-/** Handover at the counter with the customer's pickup code (G4-14). */
 async function collect(o: Placed): Promise<void> {
   const code = (await orderRow(o.publicId)).pickup_code
   const scope = m.fulfilment.staffScope({ ...ADMIN, id: ADMIN.id } as never, [])
@@ -219,7 +207,6 @@ beforeAll(async () => {
     )
 })
 
-// ================================================================== G5-01 /ops shell and roles
 describe('back-office roles (G5-01)', () => {
   it('each role sees its own permissions', async () => {
     const me = await admin(SUPPORT, 'GET', 'me')
@@ -230,13 +217,11 @@ describe('back-office roles (G5-01)', () => {
   })
 })
 
-// ================================================ G5-04 refunds with the liability matrix
 describe('refunds and the liability matrix (G5-04)', () => {
   let o: Placed
   let apples: number
   let water: number
   beforeAll(async () => {
-    // Apples 2 × $9.39 (zero-rated) + sparkling water 2 × $5.59 (HST + 10¢ deposit each)
     o = await placeCaptured([
       ['DEMO-0002', { quantity: 2 }],
       ['DEMO-0157', { quantity: 2 }],
@@ -279,7 +264,6 @@ describe('refunds and the liability matrix (G5-04)', () => {
     })
     expect(call.key).toBe(`refund:${res.body.id}`)
 
-    // A retry with the same key replays the answer and never refunds twice
     const again = await admin(SUPPORT, 'POST', 'orders/[id]/refunds', { id: o.orderId }, body, {
       'idempotency-key': k,
     })
@@ -399,7 +383,7 @@ describe('refunds and the liability matrix (G5-04)', () => {
   })
 
   it('support is capped at $50 per order; finance is not (threat T16)', async () => {
-    const big = await placeCaptured([['DEMO-0004', { quantity: 3 }]]) // 3 × $20.99
+    const big = await placeCaptured([['DEMO-0004', { quantity: 3 }]])
     const line = Number((await lines(big.orderId))[0].id)
     const first = await admin(
       SUPPORT,
@@ -541,7 +525,6 @@ describe('refunds and the liability matrix (G5-04)', () => {
   })
 })
 
-// ================================================================ A7 cancel after capture
 describe('cancel on behalf after capture (A7)', () => {
   it('refunds in full, then cancels a ready order', async () => {
     const o = await placeCaptured([['DEMO-0002', { quantity: 2 }]])
@@ -579,7 +562,6 @@ describe('cancel on behalf after capture (A7)', () => {
   })
 })
 
-// ================================================================================ G5-06
 describe('disputes (G5-06)', () => {
   let o: Placed
   let disputeId: number
@@ -589,7 +571,7 @@ describe('disputes (G5-06)', () => {
     await collect(o)
     dp = stripe.dispute((await payment(o.orderId)).payment_intent_id, 'fraudulent')
     await sendWebhook(stripeEvent('charge.dispute.created', dp))
-    await sendWebhook(stripeEvent('charge.dispute.created', dp)) // duplicate delivery
+    await sendWebhook(stripeEvent('charge.dispute.created', dp))
     await drainWorker()
     disputeId = Number(
       (
@@ -652,7 +634,7 @@ describe('disputes (G5-06)', () => {
     expect(r.status, JSON.stringify(r.body)).toBe(200)
     expect(r.body).toMatchObject({ liability: 'merchant', recoveredCents: dp.amount })
     expect(stripe.reversals.at(-1)).toMatchObject({ amountCents: dp.amount })
-    // The platform is left with the dispute fee only
+
     const e = await account(o.orderId, 'dispute_expense')
     expect(e.debit - e.credit).toBe(1500)
   })
@@ -697,7 +679,6 @@ describe('disputes (G5-06)', () => {
   })
 })
 
-// ================================================================================ G5-07
 describe('payouts (G5-07)', () => {
   beforeAll(async () => {
     stripe.accounts.get(ACCT)!.available = 3_000_000
@@ -847,7 +828,6 @@ describe('payouts (G5-07)', () => {
   })
 })
 
-// ================================================================================ G5-02
 describe('merchant onboarding and lifecycle (G5-02)', () => {
   let id: number
   afterAll(() => {
@@ -904,7 +884,7 @@ describe('merchant onboarding and lifecycle (G5-02)', () => {
     expect(r.body.url).toMatch(/\/ops\/merchants\/\d+\?onboarding=done$/)
     expect(stripe.customAccountRequests).toHaveLength(1)
     const again = await admin(ADMIN, 'POST', 'merchants/[id]/onboarding-link', { id: customId })
-    expect(again.body.accountId).toBe(r.body.accountId) // one account per merchant
+    expect(again.body.accountId).toBe(r.body.accountId)
     expect(stripe.customAccountRequests).toHaveLength(1)
     expect(
       (await admin(SUPPORT, 'GET', 'merchants/[id]', { id: customId })).body.merchant,
@@ -922,7 +902,7 @@ describe('merchant onboarding and lifecycle (G5-02)', () => {
     expect(r.status, JSON.stringify(r.body)).toBe(200)
     expect(r.body.url).toMatch(/^https:\/\/connect\.stripe\.test\//)
     const again = await admin(ADMIN, 'POST', 'merchants/[id]/onboarding-link', { id })
-    expect(again.body.accountId).toBe(r.body.accountId) // one account per merchant
+    expect(again.body.accountId).toBe(r.body.accountId)
     const blocked = await admin(
       ADMIN,
       'POST',
@@ -1038,7 +1018,7 @@ describe('merchant onboarding and lifecycle (G5-02)', () => {
   })
 
   it('offboarding waits for open orders', async () => {
-    await place([['DEMO-0002', { quantity: 2 }]]) // stays placed
+    await place([['DEMO-0002', { quantity: 2 }]])
     await admin(
       ADMIN,
       'POST',
@@ -1055,7 +1035,7 @@ describe('merchant onboarding and lifecycle (G5-02)', () => {
     )
     expect(r.status).toBe(409)
     expect(r.body.error.code).toBe('OPEN_ORDERS')
-    // back to live for the rest of the suite
+
     await sql(
       db.adminUrl,
       `UPDATE merchant.merchants SET lifecycle_status = 'live', accepting_orders = true, storefront_visible = true WHERE id = 1`,
@@ -1063,7 +1043,6 @@ describe('merchant onboarding and lifecycle (G5-02)', () => {
   })
 })
 
-// ================================================================================ G5-11
 describe('support issues (G5-11)', () => {
   let o: Placed
   let apples: number
@@ -1111,7 +1090,7 @@ describe('support issues (G5-11)', () => {
       lines: [{ lineId: water }],
       description: 'Can dented and leaking',
     })
-    expect(second.body.status).toBe('auto_approved') // 939 + 1283 ≤ $30 in 90 days
+    expect(second.body.status).toBe('auto_approved')
   })
 
   it('over the 90-day limit the issue waits for an agent, who approves it', async () => {
@@ -1190,7 +1169,6 @@ describe('support issues (G5-11)', () => {
   })
 })
 
-// ================================================================================ G5-05
 describe('reconciliation (G5-05)', () => {
   const run = async () => {
     const r = await admin(FINANCE, 'POST', 'reconciliation', {}, { runDate: torontoToday() })
@@ -1268,8 +1246,7 @@ describe('reconciliation (G5-05)', () => {
   })
 
   it('the scheduled run happens once a day, after 06:00 Toronto', async () => {
-    // A day nobody has reconciled yet (the worker's own schedule may already have done yesterday)
-    const now = new Date('2030-01-15T17:00:00Z') // 12:00 in Toronto
+    const now = new Date('2030-01-15T17:00:00Z')
     const first = await payouts.runScheduledReconciliation(now)
     expect(first?.trigger).toBe('schedule')
     expect(await payouts.runScheduledReconciliation(now)).toBeNull()
@@ -1292,7 +1269,6 @@ describe('reconciliation (G5-05)', () => {
   })
 })
 
-// ================================================================================ G5-08, G5-13
 describe('statements (G5-08) and the owner finance view (G5-13)', () => {
   it('the monthly statement matches the ledger and the money tables', async () => {
     const month = torontoToday().slice(0, 7)
@@ -1357,7 +1333,6 @@ describe('statements (G5-08) and the owner finance view (G5-13)', () => {
   })
 })
 
-// ================================================================================ G5-12
 describe('staff MFA (G5-12)', () => {
   it('enrols, confirms with the first code, refuses replays and re-enrolment', async () => {
     const { secret } = await ident.beginEnrolment('701', 'new.staff@demo.test')
@@ -1411,7 +1386,6 @@ describe('staff MFA (G5-12)', () => {
   })
 })
 
-// ================================================================================ G5-15
 describe('user and role management (G5-15)', () => {
   it('invites with a password-setup email; roles change with before/after in the audit log', async () => {
     const r = await admin(
@@ -1485,7 +1459,6 @@ describe('user and role management (G5-15)', () => {
   })
 })
 
-// ================================================================================ G5-09/10
 describe('flags (G5-10) and the audit trail (G5-09)', () => {
   it('checkout off → refused at once and shown by /api/v1/status', async () => {
     const off = await admin(
@@ -1552,7 +1525,6 @@ describe('flags (G5-10) and the audit trail (G5-09)', () => {
   })
 })
 
-// ================================================================================ G5-16, G5-17
 describe('retention (G5-16) and privacy requests (G5-17)', () => {
   it('exports every personal field, then deletion anonymises orders and closes the account', async () => {
     directory.add({
@@ -1585,7 +1557,7 @@ describe('retention (G5-16) and privacy requests (G5-17)', () => {
     const row = await orderRow(o.publicId)
     expect(row.email).toBe(`deleted-${o.orderId}@anonymised.invalid`)
     expect([row.pickup_name, row.user_id]).toEqual([null, null])
-    expect(Number(row.final_total_cents)).toBeGreaterThan(0) // the money record stays
+    expect(Number(row.final_total_cents)).toBeGreaterThan(0)
     expect((await directory.get('801'))!).toMatchObject({
       email: 'deleted-801@anonymised.invalid',
       name: null,
@@ -1643,14 +1615,12 @@ describe('retention (G5-16) and privacy requests (G5-17)', () => {
     expect(row.email).toBe(`anon-${o.orderId}@anonymised.invalid`)
     expect(row.pickup_name).toBeNull()
     expect(await ledgerBalanced(o.orderId)).toBe(before)
-    expect((await privacy.runRetentionPurge()).ordersAnonymised).toBe(0) // idempotent
+    expect((await privacy.runRetentionPurge()).ordersAnonymised).toBe(0)
   })
 })
 
-// ================================================================================ G5-18
 describe('admin metrics (G5-18)', () => {
   it('match SQL spot checks', async () => {
-    // One check-in 5 minutes before the handover
     const o = await placeCaptured([['DEMO-0002', { quantity: 2 }]])
     await collect(o)
     await sql(
@@ -1693,12 +1663,11 @@ describe('admin metrics (G5-18)', () => {
       `SELECT (SELECT count(*) FROM finance.disputes)::float / (SELECT count(*) FROM finance.payments WHERE status = 'captured') AS n`,
     )
     expect(mt.disputeRate).toBeCloseTo(disputes.n, 10)
-    expect(mt.fillRate).toBe(1) // every line was picked in these orders
+    expect(mt.fillRate).toBe(1)
     for (const k of Object.keys(reporting.METRIC_DEFINITIONS)) expect(mt).toHaveProperty(k)
   })
 })
 
-// ================================================================================ G5-03
 describe('order search and the one-page order view (G5-03)', () => {
   it('finds orders by id and email, and explains one fully', async () => {
     const o = await placeCaptured([['DEMO-0002', { quantity: 2 }]], 'findme@example.com')
@@ -1714,7 +1683,6 @@ describe('order search and the one-page order view (G5-03)', () => {
   })
 })
 
-// ================================================================================ G5-14
 describe('catalogue admin (G5-14)', () => {
   const pipeline = (args: string[], env: Record<string, string> = {}) => {
     try {
@@ -1723,7 +1691,6 @@ describe('catalogue admin (G5-14)', () => {
         encoding: 'utf8',
       })
     } catch (err) {
-      // exit code 3 = held for approval
       if ((err as { status?: number }).status === 3) return 'held'
       throw err
     }
@@ -1773,7 +1740,7 @@ describe('catalogue admin (G5-14)', () => {
       )
     ).rows[0].n
     expect(after).toBe(Math.floor(before / 2))
-    // Restore the full catalogue through a requested re-run
+
     await admin(ADMIN, 'POST', 'catalog/ingest-runs', {}, { merchantId: 1, mode: 'full' })
     pipeline(['process-requests'])
     const reqs = (await admin(ADMIN, 'GET', 'catalog/ingest-runs', {})).body.requests

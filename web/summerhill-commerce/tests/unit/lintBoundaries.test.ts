@@ -6,7 +6,6 @@ import { beforeAll, describe, expect, it } from 'vitest'
 // Module boundary rules from eslint.config.mjs (G1-05, ADR-0002), exercised through the ESLint API.
 const eslint = new ESLint({ cwd: path.resolve(__dirname, '../..') })
 
-// The first lint loads the config and the TypeScript parser (slow on a cold machine).
 beforeAll(async () => {
   await eslint.lintText('export {}\n', { filePath: 'src/warmup.ts' })
 }, 240_000)

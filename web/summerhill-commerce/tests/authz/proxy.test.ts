@@ -3,9 +3,6 @@ import { describe, expect, it } from 'vitest'
 
 import { categorySlug, config, proxy } from '@/proxy'
 
-// src/proxy.ts: the coarse first gate in front of /ops, /api/admin and the merchant console (G1-06,
-// G4-06), the permanent redirect of pre-G3 /shop?category=<name> links (G3-13), and the CSP nonce,
-// CSRF origin check and Payload-admin second factor (G6-01).
 describe('proxy', () => {
   const req = (path: string, cookie?: string) =>
     new NextRequest(`http://localhost${path}`, cookie ? { headers: { cookie } } : undefined)

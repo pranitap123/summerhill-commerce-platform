@@ -15,12 +15,6 @@ import {
   setupIntegrationHarness,
 } from '../setup/harness'
 
-/**
- * G4 (fulfilment) end to end against real Postgres as app_rw: pickup slots and holds, the
- * merchant console (accept → pick → weigh/scan → replace → capture → handover), customer order
- * actions and the time-driven rules (fake clock). Sessions come from an `x-test-user` header
- * (Payload's auth is replaced below); every route runs its real handler, policy and scope checks.
- */
 vi.mock('@/modules/identity', async () => {
   const actual = await vi.importActual<typeof import('@/modules/identity')>('@/modules/identity')
   return {
@@ -35,7 +29,7 @@ vi.mock('@/modules/identity', async () => {
 setupIntegrationHarness('grocery_fulfilment_it')
 
 type User = { id: number; email: string; roles: Array<'admin' | 'customer'>; mfaVerified: boolean }
-// Staff have passed their second factor (G5-12); the gate itself is tested in tests/authz.
+
 const person = (id: number, email: string, roles: User['roles'] = ['customer']): User => ({
   id,
   email,
@@ -52,7 +46,6 @@ const ADMIN = person(1, 'admin@demo.test', ['admin'])
 let LOCATION = 0
 let OTHER_LOCATION = 0
 
-/** A console call as `user` (route file under src/app/api/console). */
 async function consoleCall(
   user: User | null,
   method: string,
@@ -73,7 +66,6 @@ async function consoleCall(
   )
 }
 
-/** A customer action on an order through its guest link. */
 function orderAction(
   b: Browser,
   action: string,
@@ -102,7 +94,6 @@ interface Placed {
   quote: { lines: Array<{ productId: string; lineTotalCents: number }> }
 }
 
-/** Customer places an order (cart → quote → checkout with a slot → paid → webhook). */
 async function placeOrder(
   items: Array<[string, { quantity?: number; weightLb?: number }, Record<string, unknown>?]>,
   opts: { slotId?: number; email?: string } = {},
@@ -130,7 +121,6 @@ async function placeOrder(
   return { b, publicId, orderId, token, quote: body.quote }
 }
 
-// Console lines are loosely typed here: the assertions check the fields they need.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyLine = { id: number; productId: string } & Record<string, any>
 const lineOf = (order: { lines: AnyLine[] }, productId: string): AnyLine =>
@@ -146,7 +136,7 @@ beforeAll(async () => {
   LOCATION = Number(
     (await sql(db.adminUrl, 'SELECT id FROM merchant.locations WHERE merchant_id = 1')).rows[0].id,
   )
-  // A second store for the cross-tenant tests.
+
   const other = await sql(
     db.adminUrl,
     `INSERT INTO merchant.merchants (slug, name) VALUES ('other-market', 'Other Market') RETURNING id`,
@@ -180,7 +170,6 @@ beforeAll(async () => {
     )
 })
 
-// ------------------------------------------------------------------------------------ G4-02
 describe('slot holds under concurrency (G4-02)', () => {
   it('20 parallel checkouts on a capacity-5 slot → exactly 5 orders', async () => {
     const browsers = Array.from({ length: 20 }, () => new Browser())
@@ -190,7 +179,7 @@ describe('slot holds under concurrency (G4-02)', () => {
       hashes.push((await b.quote()).body.quote.hash)
     }
     const { body: offered } = await browsers[0].call('GET', 'v1/cart/slots', '/api/v1/cart/slots')
-    const slot = offered.slots.at(-1) // the last day in the window: untouched by other tests
+    const slot = offered.slots.at(-1)
     expect(slot.remaining).toBe(5)
     const results = await Promise.all(
       browsers.map((b, i) =>
@@ -211,7 +200,6 @@ describe('slot holds under concurrency (G4-02)', () => {
     )
     expect(counters.rows[0]).toEqual({ booked: 0, held: 5 })
 
-    // Paid → booked; checkout expired → released; the rest expire and the job frees them.
     const won = results.filter((r) => r.status === 201)
     const [paid, expired] = won
     const paidOrder = await orderRow(paid.body.publicId)
@@ -242,7 +230,6 @@ describe('slot holds under concurrency (G4-02)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-03
 describe('slot picker rules at checkout (G4-03)', () => {
   it('refuses a slot inside the lead time, and a slot of another store', async () => {
     const b = new Browser()
@@ -296,7 +283,6 @@ describe('slot picker rules at checkout (G4-03)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-04
 describe('replacement preferences (G4-04)', () => {
   it('stores up to 3 ranked specific replacements per line and validates them', async () => {
     const b = new Browser()
@@ -338,13 +324,12 @@ describe('replacement preferences (G4-04)', () => {
       (await patch({ replacementPreference: 'specific', replacementProductIds: ['NOPE-1'] })).body
         .error.code,
     ).toBe('REPLACEMENT_INVALID')
-    // Switching back to refund clears the ranked list
+
     const refund = await patch({ replacementPreference: 'refund' })
     expect(refund.body.cart.items[0].replacementProductIds).toEqual([])
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-05
 describe('merchant staff scope (G4-05)', () => {
   let order: Placed
   beforeAll(async () => {
@@ -410,7 +395,6 @@ describe('merchant staff scope (G4-05)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-01
 describe('location settings (G4-01)', () => {
   it('owner changes are audited and apply to future slots only, never below bookings', async () => {
     const past = await sql(
@@ -446,7 +430,7 @@ describe('location settings (G4-01)', () => {
     const pastRow = await sql(db.adminUrl, 'SELECT capacity FROM commerce.slots WHERE id = $1', [
       past.rows[0].id,
     ])
-    expect(pastRow.rows[0].capacity).toBe(5) // the past is not rewritten
+    expect(pastRow.rows[0].capacity).toBe(5)
     if (booked.rows[0]) {
       const b = caps.rows.find((r) => r.id === booked.rows[0].id)
       expect(b.capacity).toBeGreaterThanOrEqual(b.booked + b.held)
@@ -457,7 +441,7 @@ describe('location settings (G4-01)', () => {
     )
     expect(audit.rows.at(-1)).toMatchObject({ actor_type: 'merchant_staff', actor_id: '101' })
     expect(audit.rows.at(-1).data.before).toMatchObject({ slotCapacity: 5, leadTimeMinutes: 120 })
-    // Restore the defaults for the other tests
+
     await consoleCall(
       OWNER,
       'PUT',
@@ -492,7 +476,7 @@ describe('location settings (G4-01)', () => {
     const dayOf = (iso: string) =>
       new Intl.DateTimeFormat('en-CA', { timeZone: before.timeZone }).format(new Date(iso))
     expect(after.slots.some((s: { startsAt: string }) => dayOf(s.startsAt) === day)).toBe(false)
-    // The G4-02 slot with a booking survives as closed; slots nobody touched are gone
+
     const kept = await sql(
       db.adminUrl,
       `SELECT closed, booked FROM commerce.slots WHERE location_id = $1 AND booked > 0
@@ -543,7 +527,6 @@ describe('location settings (G4-01)', () => {
   })
 })
 
-// ------------------------------------------------------------ the full journey (G4-06…G4-19)
 describe('order → accept → pick → weigh/scan → replace → capture → handover', () => {
   let o: Placed
   const p = () => ({ publicId: o.publicId })
@@ -563,7 +546,7 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
     expect(new Date(entry.autoRejectAt).getTime() - new Date(entry.placedAt).getTime()).toBe(
       15 * 60_000,
     )
-    expect(entry.pickupName).toBe('shopper') // never the full email address
+    expect(entry.pickupName).toBe('shopper')
   })
 
   it('accept, then one picker per order; taking over must be confirmed (G4-07, G4-08)', async () => {
@@ -610,7 +593,7 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
         },
         body,
       )
-    const wrong = await pick({ action: 'picked', scannedCode: '420260000204' }) // DEMO-0002
+    const wrong = await pick({ action: 'picked', scannedCode: '420260000204' })
     expect(wrong.status).toBe(422)
     expect(wrong.body.error).toMatchObject({
       code: 'WRONG_ITEM',
@@ -653,7 +636,7 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
       details: { weightLb: 3, estimatedWeightLb: 1.5 },
     })
     expect((await weigh({ action: 'picked' })).body.error.code).toBe('WEIGHT_REQUIRED')
-    // Scale label for Maple Row Bananas (item 00006) with $7.00 embedded
+
     const label = m.fulfilment.encodeScaleLabel('200006000008', 700)
     const labelled = await weigh({ action: 'picked', scannedCode: label })
     expect(labelled.status).toBe(200)
@@ -662,7 +645,7 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
       labelPriceCents: 700,
       actualWeightLb: 1.711, // 700 / 409 per lb
     })
-    // Apples by count: 2 picked, weighed together
+
     const apples = await consoleCall(
       PICKER,
       'POST',
@@ -729,10 +712,10 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
         },
         { productId, quantity: 2, reason: 'Out of stock' },
       )
-    // Zero-rated apples → taxable sparkling water with deposit would cost more all in
+
     const dearer = await sub('DEMO-0158')
     expect(dearer.body.error.code).toBe('SUBSTITUTE_COSTS_MORE')
-    // Old Mill Bananas at 20.99 each: allowed, but charged at most the original 2 × 9.39
+
     const ok = await sub('DEMO-0004')
     expect(ok.status).toBe(200)
     const line = lineOf(ok.body, 'DEMO-0002')
@@ -777,7 +760,7 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
       customerDecision: 'rejected',
     })
     const view = await consoleCall(PICKER, 'GET', 'orders/[publicId]', p())
-    expect(view.body.money.projectedTotalCents).toBe(6051 - 1878) // rejected → not charged
+    expect(view.body.money.projectedTotalCents).toBe(6051 - 1878)
     const approved = await decide('approved')
     expect(approved.status).toBe(200)
     const back = await consoleCall(PICKER, 'GET', 'orders/[publicId]', p())
@@ -789,7 +772,7 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
     expect(done.body.status).toBe('picked')
     await drainWorker()
     const row = await orderRow(o.publicId)
-    // Subtotal: 18.78 (replacement capped) + 16.77 + 7.00 (label) + 15.48 (3.3 lb × 4.69) = 58.03
+
     expect(row).toMatchObject({
       status: 'ready',
       final_item_subtotal_cents: '5803',
@@ -923,13 +906,12 @@ describe('order → accept → pick → weigh/scan → replace → capture → h
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-07
 describe('acceptance deadlines and rejects (G4-07)', () => {
   it('escalates at 10 minutes and auto-rejects at 15, voiding the hold (fake clock)', async () => {
     const o = await placeOrder([['DEMO-0002', { quantity: 2 }]])
     const placedAt = (await orderRow(o.publicId)).placed_at as Date
     const at = (min: number) => new Date(placedAt.getTime() + min * 60_000)
-    // Other tests leave orders unaccepted too, so assert on this order rather than on counts
+
     await m.fulfilment.runAcceptanceSweep(at(9))
     expect((await orderRow(o.publicId)).escalated_at).toBeNull()
     await m.fulfilment.runAcceptanceSweep(at(10.5))
@@ -953,7 +935,7 @@ describe('acceptance deadlines and rejects (G4-07)', () => {
       'SELECT status FROM commerce.slot_holds WHERE order_id = $1',
       [o.orderId],
     )
-    expect(hold.rows[0].status).toBe('released') // its place in the slot is free again
+    expect(hold.rows[0].status).toBe('released')
     await drainWorker()
     const email = mail.find((x) => x.subject === `Order ${o.publicId} cancelled`)!
     expect(email.text).toMatch(/couldn't confirm your order in time/)
@@ -978,7 +960,6 @@ describe('acceptance deadlines and rejects (G4-07)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-15
 describe('customer cancel before acceptance (G4-15)', () => {
   it('voids the hold and frees the slot; refused once the store accepted', async () => {
     const o = await placeOrder([['DEMO-0002', { quantity: 2 }]])
@@ -1001,16 +982,15 @@ describe('customer cancel before acceptance (G4-15)', () => {
     await consoleCall(PICKER, 'POST', 'orders/[publicId]/accept', { publicId: accepted.publicId })
     const late = await orderAction(accepted.b, 'cancel', accepted.publicId, accepted.token)
     expect(late.status).toBe(409)
-    // Without the link: 404, as for an order that doesn't exist
+
     const stranger = await orderAction(new Browser(), 'cancel', accepted.publicId, 'forged')
     expect(stranger.status).toBe(404)
   })
 })
 
-// ------------------------------------------------------------------------ G4-13 edge cases
 describe('final total above the card hold (G4-13, ORDERS §6)', () => {
   it('asks the picker to confirm, then captures the authorised amount and alerts', async () => {
-    const o = await placeOrder([['DEMO-0006', { weightLb: 4 }]]) // est. 16.36 + 15% hold = 18.81
+    const o = await placeOrder([['DEMO-0006', { weightLb: 4 }]])
     const p = { publicId: o.publicId }
     await consoleCall(PICKER, 'POST', 'orders/[publicId]/accept', p)
     const start = await consoleCall(PICKER, 'POST', 'orders/[publicId]/start', p, {})
@@ -1045,7 +1025,6 @@ describe('final total above the card hold (G4-13, ORDERS §6)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------ G4-14 no-show
 describe('no-show (G4-14)', () => {
   it('a ready order not collected 24 h after its window becomes a no-show, and can still be handed over', async () => {
     const o = await placeOrder([['DEMO-0002', { quantity: 2 }]])
@@ -1071,7 +1050,6 @@ describe('no-show (G4-14)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------ G4-20
 describe('"out of stock today" (G4-20)', () => {
   const visible = async (id: string) =>
     (await sql(db.adminUrl, 'SELECT is_visible FROM catalog.product_view WHERE id = $1', [id]))

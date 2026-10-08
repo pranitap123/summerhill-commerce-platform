@@ -10,13 +10,6 @@ import {
   type PricingProduct,
 } from '@/modules/pricing'
 
-/**
- * GOLDEN MONEY TEST (G2-05, gate G2). Reproduces the worked example in
- * docs/domains/PAYMENTS_AND_MONEY.md §9 to the cent: estimate → authorisation → final amounts after
- * picking → capture → fee → merchant transfer → journal. If this test changes, the document must
- * change in the same commit.
- */
-// Typed (not `as const`): a readonly empty tuple isn't assignable to PricingProduct['promotions'].
 const base: Pick<
   PricingProduct,
   | 'merchantId'
@@ -108,11 +101,11 @@ describe('golden money test: PAYMENTS §9 worked example', () => {
       ['chips', 998, 130],
       ['steak', 5399, 0],
     ])
-    expect(quote.itemSubtotalCents).toBe(7794) // $77.94
-    expect(quote.taxCents).toBe(130) // $1.30
-    expect(quote.weighedEstimateCents).toBe(5697) // $56.97
-    expect(quote.weightBufferCents).toBe(855) // 15% of $56.97 = $8.5455 → $8.55
-    expect(quote.authorizationCents).toBe(8779) // $87.79
+    expect(quote.itemSubtotalCents).toBe(7794)
+    expect(quote.taxCents).toBe(130)
+    expect(quote.weighedEstimateCents).toBe(5697)
+    expect(quote.weightBufferCents).toBe(855)
+    expect(quote.authorizationCents).toBe(8779)
   })
 
   const lines: FinalizableLine[] = quote.lines.map((l, i) => ({
@@ -128,25 +121,25 @@ describe('golden money test: PAYMENTS §9 worked example', () => {
     actualWeightMlb: null,
     substitutesLineNo: null,
   }))
-  lines[0].actualWeightMlb = 2200 // bananas weigh 2.20 lb
-  lines[2].pickedQuantity = 1 // only 1 bag of chips
-  lines[3].actualWeightMlb = 1620 // steak 1.62 lb
+  lines[0].actualWeightMlb = 2200
+  lines[2].pickedQuantity = 1
+  lines[3].actualWeightMlb = 1620
   const final = finalizeOrder(lines, DEFAULT_FLAT_SCHEDULE)
 
   it('final amounts after picking', () => {
     expect(final.lines.map((l) => l.lineTotalCents)).toEqual([328, 1099, 499, 5830])
-    expect(final.itemSubtotalCents).toBe(7756) // $77.56
-    expect(final.taxCents).toBe(65) // $0.65
-    expect(final.totalCents).toBe(7821) // $78.21
+    expect(final.itemSubtotalCents).toBe(7756)
+    expect(final.taxCents).toBe(65)
+    expect(final.totalCents).toBe(7821)
   })
 
   it('capture: fee on the final subtotal, hold released, transfer to the merchant', () => {
     const plan = planCapture(final, quote.authorizationCents, null)
     expect(plan.amountToCaptureCents).toBe(7821)
-    expect(quote.authorizationCents - plan.amountToCaptureCents).toBe(958) // hold released $9.58
-    expect(final.fee.commissionCents).toBe(1163) // 15% tier: 7756 × 15% = 1163.4
-    expect(plan.applicationFeeCents).toBe(1163) // $11.63
-    expect(plan.amountToCaptureCents - plan.applicationFeeCents).toBe(6658) // $66.58 incl. $0.65 HST
+    expect(quote.authorizationCents - plan.amountToCaptureCents).toBe(958)
+    expect(final.fee.commissionCents).toBe(1163)
+    expect(plan.applicationFeeCents).toBe(1163)
+    expect(plan.amountToCaptureCents - plan.applicationFeeCents).toBe(6658)
   })
 
   it('journal balances and nets to the platform contribution', () => {
@@ -173,6 +166,6 @@ describe('golden money test: PAYMENTS §9 worked example', () => {
     const clearing = entries
       .filter((e) => e.account === 'stripe_clearing')
       .reduce((s, e) => s + e.debitCents - e.creditCents, 0)
-    expect(clearing).toBe(906) // platform contribution $9.06
+    expect(clearing).toBe(906)
   })
 })

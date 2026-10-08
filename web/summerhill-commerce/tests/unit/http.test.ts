@@ -12,7 +12,7 @@ vi.mock('@/modules/identity', async () => {
   )
   return { ...roles, ...permissions, getSessionUser: (...a: unknown[]) => getSessionUser(...a) }
 })
-// The auto-audit (G5-09) writes through ops.audit; capture the entries instead of a database.
+
 const audited: Array<Record<string, unknown>> = []
 vi.mock('@/modules/ops', () => ({
   audit: async (_db: unknown, entry: Record<string, unknown>) => {
@@ -93,7 +93,6 @@ describe('route() wrapper', () => {
     expect((await res.json()).error.code).toBe('INTERNAL')
   })
 
-  // Title placeholders consume columns in order, so the printable columns come first.
   it.each([
     ['anonymous', 401, 'UNAUTHENTICATED', null],
     ['customer', 403, 'FORBIDDEN', { id: 1, email: 'c@example.com', roles: ['customer'] }],
@@ -118,7 +117,6 @@ describe('route() wrapper', () => {
     expect(await res.json()).toEqual({ who: ['admin'] })
   })
 
-  // G5-12: staff need a verified second factor for the session, whatever their role
   it('admin policy: no second factor → 403 MFA_REQUIRED, handler not called', async () => {
     getSessionUser.mockResolvedValue({ id: 1, email: 'a@example.com', roles: ['admin'] })
     const handler = vi.fn(async () => ({}))
@@ -131,7 +129,6 @@ describe('route() wrapper', () => {
     expect(handler).not.toHaveBeenCalled()
   })
 
-  // G5-01, SECURITY §4.1: the route's permission decides which back-office roles pass
   it.each([
     ['support', 'refunds.create', 200],
     ['support', 'payouts.manage', 403],
@@ -185,7 +182,7 @@ describe('route() wrapper', () => {
 
     it("trusts `audit: 'service'` routes and ignores reads and failed requests", async () => {
       await route('admin', async () => ({}), { audit: 'service' })(req('{}'), ctx)
-      await route('admin', async () => ({}))(req(), ctx) // GET
+      await route('admin', async () => ({}))(req(), ctx)
       await route('admin', async () => {
         throw new HttpError(422, 'NOPE', 'no')
       })(req('{}'), ctx)

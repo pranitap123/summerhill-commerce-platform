@@ -2,14 +2,6 @@ import { spawn, spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/**
- * Starts a worker for the run (outbox relay, webhook processing, capture job), with the payment
- * simulator like the web server. Several workers can run side by side (SKIP LOCKED), so an
- * already-running `npm run worker:sim` does no harm. E2E_WORKER=external skips this.
- *
- * Waits for the worker's "worker started" log line before the journeys begin: on a small CI
- * runner the cold start takes minutes, and orders placed meanwhile sit in "Waiting for payment".
- */
 const READY = 'worker started'
 const START_TIMEOUT_MS = 8 * 60_000
 
@@ -49,13 +41,11 @@ ${output}`),
     })
   })
   await ready
-  // Keep draining the pipes so a chatty worker never blocks on a full buffer
+
   worker.stdout?.resume()
   worker.stderr?.resume()
   worker.removeAllListeners('exit')
   return async () => {
-    // Synchronously: Playwright exits right after teardown, and a taskkill still starting then
-    // never runs, leaving a worker behind after every run (seen on Windows, G7).
     if (process.platform === 'win32' && worker.pid)
       spawnSync('taskkill', ['/pid', String(worker.pid), '/t', '/f'], { stdio: 'ignore' })
     else worker.kill('SIGTERM')

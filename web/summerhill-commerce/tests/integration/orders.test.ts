@@ -17,18 +17,8 @@ import {
   setupIntegrationHarness,
 } from '../setup/harness'
 
-/**
- * G2-17: checkout → webhook → order → capture, end to end against real Postgres (as app_rw), the
- * real route handlers and the real worker loop. Stripe is replaced by an in-memory gateway that
- * behaves like test mode; webhook signatures are generated and verified with Stripe's real
- * algorithm. Also covers the G2 acceptance criteria that need a database: ledger INSERT-only
- * (G2-01), outbox exactly-once + retry/dead-letter (G2-03), idempotency (G2-04), cart (G2-06),
- * concurrent transitions (G2-09), balanced ledger (G2-10), email (G2-14), rate limits (G2-16),
- * auth-expiry guard (G2-19), guest lookup (G2-20).
- */
 setupIntegrationHarness('grocery_orders_it')
 
-// Basket: 2 × each (zero-rated) · 3 × taxable with deposit · 1.5 lb sold by weight · 2 × by quantity
 const BASKET = async (b: Browser) => {
   expect((await b.add('DEMO-0002', { quantity: 2 })).status).toBe(201)
   expect((await b.add('DEMO-0157', { quantity: 3 })).status).toBe(201)
@@ -36,7 +26,6 @@ const BASKET = async (b: Browser) => {
   return b.add('DEMO-0001', { quantity: 2 })
 }
 
-// ---------------------------------------------------------------- the happy path
 describe('checkout → webhook → order → capture (G2-17)', () => {
   const b = new Browser()
   let quoteHash = ''
@@ -59,7 +48,7 @@ describe('checkout → webhook → order → capture (G2-17)', () => {
       authorizationCents: 6203,
       canCheckout: true,
     })
-    expect(body.quote.fee).toBeUndefined() // commission never reaches customers
+    expect(body.quote.fee).toBeUndefined()
     quoteHash = body.quote.hash
   })
 
@@ -140,7 +129,7 @@ describe('checkout → webhook → order → capture (G2-17)', () => {
     const event = sessionEvent('checkout.session.completed', sessionId, orderId)
     expect((await sendWebhook(event)).body).toEqual({ received: true, duplicate: false })
     expect((await sendWebhook(event)).body).toEqual({ received: true, duplicate: true })
-    // An older "expired" event arriving late must not undo the placement.
+
     await drainWorker()
     await sendWebhook(sessionEvent('checkout.session.expired', sessionId, orderId))
     await drainWorker()
@@ -252,7 +241,6 @@ describe('checkout → webhook → order → capture (G2-17)', () => {
   })
 })
 
-// ---------------------------------------------------------------- other paths
 describe('checkout edge cases', () => {
   it('stale quote → 409 PRICE_CHANGED with the new quote', async () => {
     const b = new Browser()
@@ -293,7 +281,7 @@ describe('checkout edge cases', () => {
 
   it('below the minimum order → 422 CART_INVALID', async () => {
     const b = new Browser()
-    await b.add('DEMO-0002', { quantity: 1 }) // $9.39 < $15 minimum
+    await b.add('DEMO-0002', { quantity: 1 })
     const { body } = await b.quote()
     expect(body.quote.issues.map((i: { code: string }) => i.code)).toEqual(['BELOW_MINIMUM'])
     const res = await b.checkout(
@@ -379,7 +367,7 @@ describe('cart merge on login (G2-06)', () => {
     )
     const merged = await m.cart.resolveCart({ user, cookieCartId: anon.cart!.id })
     expect(merged.cart!.id).toBe(own.cart!.id)
-    expect(merged.setCookie).toBe('') // anonymous cookie cleared
+    expect(merged.setCookie).toBe('')
     const items = await m.cart.getCartItems(merged.cart!.id)
     expect(items.map((i) => [i.productId, i.quantity])).toEqual([
       ['DEMO-0002', 3],
@@ -501,7 +489,7 @@ describe('outbox and job queue (G2-03)', () => {
     let [job] = await m.ops.claimJobs(['test.flaky'], 1, 'w')
     expect(job.id).toBe(id)
     expect(await m.ops.failJob(job, new Error('boom'))).toBe('retry')
-    expect(await m.ops.claimJobs(['test.flaky'], 1, 'w')).toEqual([]) // not before its backoff
+    expect(await m.ops.claimJobs(['test.flaky'], 1, 'w')).toEqual([])
     await sql(db.adminUrl, `UPDATE ops.jobs SET run_at = now() WHERE id = $1`, [id])
     ;[job] = await m.ops.claimJobs(['test.flaky'], 1, 'w')
     expect(job.attempts).toBe(2)
@@ -596,12 +584,12 @@ describe('auth-expiry guard (G2-19)', () => {
           `auth-expiry:${payment.rows[0].id}`,
         ])
       ).rows[0].n
-    // This run also alerts on the other test orders (their authorisations expire in ~7 days).
-    await m.payments.runAuthExpiryGuard(new Date('2030-01-08T11:00:00Z')) // 49 h before
+
+    await m.payments.runAuthExpiryGuard(new Date('2030-01-08T11:00:00Z'))
     expect(await alerted()).toBe(0)
-    expect(await m.payments.runAuthExpiryGuard(new Date('2030-01-08T13:00:00Z'))).toBe(1) // 47 h
+    expect(await m.payments.runAuthExpiryGuard(new Date('2030-01-08T13:00:00Z'))).toBe(1)
     expect(await alerted()).toBe(1)
-    expect(await m.payments.runAuthExpiryGuard(new Date('2030-01-08T14:00:00Z'))).toBe(0) // once only
+    expect(await m.payments.runAuthExpiryGuard(new Date('2030-01-08T14:00:00Z'))).toBe(0)
   })
 })
 

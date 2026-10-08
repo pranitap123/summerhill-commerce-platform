@@ -10,10 +10,6 @@ import {
   type OrderStatus,
 } from '@/modules/ordering'
 
-/**
- * G2-09: every (from, to) pair of the order state machine, checked against ORDERS §4. The expected
- * table is written out independently of TRANSITIONS so a change to either shows up here.
- */
 const ALLOWED: Record<OrderStatus, OrderStatus[]> = {
   pending_payment: ['placed', 'abandoned'],
   placed: ['accepted', 'cancelled'],

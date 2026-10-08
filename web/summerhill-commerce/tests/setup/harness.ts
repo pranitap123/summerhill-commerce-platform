@@ -11,16 +11,9 @@ import type {
 
 import { createTestDb, sql, type TestDb } from './testDb'
 
-/**
- * Shared integration harness (G2-17, G4): a throwaway database per test file (as app_rw), the real
- * route handlers and worker loop, an in-memory Stripe with test-mode semantics, captured email,
- * and a tiny browser that keeps cookies. Call `setupIntegrationHarness()` once at the top of a test
- * file; `db`, `m`, `stripe` and `mail` are live bindings filled in by its beforeAll.
- */
 export const WEBHOOK_SECRET = 'whsec_test_integration_only'
 export const ACCT = 'acct_test_integration'
 
-// ---------------------------------------------------------------- fake Stripe (test-mode semantics)
 export class FakeStripe implements PaymentGateway {
   sessions = new Map<
     string,
@@ -36,7 +29,7 @@ export class FakeStripe implements PaymentGateway {
   private byKey = new Map<string, string>()
   private n = 0
   captureShouldFail = false
-  /** Stripe's fee isn't known at capture (reconciliation posts it later, PAYMENTS §10). */
+
   lateFees = false
 
   async createCheckoutSession(params: Stripe.Checkout.SessionCreateParams, key: string) {
@@ -59,7 +52,7 @@ export class FakeStripe implements PaymentGateway {
     s.status = 'expired'
     return 'expired' as const
   }
-  /** The customer pays: the card is authorised for the session total. */
+
   pay(sessionId: string, captureBefore = new Date(Date.now() + 7 * 86_400_000)) {
     const s = this.sessions.get(sessionId)!
     s.status = 'complete'
@@ -113,7 +106,6 @@ export class FakeStripe implements PaymentGateway {
     return pi
   }
 
-  // ---- back office (G5): Stripe's destination-charge flow of funds, in memory
   balanceTxns: BalanceTransaction[] = []
   accounts = new Map<
     string,
@@ -124,7 +116,7 @@ export class FakeStripe implements PaymentGateway {
   payouts: Array<{ id: string; account: string; amountCents: number; key: string }> = []
   evidence = new Map<string, Record<string, string>>()
   refundShouldFail = false
-  /** Refunds come back `pending` (finished later by a refund.updated webhook). */
+
   refundsPending = false
   private sums = new Map<string, { refunded: number; reversed: number; feeRefunded: number }>()
   private seq = 0
@@ -154,7 +146,7 @@ export class FakeStripe implements PaymentGateway {
     const captured = pi.amountReceivedCents
     return Math.min(fee, Math.floor((2 * fee * reversed + captured) / (2 * captured)))
   }
-  /** Called by capturePaymentIntent's callers in tests that check reconciliation. */
+
   recordCapture(piId: string) {
     const pi = this.intents.get(piId)!
     this.txn('charge', pi.chargeId, pi.amountReceivedCents, pi.processingFeeCents ?? 0)
@@ -236,7 +228,7 @@ export class FakeStripe implements PaymentGateway {
       return { id }
     })
   }
-  /** Stripe test mode verifies a Custom account at once when given the documented test values. */
+
   customAccountRequests: Array<{ tosIp: string | null; tosUserAgent: string | null }> = []
   async createCustomAccount(
     params: { merchantId: number; name: string; tosIp: string | null; tosUserAgent: string | null },
@@ -252,7 +244,7 @@ export class FakeStripe implements PaymentGateway {
   async createOnboardingLink(accountId: string) {
     return `https://connect.stripe.test/setup/${accountId}`
   }
-  /** The merchant finishes Stripe-hosted onboarding. */
+
   completeOnboarding(accountId: string) {
     const a = this.accounts.get(accountId)!
     a.charges = true
@@ -291,7 +283,7 @@ export class FakeStripe implements PaymentGateway {
     this.evidence.set(disputeId, evidence)
     return { status: 'under_review' }
   }
-  /** A refund that had succeeded fails later (e.g. the card was closed): Stripe returns the money. */
+
   refundFails(refundId: string, amountCents: number) {
     this.txn('refund_failure', refundId, amountCents)
     return {
@@ -301,12 +293,12 @@ export class FakeStripe implements PaymentGateway {
       failure_reason: 'expired_or_canceled_card',
     }
   }
-  /** A won dispute: Stripe gives the disputed amount back to the platform. */
+
   reinstate(dispute: { id: string; amount: number; charge: unknown; payment_intent: unknown }) {
     this.txn('adjustment', dispute.id, dispute.amount)
     return { ...dispute, status: 'won' }
   }
-  /** Stripe opens a dispute on a captured charge (the dispute test card, or a real chargeback). */
+
   dispute(piId: string, reason = 'fraudulent') {
     const pi = this.intents.get(piId)!
     const id = `dp_test_${++this.seq}`
@@ -325,7 +317,6 @@ export class FakeStripe implements PaymentGateway {
   }
 }
 
-// ---------------------------------------------------------------- harness
 export let db: TestDb
 export const stripe = new FakeStripe()
 export const mail: Array<{ to: string; subject: string; text: string }> = []
@@ -347,7 +338,7 @@ export { sql }
 export function setupIntegrationHarness(prefix: string): void {
   beforeAll(async () => {
     db = await createTestDb(prefix)
-    // A merchant that can take test payments.
+
     await sql(
       db.adminUrl,
       `UPDATE merchant.merchants SET stripe_account_id = $1, charges_enabled = true,
@@ -390,10 +381,9 @@ export function setupIntegrationHarness(prefix: string): void {
 
 let browserCount = 0
 
-/** A tiny HTTP client over the route handlers, keeping the cart cookie like a browser. */
 export class Browser {
   cookie = ''
-  // A distinct client IP per browser, so per-IP rate limits never leak between tests.
+
   ip = `10.0.${Math.floor(browserCount / 250)}.${(browserCount++ % 250) + 1}`
   async call(
     method: string,
@@ -431,11 +421,11 @@ export class Browser {
     return this.call('POST', 'v1/cart/quote', '/api/v1/cart/quote', {})
   }
   slotId: number | undefined
-  /** The first pickup slot offered to this browser's cart (G4-03), remembered for replays. */
+
   async firstSlot(): Promise<number> {
     if (this.slotId === undefined) {
       const { body } = await this.call('GET', 'v1/cart/slots', '/api/v1/cart/slots')
-      // No cart → no slots; any well-formed id lets the request reach the cart checks.
+
       this.slotId = body.slots[0]?.id ?? 999_999
     }
     return this.slotId!
@@ -480,14 +470,13 @@ export const sessionEvent = (type: string, sessionId: string, orderId: number) =
     object: {
       id: sessionId,
       object: 'checkout.session',
-      // Stripe echoes the session's metadata (incl. trace context, G6-08)
+
       metadata: { ...stripe.sessions.get(sessionId)!.params.metadata, order_id: String(orderId) },
       payment_intent: stripe.sessions.get(sessionId)!.pi,
     },
   },
 })
 
-/** Any Stripe event (refund, dispute, payout, account); `account` makes it a Connect event. */
 export const stripeEvent = (type: string, object: Record<string, unknown>, account?: string) => ({
   id: `evt_test_${++evt}`,
   object: 'event',
@@ -499,7 +488,6 @@ export const stripeEvent = (type: string, object: Record<string, unknown>, accou
   data: { object },
 })
 
-/** Runs worker ticks until there's nothing left to do. */
 export async function drainWorker() {
   const log = m.logger.getLogger()
   for (let i = 0; i < 50; i++) {

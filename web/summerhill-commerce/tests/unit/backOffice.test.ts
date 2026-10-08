@@ -29,9 +29,7 @@ import {
 import { businessDayBounds, dueRunDate, matchBalanceTransactions } from '@/modules/payouts'
 import { decideIssue } from '@/modules/support'
 
-// ------------------------------------------------------------------------------ TOTP (G5-12)
 describe('TOTP (RFC 6238)', () => {
-  // RFC 6238 appendix B, SHA-1 key "12345678901234567890"; 6-digit codes are the last 6 digits.
   const SECRET = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ' // secret-scan:allow (RFC 6238 published test key)
   it('decodes the RFC key', () => {
     expect(base32Decode(SECRET).toString('ascii')).toBe('12345678901234567890')
@@ -87,7 +85,6 @@ describe('MFA session cookie', () => {
   })
 })
 
-// --------------------------------------------------------------------- roles (SECURITY §4.1)
 describe('platform role permissions', () => {
   const as = (role: string) => ({ id: 1, email: 'x@example.com', roles: [role] as never })
   it.each<[string, Permission, boolean]>([
@@ -112,7 +109,6 @@ describe('platform role permissions', () => {
   })
 })
 
-// -------------------------------------------------------------------------- refunds (G5-04)
 const line = (over: Partial<RefundableLine> = {}): RefundableLine => ({
   id: 1,
   isWeighed: false,
@@ -232,7 +228,7 @@ describe('refund and dispute ledger rules (PAYMENTS §9)', () => {
     const clearing = entries
       .filter((e) => e.account === 'stripe_clearing')
       .reduce((s, e) => s + e.debitCents - e.creditCents, 0)
-    expect(clearing).toBe(-375) // platform share + commission given back; the merchant share nets out
+    expect(clearing).toBe(-375)
   })
   it('a dispute debits amount + fee; recoveries credit it back', () => {
     expect(postDispute({ amountCents: 2000, feeCents: 1500 })).toEqual([
@@ -243,7 +239,6 @@ describe('refund and dispute ledger rules (PAYMENTS §9)', () => {
   })
 })
 
-// ------------------------------------------------------------------ support policy (G5-11)
 describe('support auto-approval policy (ORDERS §10)', () => {
   const config = { maxIssueCents: 1500, max90DayCents: 3000 }
   const base = {
@@ -269,7 +264,6 @@ describe('support auto-approval policy (ORDERS §10)', () => {
   })
 })
 
-// ------------------------------------------------------------------ reconciliation (G5-05)
 describe('reconciliation matching (PAYMENTS §10)', () => {
   const t = (type: string, sourceId: string, amountCents: number, feeCents = 0) => ({
     id: `txn_${sourceId}`,
@@ -347,12 +341,12 @@ describe('reconciliation matching (PAYMENTS §10)', () => {
     })
   })
   it('business days follow Toronto, including the DST change', () => {
-    const { from, to } = businessDayBounds('2026-11-01') // clocks go back: a 25-hour day
+    const { from, to } = businessDayBounds('2026-11-01')
     expect(from.toISOString()).toBe('2026-11-01T04:00:00.000Z')
     expect(to.getTime() - from.getTime()).toBe(25 * 3600_000)
   })
   it('the daily run is due after 06:00 Toronto, for the previous day', () => {
-    expect(dueRunDate(new Date('2026-09-28T09:59:00Z'))).toBeNull() // 05:59 EDT
+    expect(dueRunDate(new Date('2026-09-28T09:59:00Z'))).toBeNull()
     expect(dueRunDate(new Date('2026-09-28T10:00:00Z'))).toBe('2026-09-27')
   })
 })

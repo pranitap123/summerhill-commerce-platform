@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 
 import { calculatePlatformFee } from '@/modules/pricing'
 
-// Boundary table from docs/TESTING.md §3.1 (flat tiers per the brief).
 describe('calculatePlatformFee', () => {
   it.each([
     [0, 0.2, 0, 0],

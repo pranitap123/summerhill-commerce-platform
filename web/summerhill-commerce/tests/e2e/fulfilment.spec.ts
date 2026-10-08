@@ -4,10 +4,6 @@ import { encodeScaleLabel } from '../../src/modules/fulfilment/barcode'
 
 import { alertOf, checkout, fillCart, lineCard, payWith, placedOrder, staffPage } from './helpers'
 
-/**
- * G4-18: the fulfilment journeys in a real browser, customer and store side, with the payment
- * simulator standing in for Stripe Checkout (Stripe's test card numbers, including 3-D Secure).
- */
 const email = () => `e2e-${Date.now()}@example.com`
 
 test('order → accept → scan, weigh → replace → capture → handover', async ({
@@ -15,7 +11,6 @@ test('order → accept → scan, weigh → replace → capture → handover', as
   browser,
   baseURL,
 }) => {
-  // ---- customer: cart, pickup slot, payment
   await fillCart(page, [
     ['DEMO-0002', { quantity: 2 }], // Harbour Kitchen Honeycrisp Apples, each
     ['DEMO-0157', { quantity: 3 }], // sparkling water, HST + deposit
@@ -28,7 +23,6 @@ test('order → accept → scan, weigh → replace → capture → handover', as
   const { publicId, code } = await placedOrder(page)
   await expect(page.getByRole('heading', { name: 'Pickup' })).toBeVisible()
 
-  // ---- store: accept and pick
   const store = await staffPage(browser, baseURL!)
   await store.goto(`/console/orders/${publicId}`)
   await store.getByRole('button', { name: 'Accept order' }).click()
@@ -36,11 +30,11 @@ test('order → accept → scan, weigh → replace → capture → handover', as
   await store.getByRole('button', { name: 'Start picking' }).click()
   const scan = store.getByPlaceholder('Scan or type a barcode')
 
-  await scan.fill('420260000501') // Juniper Lane Bananas: not in this order
+  await scan.fill('420260000501')
   await scan.press('Enter')
   await expect(alertOf(store)).toContainText('Wrong item?')
 
-  await scan.fill('420260000204') // the Harbour Kitchen apples' barcode
+  await scan.fill('420260000204')
   await scan.press('Enter')
   await expect(lineCard(store, 'Harbour Kitchen Honeycrisp Apples')).toContainText('Picked 2')
 
@@ -48,7 +42,7 @@ test('order → accept → scan, weigh → replace → capture → handover', as
   await water.getByRole('button', { name: '✓ Picked' }).click()
   await expect(water).toContainText('Picked 3')
 
-  await scan.fill(encodeScaleLabel('200006000008', 650)) // deli label, $6.50 embedded
+  await scan.fill(encodeScaleLabel('200006000008', 650))
   await scan.press('Enter')
   await expect(lineCard(store, 'Maple Row Bananas')).toContainText('label $6.50')
 
@@ -58,7 +52,6 @@ test('order → accept → scan, weigh → replace → capture → handover', as
   await expect(store.getByText(/from the store until the next opening/)).toBeVisible()
   await store.getByRole('button', { name: 'No', exact: true }).click()
 
-  // ---- replacement (best match), confirmed by the customer
   const apples = lineCard(store, 'Lakeside Farms Honeycrisp Apples')
   await apples.getByRole('button', { name: '⇄ Replace' }).click()
   const panel = store.getByRole('group', { name: 'Replace Lakeside Farms Honeycrisp Apples' })
@@ -73,12 +66,10 @@ test('order → accept → scan, weigh → replace → capture → handover', as
   await page.getByRole('button', { name: 'Accept', exact: true }).click()
   await expect(page.getByText('Accepted.')).toBeVisible()
 
-  // ---- complete: the worker captures the final amount, the order becomes ready
   await store.getByRole('button', { name: 'Complete picking' }).click()
   await expect(store.getByRole('heading', { name: 'Hand over' })).toBeVisible({ timeout: 120_000 })
   await expect(store.getByText('Charged').first()).toBeVisible()
 
-  // ---- handover: a wrong code is refused, the customer's code hands over
   const wrong = code === '000000' ? '111111' : '000000'
   await store.getByLabel('Pickup code from the customer').fill(wrong)
   await store.getByRole('button', { name: 'Hand over' }).click()

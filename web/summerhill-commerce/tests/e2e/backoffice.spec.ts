@@ -4,15 +4,8 @@ import { expect, test, type Browser, type Page } from '@playwright/test'
 
 import { alertOf, checkout, fillCart, lineCard, payWith, placedOrder, staffPage } from './helpers'
 
-/**
- * G5-19: the back-office journeys in a real browser, with the payment simulator standing in for
- * Stripe (TESTING journeys 7–8): a support agent refunds a line, an admin onboards a merchant
- * through (simulated) Stripe-hosted onboarding, and finance answers a test-mode dispute. Staff
- * sign in with a password and the second factor (G5-12).
- */
 const email = () => `e2e-bo-${Date.now()}@example.com`
 
-/** The store accepts, picks every line and completes; the worker captures (G4). */
 async function pickAndCapture(
   browser: Browser,
   baseURL: string,
@@ -34,7 +27,7 @@ async function pickAndCapture(
 }
 
 async function customerOrder(page: Page, card = '4242 4242 4242 4242') {
-  await fillCart(page, [['DEMO-0002', { quantity: 2 }]]) // Harbour Kitchen Honeycrisp Apples
+  await fillCart(page, [['DEMO-0002', { quantity: 2 }]])
   await checkout(page, email())
   await payWith(page, card)
   return placedOrder(page)
@@ -52,7 +45,7 @@ test('support refunds a damaged line within their limit; the customer sees it', 
   await agent.goto('/ops')
   const menu = agent.getByRole('navigation', { name: 'Operations' })
   await expect(menu.getByRole('link', { name: 'Orders' })).toBeVisible()
-  await expect(menu.getByRole('link', { name: 'Payouts' })).toHaveCount(0) // not for support
+  await expect(menu.getByRole('link', { name: 'Payouts' })).toHaveCount(0)
   await agent.goto(`/ops/orders?q=${publicId}`)
   await agent.getByRole('link', { name: publicId }).click()
   await expect(agent.getByRole('heading', { level: 1 })).toContainText(publicId)
@@ -89,8 +82,7 @@ test('admin onboards a merchant with a Custom connected account (simulated); go-
   await expect(admin.getByRole('heading', { level: 1 })).toContainText('draft')
 
   await admin.getByRole('button', { name: 'Start onboarding' }).click()
-  // Custom accounts (ADR-0012, the default): no hosted page; the account is created with test
-  // company data and its status is read straight away.
+
   await admin.waitForURL(/onboarding=done/)
   await expect(admin.getByText('verified', { exact: true })).toBeVisible()
 
@@ -103,7 +95,7 @@ test('finance answers a test-mode dispute with the evidence pack', async ({
   browser,
   baseURL,
 }) => {
-  const { publicId, code } = await customerOrder(page, '4000 0000 0000 0259') // disputed once captured
+  const { publicId, code } = await customerOrder(page, '4000 0000 0000 0259')
   const store = await pickAndCapture(browser, baseURL!, publicId, [
     'Harbour Kitchen Honeycrisp Apples',
   ])
@@ -152,5 +144,5 @@ test('finance downloads the monthly close export as a file (not a page navigatio
   expect(csv.split('\r\n')[0]).toBe(
     'date,journal,event,order,account,debit,credit,stripe_reference',
   )
-  await expect(finance).toHaveURL(/\/ops\/reconciliation$/) // stayed on the page
+  await expect(finance).toHaveURL(/\/ops\/reconciliation$/)
 })

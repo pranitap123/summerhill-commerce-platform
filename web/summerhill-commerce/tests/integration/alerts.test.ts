@@ -12,11 +12,6 @@ import {
   stripeEvent,
 } from '../setup/harness'
 
-/**
- * G6-09: alert rules as code. Each rule fires here against real Postgres: the event rules through
- * the code that detects the failure, the condition rules through `evaluateAlertRules` (the
- * `alerts.evaluate` job). Every alert is logged with its route and emailed to its channel.
- */
 setupIntegrationHarness('grocery_alerts_it')
 
 const PAGE = 'oncall@example.com'
@@ -32,12 +27,10 @@ async function alertsOf(kind: string) {
   return rows
 }
 
-/** Emails sent to `to` since `before` (mail is the harness's captured mailbox). */
 const mailTo = (to: string, before: number) => mail.slice(before).filter((x) => x.to === to)
-/** The subjects of those emails. */
+
 const subjects = (to: string, before: number) => mailTo(to, before).map((x) => x.subject)
 
-/** Stored Stripe events, `count` of them, received `minutesAgo`. */
 async function insertWebhookEvent(
   type: string,
   minutesAgo: number,
@@ -130,14 +123,14 @@ describe('condition rules: the alerts.evaluate job', () => {
     const before = mail.length
     await insertWebhookEvent('checkout.session.completed', 1, { status: 'pending', attempts: 3 })
     expect(await m.ops.evaluateAlertRules()).toBe(1)
-    expect(await m.ops.evaluateAlertRules()).toBe(0) // still open: no duplicate
+    expect(await m.ops.evaluateAlertRules()).toBe(0)
     await drainWorker()
     const [alert] = await alertsOf('webhook.lagging')
     expect(alert.message).toMatch(/failed 3 or more times/)
     expect(subjects(PAGE, before).filter((x) => /failed 3 or more times/.test(x))).toHaveLength(1)
 
     await sql(db.adminUrl, 'UPDATE ops.alerts SET resolved_at = now() WHERE id = $1', [alert.id])
-    expect(await m.ops.evaluateAlertRules()).toBe(1) // condition persists: raised again
+    expect(await m.ops.evaluateAlertRules()).toBe(1)
   })
 
   it('webhooks lagging over 5 minutes → SEV1 page', async () => {
@@ -150,11 +143,11 @@ describe('condition rules: the alerts.evaluate job', () => {
 
   it('card testing: a burst of declines, or a high decline rate → SEV1 page', async () => {
     const t = m.ops.ALERT_THRESHOLDS.cardTesting
-    // 9 attempts at 67% decline: below the sample size, no alert
+
     await insertWebhookEvent('payment_intent.payment_failed', 12, { count: 6 })
     await insertWebhookEvent('checkout.session.completed', 12, { count: 3 })
     expect(await m.ops.evaluateAlertRules()).toBe(0)
-    // the 10th attempt makes the rate count: 6/10 declined > 30%
+
     await insertWebhookEvent('checkout.session.completed', 12)
     const before = mail.length
     expect(await m.ops.evaluateAlertRules()).toBe(1)
@@ -163,12 +156,11 @@ describe('condition rules: the alerts.evaluate job', () => {
       expect.stringMatching(/^\[SEV1\] Possible card testing: 6 declines out of 10/),
     )
 
-    // burst: over 20 declines in 10 minutes, whatever the approvals
     await clearWebhookEvents()
     await sql(db.adminUrl, `UPDATE ops.alerts SET resolved_at = now() WHERE resolved_at IS NULL`)
     await insertWebhookEvent('checkout.session.completed', 3, { count: 200 })
     await insertWebhookEvent('payment_intent.payment_failed', 3, { count: t.burstDeclines })
-    expect(await m.ops.evaluateAlertRules()).toBe(0) // exactly 20: not over
+    expect(await m.ops.evaluateAlertRules()).toBe(0)
     await insertWebhookEvent('payment_intent.payment_failed', 3)
     expect(await m.ops.evaluateAlertRules()).toBe(1)
     expect((await alertsOf('payments.card_testing')).at(-1).data).toMatchObject({ burst: 21 })

@@ -14,7 +14,6 @@ import {
   setOutboundClockForTests,
 } from '@/server/outbound'
 
-// G6-05: the outbound guard (timeout, retry with jitter for idempotent calls, circuit breaker).
 const networkError = () =>
   Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' })
 
@@ -67,7 +66,7 @@ describe('retries', () => {
     )
     expect(result).toBe('ok')
     expect(calls).toBe(3)
-    // random() = 0.5 of min(cap, base × 2^attempt)
+
     expect(sleeps).toEqual([125, 250])
   })
 
@@ -146,9 +145,9 @@ describe('circuit breaker', () => {
     setGuardSettingsForTests('elasticsearch', { failureThreshold: 1, resetMs: 15_000 })
     await failing()
     now += 15_000
-    expect(await failing()).not.toBeInstanceOf(CircuitOpenError) // the trial ran, and failed
+    expect(await failing()).not.toBeInstanceOf(CircuitOpenError)
     expect(guard('elasticsearch').circuit).toBe('open')
-    expect(await failing()).toBeInstanceOf(CircuitOpenError) // the timer restarted
+    expect(await failing()).toBeInstanceOf(CircuitOpenError)
     now += 15_000
     expect(await guard('elasticsearch').run(async () => 'up', { idempotent: true })).toBe('up')
     expect(guard('elasticsearch').circuit).toBe('closed')
@@ -203,7 +202,7 @@ describe('guarded fetch and the Stripe client, against a local server', () => {
         url: req.url!,
       })
       const step = plan.shift() ?? { status: 200 }
-      if (step.hang) return // never answers
+      if (step.hang) return
       res.writeHead(step.status, { 'content-type': 'application/json', ...step.headers })
       res.end(
         JSON.stringify(

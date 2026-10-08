@@ -3,11 +3,6 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { fillCart, payWith, placedOrder, staffPage } from './helpers'
 
-/**
- * G6-04: accessibility of the key flows (WCAG 2.1 AA, ARC-a11y). axe-core checks each page for
- * serious or critical violations, and the checkout is completed with the keyboard alone. Payload's
- * own /admin panel is third-party UI and not in scope.
- */
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
 async function expectAccessible(page: Page, label: string) {
@@ -24,7 +19,6 @@ async function expectAccessible(page: Page, label: string) {
   expect(serious, `${label}: serious accessibility violations`).toEqual([])
 }
 
-/** Presses Tab until `target` has focus (at most `max` times): proves it's reachable. */
 async function tabTo(page: Page, target: Locator, max = 80) {
   const handle = await target.elementHandle()
   for (let i = 0; i < max; i++) {
@@ -34,7 +28,6 @@ async function tabTo(page: Page, target: Locator, max = 80) {
   throw new Error(`could not reach ${target} with the Tab key`)
 }
 
-/** The focused element shows where focus is (an outline or a focus ring). */
 async function expectVisibleFocus(page: Page) {
   const style = await page.evaluate(() => {
     const s = getComputedStyle(document.activeElement!)
@@ -81,7 +74,6 @@ test.describe('storefront', () => {
     await page.goto('/cart')
     await expectAccessible(page, 'cart')
 
-    // Pickup time: Tab to the first slot and pick it with the space bar
     const slot = page.getByRole('radio').first()
     await tabTo(page, slot)
     await expectVisibleFocus(page)

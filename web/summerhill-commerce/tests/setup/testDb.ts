@@ -3,10 +3,6 @@ import path from 'node:path'
 
 import pg from 'pg'
 
-/**
- * Throwaway database per integration test file: created in the compose Postgres, migrated and
- * seeded, used through the least-privilege app_rw role, dropped afterwards. Needs `npm run stack:up`.
- */
 export const ADMIN_URL =
   process.env.TEST_ADMIN_DATABASE_URL ??
   'postgres://grocery_admin:local_dev_only@127.0.0.1:5433/grocery'
@@ -52,13 +48,12 @@ export async function createTestDb(prefix: string): Promise<TestDb> {
   await sql(ADMIN_URL, `GRANT CONNECT ON DATABASE ${name} TO app_rw, ingest_rw, readonly`)
   const adminUrl = withDb(ADMIN_URL, name)
   runScript('db/migrate.mjs', { MIGRATION_DATABASE_URL: adminUrl })
-  // The catalogue is loaded by the pipeline's fixture connector, as the least-privilege ingest role
+
   runScript('db/seed/seed.mjs', {
     SEED_DATABASE_URL: adminUrl,
     INGEST_DATABASE_URL: withDb(ADMIN_URL, name, 'ingest_rw'),
   })
-  // The seed's product.changed events are the baseline, not events under test: tests that need
-  // the search index build it explicitly.
+
   await sql(adminUrl, 'UPDATE ops.outbox SET published_at = now() WHERE published_at IS NULL')
   return {
     name,

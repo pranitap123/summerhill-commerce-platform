@@ -12,7 +12,6 @@ import {
   toGtin13,
 } from '@/modules/fulfilment/barcode'
 
-/** G4-10 / G4-11: GTIN normalisation and the GS1 variable-measure (deli label) decoder. */
 describe('GS1 check digits', () => {
   it.each([
     ['03600029145', 2], // UPC-A 036000291452
@@ -56,7 +55,7 @@ describe('toGtin13', () => {
     expect(toGtin13('1234567')).toBeNull()
     expect(toGtin13('03600029145X')).toBeNull()
     expect(toGtin13('036000291453')).toBeNull()
-    expect(toGtin13('10036000291452')).toBeNull() // GTIN-14 with an indicator digit
+    expect(toGtin13('10036000291452')).toBeNull()
   })
 })
 
@@ -74,7 +73,6 @@ describe('decodeBarcode', () => {
     expect(decodeBarcode('420260000205')).toEqual({ kind: 'invalid', reason: 'bad_check_digit' })
   })
 
-  // Test vectors: default layout 2 IIIII VVVVV C, value = price in cents.
   it.each([
     ['200001012341', '00001', 1234],
     ['200001000997', '00001', 99],

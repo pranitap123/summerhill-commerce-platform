@@ -4,13 +4,6 @@ import path from 'node:path'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-/**
- * Integration tests against real Postgres (G1-03, G1-13, G1-18). Each run creates a throwaway
- * database in the compose stack, migrates and seeds it, runs the marketplace code as the real
- * least-privilege role (app_rw), and drops the database afterwards.
- *
- * Needs `npm run stack:up`. TEST_ADMIN_DATABASE_URL overrides the compose defaults.
- */
 const ADMIN_URL =
   process.env.TEST_ADMIN_DATABASE_URL ??
   'postgres://grocery_admin:local_dev_only@127.0.0.1:5433/grocery'
@@ -61,7 +54,6 @@ beforeAll(async () => {
     INGEST_DATABASE_URL: asRole('ingest_rw'),
   })
 
-  // The app connects as app_rw, exactly as in the compose stack.
   process.env.CATALOG_DATABASE_URL = asRole('app_rw')
   const { resetConfigForTests } = await import('@/server/config')
   resetConfigForTests()
@@ -96,7 +88,7 @@ describe('catalog module (as app_rw)', () => {
     const page2 = await search.findProducts({ ...q, page: 2 })
     expect(page1.engine).toBe('postgres')
     expect(page1.items).toHaveLength(20)
-    // Sorted by the price the shopper pays, in integer cents (G2-02).
+
     const prices = page1.items.map((p) => p.effectivePriceCents)
     expect(prices.every(Number.isInteger)).toBe(true)
     expect(prices).toEqual([...prices].sort((a, b) => a - b))

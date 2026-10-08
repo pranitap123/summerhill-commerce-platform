@@ -5,10 +5,6 @@ import { describe, expect, it } from 'vitest'
 
 import { OPERATIONS, renderOpenApi } from '@/app/api/v1/_lib/openapi'
 
-/**
- * Contract test (G2-18): docs/openapi.yaml matches the code, and every /api/v1, /api/console (G4)
- * and /api/admin (G5) route is documented.
- */
 const SPEC = path.resolve(__dirname, '../../../../docs/openapi.yaml')
 const API = path.resolve(__dirname, '../../src/app/api')
 
@@ -43,5 +39,5 @@ describe('OpenAPI contract', () => {
       }
     },
     60_000,
-  ) // imports every route module; cold imports are slow on a busy machine
+  )
 })

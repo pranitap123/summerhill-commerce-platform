@@ -8,13 +8,6 @@ import { encodeScaleLabel } from '../../src/modules/fulfilment/barcode'
 
 import { checkout, fillCart, lineCard, payWith, placedOrder, staffPage } from './helpers'
 
-/**
- * G7-03: the 5-minute demo (docs/DEMO.md) as a recording. Saves the README screenshots to
- * docs/media and frames of the store's window at every step (scripts/demo-media.mjs turns them into
- * the GIF with the system ffmpeg; Playwright's own video needs a separate ffmpeg download).
- * Skipped unless DEMO_RECORD=1, so normal E2E runs don't slow down or rewrite docs/media:
- *   DEMO_RECORD=1 npx playwright test tests/e2e/demo.spec.ts
- */
 const here = path.dirname(fileURLToPath(import.meta.url))
 const MEDIA = path.resolve(here, '../../../../docs/media')
 const FRAMES = path.resolve(here, '../../test-results/demo-frames')
@@ -23,10 +16,9 @@ const VIEWPORT = { width: 1280, height: 800 }
 test.skip(!process.env.DEMO_RECORD, 'recording only: DEMO_RECORD=1')
 test.use({ viewport: VIEWPORT })
 
-/** One frame of the store's GIF; `hold` repeats it so the viewer can read the screen. */
 let frame = 0
 async function beat(page: Page, hold = 2) {
-  await page.waitForTimeout(400) // let the UI settle
+  await page.waitForTimeout(400)
   const shot = await page.screenshot()
   for (let i = 0; i < hold; i++)
     fs.writeFileSync(path.join(FRAMES, `frame-${String(frame++).padStart(4, '0')}.png`), shot)
@@ -58,10 +50,8 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   fs.rmSync(FRAMES, { recursive: true, force: true })
   fs.mkdirSync(FRAMES, { recursive: true })
 
-  // ---- 0:00 browse (DEMO_SKIP_BROWSE=1 keeps the existing 01–03 screenshots, e.g. to re-record the rest)
   if (!process.env.DEMO_SKIP_BROWSE) await browse(page)
 
-  // ---- 0:30 cart, 1:00 checkout with a hold
   await fillCart(page, [
     ['DEMO-0002', { quantity: 2 }], // Harbour Kitchen Honeycrisp Apples
     ['DEMO-0006', { weightLb: 1.5 }], // bananas by weight: estimated
@@ -77,7 +67,6 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   const { publicId, code } = await placedOrder(page)
   await shot(page, '05-order-placed')
 
-  // ---- 1:45 the store, recorded
   const signedIn = await staffPage(browser, baseURL!)
   const storeContext = await browser.newContext({
     baseURL,
@@ -97,9 +86,8 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   await store.getByRole('button', { name: 'Start picking' }).click()
   await beat(store)
 
-  // ---- 2:00 scan and weigh
   const scan = store.getByPlaceholder('Scan or type a barcode')
-  await scan.pressSequentially('420260000204', { delay: 60 }) // Harbour Kitchen apples
+  await scan.pressSequentially('420260000204', { delay: 60 })
   await scan.press('Enter')
   await expect(lineCard(store, 'Harbour Kitchen Honeycrisp Apples')).toContainText('Picked 2')
   await beat(store)
@@ -107,12 +95,11 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   await water.getByRole('button', { name: '✓ Picked' }).click()
   await expect(water).toContainText('Picked 3')
   await beat(store)
-  await scan.pressSequentially(encodeScaleLabel('200006000008', 712), { delay: 60 }) // deli label, $7.12
+  await scan.pressSequentially(encodeScaleLabel('200006000008', 712), { delay: 60 })
   await scan.press('Enter')
   await expect(lineCard(store, 'Maple Row Bananas')).toContainText('label $7.12')
   await beat(store)
 
-  // ---- 2:40 replace, 2:55 the customer approves
   const apples = lineCard(store, 'Lakeside Farms Honeycrisp Apples')
   await apples.getByRole('button', { name: '⇄ Replace' }).click()
   await beat(store)
@@ -130,12 +117,10 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   await page.getByRole('button', { name: 'Accept', exact: true }).click()
   await expect(page.getByText('Accepted.')).toBeVisible()
 
-  // ---- 3:10 capture
   await store.getByRole('button', { name: 'Complete picking' }).click()
   await expect(store.getByRole('heading', { name: 'Hand over' })).toBeVisible({ timeout: 120_000 })
   await beat(store, 3)
 
-  // ---- 3:30 handover
   await store.getByLabel('Pickup code from the customer').pressSequentially(code, { delay: 80 })
   await store.getByRole('button', { name: 'Hand over' }).click()
   await expect(store.getByText('Picked up', { exact: true }).first()).toBeVisible()
@@ -146,7 +131,6 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   await expect(page.getByText(/of the hold was released/)).toBeVisible()
   await shot(page, '08-order-charged')
 
-  // ---- 3:45 refund (support)
   const agent = await staffPage(browser, baseURL!, 'SUPPORT')
   await agent.setViewportSize(VIEWPORT)
   await agent.goto(`/ops/orders/${publicId}`)
@@ -160,7 +144,6 @@ test('demo: browse → hold → pick with a weight and a replacement → capture
   await agent.reload()
   await shot(agent, '09-ops-order-refund')
 
-  // ---- 4:20 reconcile (finance)
   const finance = await staffPage(browser, baseURL!, 'FINANCE')
   await finance.setViewportSize(VIEWPORT)
   await finance.goto('/ops/reconciliation')

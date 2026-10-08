@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 
 import { ALERT_ROUTES, CONDITION_RULES, routeFor } from '@/modules/ops'
 
-// G6-09: every alert the code can raise has a route (severity, channel, runbook).
 function sourceFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(dir, e.name)
@@ -14,7 +13,6 @@ function sourceFiles(dir: string): string[] {
   })
 }
 
-/** `kind: '…'` inside each raiseAlert(…) call. */
 function raisedKinds(): Map<string, string> {
   const kinds = new Map<string, string>()
   for (const file of sourceFiles(path.resolve('src'))) {

@@ -11,7 +11,6 @@ import {
 } from '@/modules/scheduling'
 import { toWallClock } from '@/server/time'
 
-/** G4-01 / G4-03: slot planning, offer rules and DST (ORDERS §3). Pure; no database. */
 const TZ = 'America/Toronto'
 const settings = (over: Partial<ScheduleSettings> = {}): ScheduleSettings => ({
   weeklyHours: DEFAULT_WEEKLY_HOURS,
@@ -52,7 +51,6 @@ describe('weekday and hours', () => {
 
 describe('plannedSlots', () => {
   it('a week of default hours: 13 weekday slots, 11 on Saturday, 8 on Sunday', () => {
-    // Monday 2 Nov 2026, 00:00 local
     const slots = plannedSlots(settings(), new Set(), new Date('2026-11-02T05:00:00Z'), 7)
     expect(slots).toHaveLength(13 * 5 + 11 + 8)
     expect(new Set(slots.map((s) => s.startsAt.getTime())).size).toBe(slots.length)
@@ -61,8 +59,8 @@ describe('plannedSlots', () => {
   it('holiday closures and closed weekdays produce no slots', () => {
     const closed = settings({ weeklyHours: { ...DEFAULT_WEEKLY_HOURS, '7': null } })
     const slots = plannedSlots(closed, new Set(['2026-11-03']), new Date('2026-11-02T05:00:00Z'), 7)
-    expect(slots.some((s) => wall(s.startsAt).day === 3)).toBe(false) // closure (Tuesday)
-    expect(slots.some((s) => wall(s.startsAt).day === 8)).toBe(false) // Sunday closed
+    expect(slots.some((s) => wall(s.startsAt).day === 3)).toBe(false)
+    expect(slots.some((s) => wall(s.startsAt).day === 8)).toBe(false)
     expect(slots).toHaveLength(13 * 4 + 11)
   })
 
@@ -75,7 +73,7 @@ describe('plannedSlots', () => {
     expect(slots.every((s) => wall(s.startsAt).day === day)).toBe(true)
     for (let i = 1; i < slots.length; i++)
       expect(slots[i].startsAt.getTime()).toBe(slots[i - 1].endsAt.getTime())
-    // Each slot lasts exactly one real hour (the DST change happens at 02:00, before opening)
+
     expect(slots.every((s) => s.endsAt.getTime() - s.startsAt.getTime() === 3_600_000)).toBe(true)
   })
 
@@ -85,7 +83,7 @@ describe('plannedSlots', () => {
     expect(fall).toHaveLength(24)
     expect(new Set(fall.map((s) => s.startsAt.getTime())).size).toBe(24)
     const spring = plannedSlots(allDay, new Set(), new Date('2027-03-14T05:00:00Z'), 1)
-    expect(spring).toHaveLength(23) // 02:00 doesn't exist that day
+    expect(spring).toHaveLength(23)
     expect(spring.map((s) => wall(s.startsAt).hour)).not.toContain(2)
     expect(new Set(spring.map((s) => s.startsAt.getTime())).size).toBe(23)
   })
@@ -97,13 +95,13 @@ describe('plannedSlots', () => {
 })
 
 describe('slotRejection (what a cart may book)', () => {
-  const now = new Date('2026-11-02T14:00:00Z') // Monday 09:00 EST
+  const now = new Date('2026-11-02T14:00:00Z')
   const ctx = { now, leadTimeMinutes: 120, timeZone: TZ, itemAvailableDays: [] as number[][] }
   const at = (iso: string) => ({ startsAt: new Date(iso) })
 
   it('respects the lead time', () => {
-    expect(slotRejection(at('2026-11-02T15:00:00Z'), ctx)).toBe('past_lead_time') // 10:00
-    expect(slotRejection(at('2026-11-02T16:00:00Z'), ctx)).toBeNull() // 11:00 = now + 2 h
+    expect(slotRejection(at('2026-11-02T15:00:00Z'), ctx)).toBe('past_lead_time')
+    expect(slotRejection(at('2026-11-02T16:00:00Z'), ctx)).toBeNull()
   })
 
   it('offers at most 5 days ahead (authorisations expire after ~7)', () => {
@@ -113,14 +111,14 @@ describe('slotRejection (what a cart may book)', () => {
 
   it("respects every item's available days (weekday in the store's time zone)", () => {
     const weekdaysOnly = { ...ctx, itemAvailableDays: [[], [1, 2, 3, 4, 5]] }
-    expect(slotRejection(at('2026-11-06T16:00:00Z'), weekdaysOnly)).toBeNull() // Friday
+    expect(slotRejection(at('2026-11-06T16:00:00Z'), weekdaysOnly)).toBeNull()
     expect(
       slotRejection(at('2026-11-07T15:00:00Z'), {
         ...weekdaysOnly,
         now: new Date('2026-11-03T14:00:00Z'),
       }),
-    ).toBe('item_not_available_that_day') // Saturday
-    // Sunday 00:30 local is still Saturday in UTC terms; the store's calendar decides
+    ).toBe('item_not_available_that_day')
+
     expect(
       slotRejection(at('2026-11-08T05:30:00Z'), {
         ...ctx,
@@ -133,11 +131,11 @@ describe('slotRejection (what a cart may book)', () => {
 
 describe('nextOpening ("out of stock today" lasts until the store next opens)', () => {
   it('during opening hours: tomorrow morning', () => {
-    const at = nextOpening(settings(), new Set(), new Date('2026-11-02T16:00:00Z')) // Mon 11:00
-    expect(at?.toISOString()).toBe('2026-11-03T13:00:00.000Z') // Tue 08:00 EST
+    const at = nextOpening(settings(), new Set(), new Date('2026-11-02T16:00:00Z'))
+    expect(at?.toISOString()).toBe('2026-11-03T13:00:00.000Z')
   })
   it('before opening: this morning', () => {
-    const at = nextOpening(settings(), new Set(), new Date('2026-11-02T11:00:00Z')) // Mon 06:00
+    const at = nextOpening(settings(), new Set(), new Date('2026-11-02T11:00:00Z'))
     expect(at?.toISOString()).toBe('2026-11-02T13:00:00.000Z')
   })
   it('skips holiday closures', () => {

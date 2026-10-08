@@ -6,20 +6,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PERMISSIONS } from '@/modules/identity/permissions'
 
-/**
- * Authorisation matrix (G1-16, TESTING §3.6).
- *  1. Every route.ts under src/app is either wrapped by route() with the policy its path demands,
- *     or listed in EXTERNAL with a reason. A new route without a declared policy fails CI.
- *  2. Every admin route is exercised as anonymous (401), customer (403), and each back-office role
- *     (support, finance, admin: G5-01). A role passes the gate exactly when the route's declared
- *     permission allows it (SECURITY §4.1); a route without a permission is admin-only.
- *  3. Every merchant-console route (G4-05) is exercised as anonymous (401), a customer without a
- *     staff membership (403), store staff and admin (pass the gate). The store scope inside the
- *     gate (other merchant → 404) is tested against a real database in tests/integration.
- *  4. Staff without a verified second factor are stopped at the gate (MFA_REQUIRED, G5-12).
- */
-
-// ---- mocks: no DB, no Stripe, no Payload. Reaching Stripe as a non-admin would fail the test.
 const getSessionUser = vi.fn()
 vi.mock('@/modules/identity', async () => {
   const roles = await vi.importActual<typeof import('@/modules/identity/roles')>(
@@ -32,7 +18,7 @@ vi.mock('@/modules/identity', async () => {
     ...roles,
     ...permissions,
     getSessionUser: (...a: unknown[]) => getSessionUser(...a),
-    // Handlers past the gate: harmless stand-ins (the real ones need Payload or the database)
+
     getMfaStatus: vi.fn(async () => ({ enrolled: false, confirmed: false })),
     beginEnrolment: vi.fn(async () => ({ secret: 'X', otpauthUri: 'otpauth://x' })),
     verifyMfaCode: vi.fn(async () => {}),
@@ -72,7 +58,7 @@ vi.mock('@/modules/merchant', async () => {
 const stripeReached = () => {
   throw new Error('Stripe must not be reached in the authz matrix')
 }
-// Past-the-gate calls into the back office resolve to empty answers; reaching Stripe throws.
+
 vi.mock('@/modules/payments', () => ({
   getStripe: stripeReached,
   getOrderLedger: vi.fn(async () => []),
@@ -176,7 +162,6 @@ vi.mock('@/server/db', () => {
 const APP_DIR = path.resolve(__dirname, '../../src/app')
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const
 
-/** Routes that are intentionally NOT wrapped by route(), with the reason. Keep this list short. */
 const EXTERNAL: Record<string, string> = {
   '(payload)/api/[...slug]': 'Payload REST API: Payload enforces collection access control',
   '(payload)/api/graphql': 'Payload GraphQL: Payload enforces collection access control',
@@ -187,14 +172,13 @@ const EXTERNAL: Record<string, string> = {
     'Payload template: only clears the draft-mode cookie; reworked in G3-13',
 }
 
-/** Public routes are an explicit allow-list: anything else must be admin/customer/webhook by path. */
 const PUBLIC = new Set([
   'api/products',
   'api/products/[id]',
   'api/products/search',
   'api/categories',
   'api/health',
-  // Catalogue API (G3-09): read-only; search and clicks are rate-limited / bounded
+
   'api/v1/categories',
   'api/v1/merchants',
   'api/v1/products',
@@ -202,7 +186,7 @@ const PUBLIC = new Set([
   'api/v1/search',
   'api/v1/search/clicks',
   'api/ready',
-  // Storefront API: works for guests; the cart/order routes load a session when one is present
+
   'api/v1/cart',
   'api/v1/cart/items',
   'api/v1/cart/items/[lineId]',
@@ -210,21 +194,21 @@ const PUBLIC = new Set([
   'api/v1/checkout',
   'api/v1/orders/[publicId]', // owner session or signed guest link, else 404
   'api/v1/orders/lookup', // same response for every input; rate-limited
-  // Pickup slots and replacement options for the caller's own cart (G4-03, G4-04)
+
   'api/v1/cart/slots',
   'api/v1/cart/items/[lineId]/replacements',
-  // Order actions (G4-12/14/15/19): same access rule as the order page (owner or guest link, else 404)
+
   'api/v1/orders/[publicId]/cancel',
   'api/v1/orders/[publicId]/substitutions/[lineId]',
   'api/v1/orders/[publicId]/arrived',
   'api/v1/orders/[publicId]/rating',
   'api/v1/orders/[publicId]/reorder',
-  // Payment simulator (G4-18): 404 unless PAYMENT_PROVIDER=simulator outside production
+
   'api/simulator/checkout/[sessionId]',
   'api/simulator/onboarding/[accountId]', // G5-02, same rule
-  // Kill-switch state for the storefront banner (G5-10): one boolean
+
   'api/v1/status',
-  // Report a problem (G5-11): same access rule as the order page (owner or guest link, else 404)
+
   'api/v1/orders/[publicId]/issues',
 ])
 
@@ -277,7 +261,7 @@ describe('route registry', () => {
 const adminRoutes = ownRoutes.filter((r) => expectedPolicy(r) === 'admin')
 const staffRoutes = ownRoutes.filter((r) => expectedPolicy(r) === 'staff')
 const customerRoutes = ownRoutes.filter((r) => expectedPolicy(r) === 'customer')
-// Staff users have passed their second factor (G5-12) unless a test says otherwise.
+
 const users = {
   anonymous: null,
   customer: { id: 2, email: 'customer@example.com', roles: ['customer'], mfaVerified: true },
@@ -286,7 +270,6 @@ const users = {
   admin: { id: 1, email: 'admin@example.com', roles: ['admin'], mfaVerified: true },
 }
 
-/** Path parameters every admin route can be called with (valid, but matching nothing). */
 const ADMIN_PARAMS = { id: '1', month: '2026-09', key: 'checkout.enabled', merchantId: '1' }
 const fill = (r: string, params: Record<string, string>) =>
   Object.entries(params).reduce((u, [k, v]) => u.replace(`[${k}]`, v), `http://localhost/${r}`)
@@ -378,7 +361,6 @@ describe('customer routes × roles', () => {
   })
 })
 
-/** Path parameters every console route can be called with (values are valid but match nothing). */
 const STAFF_PARAMS = {
   id: '1',
   month: '2026-09',

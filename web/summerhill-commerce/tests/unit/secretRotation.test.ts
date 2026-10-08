@@ -5,10 +5,6 @@ import type { Db } from '@/server/db'
 import { resetConfigForTests } from '@/server/config'
 import { decrypt, encrypt, resetSigningKeysForTests } from '@/server/signing'
 
-/**
- * Runbook RB-13 (G7-07): rotating PAYLOAD_SECRET must not lock staff out of two-step verification.
- * TOTP secrets sealed with the old key are re-sealed with the new one.
- */
 const OLD = 'test-secret-not-used-anywhere-real'
 const NEW = 'rotated-test-secret-not-used-anywhere'
 
@@ -18,7 +14,6 @@ function useSecret(secret: string) {
   resetSigningKeysForTests()
 }
 
-/** ops.staff_mfa in memory: enough of Db for SELECT all + UPDATE by user_id. */
 function fakeDb(rows: Array<{ user_id: string; secret_encrypted: string }>): Db {
   return {
     query: async (sql: string, params?: unknown[]) => {
@@ -48,7 +43,7 @@ describe('MFA secrets after a PAYLOAD_SECRET rotation (RB-13)', () => {
     ]
     const db = fakeDb(rows)
 
-    expect(() => decrypt('mfa-secret', sealedOld)).toThrow() // locked out before the fix
+    expect(() => decrypt('mfa-secret', sealedOld)).toThrow()
     await expect(reencryptMfaSecrets(OLD, db)).resolves.toEqual({
       reencrypted: 1,
       current: 1,

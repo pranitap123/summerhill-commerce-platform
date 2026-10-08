@@ -48,7 +48,7 @@ describe('query parsing and synonyms (G3-08)', () => {
   it('expands single-word synonyms both ways', () => {
     expect(expandTerm('crisps')).toEqual(expect.arrayContaining(['crisps', 'chips']))
     expect(expandTerm('zucchini')).toContain('courgette')
-    expect(expandTerm('mince')).toEqual(['mince']) // multi-word partners aren't word-level
+    expect(expandTerm('mince')).toEqual(['mince'])
     expect(expandTerm('apple')).toEqual(['apple'])
   })
 
@@ -99,7 +99,7 @@ describe('Elasticsearch request (G3-08, G3-09)', () => {
     expect(json).toContain('"fuzziness":"AUTO"')
     expect(json).toContain('bool_prefix')
     expect(json).toContain('name.exact')
-    expect(json).toContain('"weight":1.2') // on-sale boost
+    expect(json).toContain('"weight":1.2')
   })
 
   it('sorts by price on request', () => {

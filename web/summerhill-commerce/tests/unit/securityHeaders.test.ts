@@ -10,7 +10,6 @@ import {
   staticSecurityHeaders,
 } from '@/server/securityHeaders'
 
-// G6-01: security headers, the CSRF origin rule and the trusted client-IP rule.
 const directives = (csp: string) =>
   Object.fromEntries(
     csp.split(';').map((d) => {

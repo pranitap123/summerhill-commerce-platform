@@ -51,11 +51,11 @@ describe('integer helpers', () => {
   })
 
   it('applyBasisPoints and priceForWeight round half-up', () => {
-    expect(applyBasisPoints(998, 1300)).toBe(130) // 129.74
-    expect(applyBasisPoints(499, 1300)).toBe(65) // 64.87
-    expect(applyBasisPoints(5697, 1500)).toBe(855) // 854.55
-    expect(priceForWeight(3599, 1500)).toBe(5399) // 5398.5
-    expect(priceForWeight(149, 2200)).toBe(328) // 327.8
+    expect(applyBasisPoints(998, 1300)).toBe(130)
+    expect(applyBasisPoints(499, 1300)).toBe(65)
+    expect(applyBasisPoints(5697, 1500)).toBe(855)
+    expect(priceForWeight(3599, 1500)).toBe(5399)
+    expect(priceForWeight(149, 2200)).toBe(328)
   })
 
   it.each([
@@ -86,7 +86,6 @@ describe('integer helpers', () => {
 })
 
 describe('fee schedules', () => {
-  // The cliff table in PAYMENTS §4.3, both modes.
   it.each([
     [2500, 500, 500],
     [4999, 1000, 1000],

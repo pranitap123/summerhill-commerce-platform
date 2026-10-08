@@ -5,12 +5,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { createTestDb, sql, type TestDb } from '../setup/testDb'
 
-/**
- * G3 against real Postgres (as app_rw) and the compose Elasticsearch: catalogue read path and
- * overrides (G3-09/10/11), search v2 with alias swap, outbox sync, fallback and latency (G3-08),
- * the circuit breaker in front of Elasticsearch (G6-05),
- * facets (G3-09), analytics (G3-15). Uses its own index alias, deleted afterwards.
- */
 const ES_URL = process.env.TEST_ELASTICSEARCH_URL ?? 'http://127.0.0.1:9200'
 const ALIAS = `it-catalog-${process.pid}-${Date.now()}`
 
@@ -39,7 +33,7 @@ beforeAll(async () => {
   process.env.CATALOG_DATABASE_URL = db.asRole('app_rw')
   process.env.ELASTICSEARCH_URL = ES_URL
   process.env.SEARCH_INDEX_ALIAS = ALIAS
-  // Nothing listens here: storefront revalidation must degrade gracefully
+
   process.env.NEXT_PUBLIC_SERVER_URL = 'http://127.0.0.1:9'
   const { resetConfigForTests } = await import('@/server/config')
   resetConfigForTests()
@@ -156,7 +150,7 @@ describe('Elasticsearch index (G3-08)', () => {
     const es = search.getSearchClient()
     const targets = Object.keys(await es.indices.getAlias({ name: ALIAS }))
     expect(targets).toEqual([second.index])
-    // the previous index is kept for rollback, not served
+
     expect(await es.indices.exists({ index: first.index })).toBe(true)
     await search.rebuildSearchIndex()
     expect(await es.indices.exists({ index: first.index })).toBe(false)
@@ -250,7 +244,6 @@ describe('overrides + outbox sync (G3-11, G3-08, X2)', () => {
     )
     expect(audits.rows.map((r) => r.action)).toEqual(['catalog.override.set'])
 
-    // The worker relays the event and updates the index in near real time
     await drainWorker()
     expect(await esIds(p.name)).not.toContain(id)
 
@@ -310,7 +303,6 @@ describe('fallback and analytics (G3-08, G3-15)', () => {
   })
 
   it('opens the circuit when Elasticsearch hangs, then answers from Postgres at once (G6-05)', async () => {
-    // Accepts connections and never answers: every query would wait out its timeout.
     const hung = http.createServer(() => {})
     await new Promise<void>((r) => hung.listen(0, '127.0.0.1', r))
     process.env.ELASTICSEARCH_URL = `http://127.0.0.1:${(hung.address() as AddressInfo).port}`
@@ -326,7 +318,7 @@ describe('fallback and analytics (G3-08, G3-15)', () => {
       const r = await search.findProducts({ ...browse, q: 'brocoli' })
       expect(r.engine).toBe('postgres')
       expect(r.items[0].name).toMatch(/Broccoli/)
-      expect(performance.now() - started).toBeLessThan(1_000) // no 3 s wait on the dead index
+      expect(performance.now() - started).toBeLessThan(1_000)
     } finally {
       hung.closeAllConnections()
       await new Promise<void>((r) => hung.close(() => r()))
