@@ -3,11 +3,6 @@ import { getDb } from '@/server/db'
 
 import type { SearchEngine } from './types'
 
-/**
- * Search analytics (CATALOG §8.4, G3-15): query text, result count and click positions only; no
- * user, session, IP or device data. Queries that look like personal data (an email address or a
- * phone number typed into the search box) are stored as "[redacted]".
- */
 const PII = [/[^\s@]+@[^\s@]+\.[^\s@]+/, /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/]
 
 export function normaliseQuery(q: string): string {
@@ -33,7 +28,6 @@ export async function logSearch(
   return rows[0].id
 }
 
-/** Records the first click per (search, product). Unknown search ids are ignored (returns false). */
 export async function recordSearchClick(
   searchId: string,
   productId: string,
@@ -62,7 +56,6 @@ export interface SearchReport {
   clickPositions: Array<{ position: number; clicks: number }>
 }
 
-/** Weekly report (by default the last 7 days): what people look for and don't find. */
 export async function searchReport(days = 7, db: Db = getDb()): Promise<SearchReport> {
   const window = [days]
   const [totals, top, zero, positions] = await Promise.all([

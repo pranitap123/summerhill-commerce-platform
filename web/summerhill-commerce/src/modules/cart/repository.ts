@@ -54,7 +54,6 @@ function toItem(r: Row): CartItem {
   }
 }
 
-/** Carts untouched for this long are treated as expired (ORDERS §1). */
 export const CART_TTL_DAYS = 30
 
 export async function getActiveCart(id: string, db: Db = getDb()): Promise<Cart | null> {
@@ -102,7 +101,6 @@ export async function setCartMerchant(
   )
 }
 
-/** Any change to the lines invalidates the last quote. */
 export async function touchCart(db: Db, cartId: string): Promise<void> {
   await db.query(
     'UPDATE commerce.carts SET last_quote_hash = NULL, last_quoted_at = NULL WHERE id = $1',

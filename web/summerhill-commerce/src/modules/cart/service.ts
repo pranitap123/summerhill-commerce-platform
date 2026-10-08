@@ -31,11 +31,6 @@ import {
   type ReplacementPreference,
 } from './repository'
 
-/**
- * Server-side cart (G2-06, ORDERS §1). Keyed by the signed-in user, or by a signed anonymous
- * cookie. The browser only mirrors it. One merchant per cart; signing in merges the anonymous
- * cart into the customer's cart.
- */
 export const CART_COOKIE = 'cart'
 export const QUOTE_MAX_AGE_MS = 10 * 60_000
 
@@ -56,15 +51,10 @@ export interface CartContext {
 
 export interface ResolvedCart {
   cart: Cart | null
-  /** Cookie value to set (a new anonymous cart), or '' to clear it after a merge. */
+
   setCookie?: string
 }
 
-/**
- * Finds the caller's cart. With a session and an anonymous cookie cart, the anonymous lines are
- * merged in (the larger quantity wins on duplicates); if the carts belong to different merchants,
- * the more recently updated one stays active and the other is saved.
- */
 export async function resolveCart(ctx: CartContext, create = false): Promise<ResolvedCart> {
   const anon = ctx.cookieCartId ? await getActiveCart(ctx.cookieCartId) : null
   const anonCart = anon && anon.userId === null ? anon : null
@@ -97,7 +87,6 @@ async function mergeCarts(tx: Db, anon: Cart, own: Cart | null, userId: string):
     return own
   }
   if (own.merchantId !== null && anon.merchantId !== null && own.merchantId !== anon.merchantId) {
-    // Different stores: keep the most recent cart active, save the other.
     const [winner, loser] = anon.updatedAt > own.updatedAt ? [anon, own] : [own, anon]
     await setCartStatus(tx, loser.id, 'saved')
     if (winner.id === anon.id) await setCartOwner(tx, anon.id, userId)
@@ -136,11 +125,6 @@ export interface ItemInput {
   note?: string | null
 }
 
-/**
- * Adds a product (or adds to its quantity). A product from another merchant is refused with
- * 409 CART_MIXED_MERCHANTS unless `replaceCart` is set, in which case the current cart is saved
- * and a new one started ("Start a new cart? Your cart from X will be saved.").
- */
 export async function addItem(
   ctx: CartContext,
   input: ItemInput & { replaceCart?: boolean },
@@ -206,7 +190,6 @@ export async function addItem(
   return { ...resolved, cart: { ...cart, merchantId: owner.merchantId }, item }
 }
 
-/** Sets a line's values. Quantity 0 removes the line. */
 export async function updateItem(
   cart: Cart,
   itemId: number,
@@ -242,11 +225,6 @@ export async function updateItem(
   })
 }
 
-/**
- * Replacement preference of a line (G4-04, ORDERS §1): best match, refund, or up to 3 specific
- * products in ranked order. Specific choices must be other visible products of the same store;
- * for the other two preferences the list is cleared.
- */
 export async function validateReplacement(
   productId: string,
   merchantId: number,
@@ -290,15 +268,10 @@ async function removeLine(tx: Db, cart: Cart, itemId: number) {
 }
 
 async function afterRemove(tx: Db, cart: Cart) {
-  // An empty cart no longer belongs to a merchant, so any store's products can be added again.
   if ((await countItems(tx, cart.id)) === 0) await setCartMerchant(tx, cart.id, null)
   await touchCart(tx, cart.id)
 }
 
-/**
- * Prices the cart with the quote engine and remembers the quote hash and time; checkout accepts
- * only that hash, and only for QUOTE_MAX_AGE_MS.
- */
 export async function quoteCart(
   cart: Cart,
   opts: { now?: Date; remember?: boolean } = {},

@@ -1,4 +1,3 @@
-// Public API of the cart module.
 export {
   CART_COOKIE,
   QUOTE_MAX_AGE_MS,

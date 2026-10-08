@@ -1,6 +1,5 @@
 import type { ProductSummary } from '@/modules/catalog'
 
-/** One browse or search request (CATALOG §8.3). Browse = no `q`. */
 export interface CatalogQuery {
   q?: string
   merchant?: string
@@ -8,7 +7,7 @@ export interface CatalogQuery {
   subcategory?: string
   organic?: boolean
   onSale?: boolean
-  /** Every listed claim must be present (as supplied by the merchant). */
+
   dietary?: string[]
   minPriceCents?: number
   maxPriceCents?: number
@@ -24,11 +23,6 @@ export interface FacetValue {
   count: number
 }
 
-/**
- * Drill-down facets. Each count is the number of results you'd get by adding that value to the
- * current filters; the category facet ignores the current category (so you can switch), and the
- * subcategory facet ignores the current subcategory.
- */
 export interface Facets {
   categories: FacetValue[]
   subcategories: FacetValue[]
@@ -47,12 +41,11 @@ export interface CatalogPage {
   limit: number
   items: ProductSummary[]
   facets: Facets
-  /** Set for logged text searches; send it back with clicks (analytics, no PII). */
+
   searchId: string | null
   tookMs: number
 }
 
-/** What each engine returns: ranked ids (hydrated from Postgres afterwards) and facets. */
 export interface EngineResult {
   ids: string[]
   total: number

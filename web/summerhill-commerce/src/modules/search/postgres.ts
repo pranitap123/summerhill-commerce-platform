@@ -3,14 +3,8 @@ import { getDb } from '@/server/db'
 import { expandTerm, queryTerms } from './synonyms'
 import type { CatalogQuery, EngineResult, Facets } from './types'
 
-/**
- * Postgres engine (ADR-0007): serves browsing (no text query) and is the fallback when
- * Elasticsearch is unavailable. Typos via pg_trgm word similarity, prefixes via `term:*` full-text
- * queries with English stemming, synonyms by expanding each word. One round trip returns the page
- * of ids, the total and every facet.
- */
 const STOPWORDS = new Set(['a', 'an', 'and', 'the', 'of', 'with', 'for', 'in', 'or'])
-// word_similarity threshold: "brocoli"→broccoli 0.7, "salmn"→salmon 0.67 match; "chips"→chicken 0.5 must not
+
 const SIMILARITY = 0.55
 
 class Params {
@@ -21,7 +15,6 @@ class Params {
   }
 }
 
-/** Text match and score expressions for the query's words. */
 function textClauses(q: string | undefined, p: Params): { where: string[]; score: string } {
   const terms = q ? queryTerms(q).filter((t) => !STOPWORDS.has(t)) : []
   if (terms.length === 0) return { where: [], score: '0' }

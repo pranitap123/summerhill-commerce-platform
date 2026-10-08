@@ -1,10 +1,6 @@
 import { effectivePrice } from '@/modules/pricing'
 import { getDb } from '@/server/db'
 
-/**
- * The search projection (CATALOG §8.2): one flat document per non-deleted product. Visibility parts
- * are indexed separately (not a stored flag) because `hidden_until` expires on its own.
- */
 export interface CatalogDocument {
   id: string
   slug: string
@@ -25,7 +21,7 @@ export interface CatalogDocument {
   onSale: boolean
   taxCode: string
   inStock: boolean
-  /** Listed, not blocked, not hidden (ignoring hidden_until), merchant on the storefront. */
+
   listed: boolean
   hiddenUntil: string | null
   popularity30d: number
@@ -121,7 +117,6 @@ function toDocument(r: Row, now: Date): CatalogDocument {
   }
 }
 
-/** Documents for the given products (missing ids = deleted: remove them from the index). */
 export async function getCatalogDocuments(ids: string[]): Promise<CatalogDocument[]> {
   if (ids.length === 0) return []
   const { rows } = await getDb().query<Row>(`${SELECT} AND v.id = ANY($1::text[])`, [ids])
@@ -129,7 +124,6 @@ export async function getCatalogDocuments(ids: string[]): Promise<CatalogDocumen
   return rows.map((r) => toDocument(r, now))
 }
 
-/** Every document, in pages of `batch`, for the nightly rebuild. */
 export async function* allCatalogDocuments(batch = 500): AsyncGenerator<CatalogDocument[]> {
   let after = ''
   const now = new Date()
@@ -144,7 +138,6 @@ export async function* allCatalogDocuments(batch = 500): AsyncGenerator<CatalogD
   }
 }
 
-/** Ids of products changed since `since` (catches up writes made during a rebuild). */
 export async function changedProductIdsSince(since: Date): Promise<string[]> {
   const { rows } = await getDb().query<{ id: string }>(
     `SELECT id FROM catalog.product_view WHERE updated_at >= $1

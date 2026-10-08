@@ -2,13 +2,6 @@ import { audit, type AuditContext } from '@/modules/ops'
 import { getDb, withTransaction } from '@/server/db'
 import { HttpError } from '@/server/http'
 
-/**
- * Catalogue admin (G5-14, A3/A4): ingest runs with counts and errors, held-run decisions, re-runs
- * and the category-mapping editor. The app can't write catalog.products (ADR-0004): approving a
- * held run or asking for a run inserts an ops.ingest_requests row that the pipeline carries out
- * (Dagster sensor, or `npm run pipeline:requests`). Rejecting only changes the run's status, so
- * the app does it directly, like the pipeline's own `reject`.
- */
 export interface IngestRun {
   id: number
   merchantId: number
@@ -115,7 +108,6 @@ export async function listIngestRequests(limit = 20): Promise<IngestRequest[]> {
   }))
 }
 
-/** Approve (→ pipeline request) or reject (directly) a held run. */
 export async function decideHeldRun(
   ctx: AuditContext,
   runId: number,
@@ -224,10 +216,6 @@ export async function listSubcategories(): Promise<
   return rows.map((r) => ({ id: Number(r.id), name: r.name, category: r.category }))
 }
 
-/**
- * Maps a source category to one of ours. Existing products move at the next ingest (the pipeline
- * reads the mapping), so a re-run is requested too.
- */
 export async function setCategoryMapping(
   ctx: AuditContext,
   mappingId: number,

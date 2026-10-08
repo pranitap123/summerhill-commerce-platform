@@ -1,15 +1,9 @@
 import { audit, emit, type Actor } from '@/modules/ops'
 import { getDb, withTransaction } from '@/server/db'
 
-/**
- * Catalogue overrides (CATALOG §3.2, G3-11): merchant or admin edits that survive re-ingest. Ingest
- * never writes catalog.product_overrides; reads apply them through catalog.product_view. Every
- * change is audited and announced (`product.changed`) in the same transaction, so search and the
- * storefront pick it up.
- */
 export interface OverridePatch {
   hidden?: boolean
-  /** "Out of stock today": hidden until this time (CATALOG §5). */
+
   hiddenUntil?: string | null
   name?: string | null
   subcategoryId?: number | null
@@ -54,7 +48,6 @@ function toOverride(r: Record<string, unknown>): ProductOverride {
   }
 }
 
-/** Merges `patch` into the product's override (creating it). Fields left out keep their value. */
 export async function setProductOverride(
   productId: string,
   patch: OverridePatch,
@@ -70,7 +63,7 @@ export async function setProductOverride(
       [productId],
     )
     if (!exists.rowCount) throw new OverrideTargetNotFound(productId)
-    // Column names come from the closed COLUMNS map, never from input.
+
     const cols = keys.map((k) => COLUMNS[k])
     const values = keys.map((k) => patch[k])
     const insertCols = ['product_id', 'updated_by', ...cols]
@@ -96,7 +89,6 @@ export async function setProductOverride(
   })
 }
 
-/** Removes the override: the product shows exactly what the source says again. */
 export async function clearProductOverride(
   productId: string,
   actor: Actor,
@@ -130,11 +122,6 @@ export async function getProductOverride(
   return rows[0] ? toOverride(rows[0]) : null
 }
 
-/**
- * "Out of stock today" for a whole category of one merchant (G4-20, M11): its products are
- * hidden until `hiddenUntil` (the store's next opening); null makes them visible again. Every
- * product of the category is announced as changed, so search and the storefront refresh.
- */
 export async function setCategoryAvailability(
   merchantId: number,
   categoryId: number,
@@ -180,7 +167,6 @@ export interface AvailabilityToggles {
   categories: Array<{ categoryId: number; name: string; hiddenUntil: string }>
 }
 
-/** What a merchant has switched off for today (the console's availability screen). */
 export async function listAvailabilityToggles(
   merchantId: number,
   now: Date = new Date(),

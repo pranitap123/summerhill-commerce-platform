@@ -3,23 +3,18 @@ import { getDb } from '@/server/db'
 
 import { comparisonPrice, type ComparisonPrice } from './unitPrice'
 
-/**
- * Catalogue reads (G3). Everything goes through catalog.product_view, which applies merchant/admin
- * overrides and derives visibility (CATALOG §3.2). Money is integer cents; the effective (sale)
- * price is computed by the pricing module from active promotions, never stored.
- */
 export interface ProductSummary {
   id: string
   slug: string
   name: string
   brand: string | null
-  /** UPC-A as supplied (12 digits); weighed items carry the variable-measure code, value zeroed. */
+
   upc: string | null
   description: string
   currency: string
   sku: string | null
   availability: 'in_stock' | 'out_of_stock'
-  /** Listed, not blocked, not hidden, merchant on the storefront. */
+
   isVisible: boolean
   images: string[]
   merchantId: number
@@ -32,13 +27,13 @@ export interface ProductSummary {
   pricingModel: 'each' | 'per_weight'
   unit: 'ea' | 'lb'
   sellBy: 'quantity' | 'weight'
-  /** Regular price, per item or per lb. */
+
   unitPriceCents: number
-  /** Price after the best active promotion (equals unitPriceCents when not on sale). */
+
   effectivePriceCents: number
   promoLabel: string | null
   onSale: boolean
-  /** Per 100 g / 100 ml / item, at the effective price; null when not applicable. */
+
   comparisonPrice: ComparisonPrice | null
   estimatedWeightLb: string | null
   weightStepLb: string
@@ -47,10 +42,10 @@ export interface ProductSummary {
   depositCents: number
   minQty: number
   maxQty: number
-  /** ISO weekdays (1 = Monday) the item can be picked up; empty = every day. */
+
   availableDays: number[]
   organic: boolean
-  /** As supplied by the merchant: always shown with a "check the label" disclaimer. */
+
   dietaryClaims: string[]
   nutritionLabel: string | null
   disclaimer: string | null
@@ -104,7 +99,6 @@ interface ProductRow {
   }>
 }
 
-// Explicit column list; bigint columns come back from pg as strings and are converted below.
 const PRODUCT_SELECT = `SELECT v.id, v.slug, v.name, v.brand, v.upc, v.description, v.currency, v.sku,
     v.availability, v.is_visible, v.images, v.merchant_id, v.merchant_slug, v.merchant_name,
     v.location_id, v.category, v.category_slug, v.subcategory, v.subcategory_slug, v.pricing_model,
@@ -174,10 +168,6 @@ function toSummary(row: ProductRow, now: Date): ProductSummary {
   }
 }
 
-/**
- * Products by id, in the order given. Includes invisible products (a cart must be able to show
- * "no longer available"); storefront callers filter on `isVisible`.
- */
 export async function getProductsByIds(ids: string[]): Promise<ProductSummary[]> {
   if (ids.length === 0) return []
   const { rows } = await getDb().query<ProductRow>(
@@ -191,11 +181,10 @@ export async function getProductsByIds(ids: string[]): Promise<ProductSummary[]>
 
 export interface ResolvedProduct {
   product: ProductSummary
-  /** The param wasn't the current slug (an old slug or a legacy id URL): answer with a 301. */
+
   redirect: boolean
 }
 
-/** PDP lookup by current slug, old slug (after a rename) or legacy id. Visible products only. */
 export async function resolveProduct(param: string): Promise<ResolvedProduct | null> {
   const { rows } = await getDb().query<ProductRow>(
     `${PRODUCT_SELECT}
@@ -209,7 +198,6 @@ export async function resolveProduct(param: string): Promise<ResolvedProduct | n
   return { product, redirect: product.slug !== param }
 }
 
-/** Kept for callers that only have an id (API v1 accepts either). */
 export async function getProduct(idOrSlug: string): Promise<ProductSummary | null> {
   return (await resolveProduct(idOrSlug))?.product ?? null
 }
@@ -222,7 +210,6 @@ export interface CategoryNode {
   subcategories: Array<{ id: number; name: string; slug: string; productCount: number }>
 }
 
-/** The category tree with counts of visible products; empty branches are left out. */
 export async function listCategories(): Promise<CategoryNode[]> {
   const { rows } = await getDb().query<{
     category_id: string
@@ -279,7 +266,6 @@ export interface MerchantStorefront {
   }>
 }
 
-/** Merchants shown on the storefront, with their pickup locations. */
 export async function listMerchants(slug?: string): Promise<MerchantStorefront[]> {
   const { rows } = await getDb().query<{
     id: string
@@ -312,7 +298,6 @@ export async function listMerchants(slug?: string): Promise<MerchantStorefront[]
   }))
 }
 
-/** Authoritative pricing inputs for the quote engine (GAP-02): the client never supplies prices. */
 export async function getPricingProducts(ids: string[]): Promise<PricingProduct[]> {
   if (ids.length === 0) return []
   const { rows } = await getDb().query<ProductRow>(
@@ -324,7 +309,7 @@ export async function getPricingProducts(ids: string[]): Promise<PricingProduct[
     name: r.name,
     merchantId: Number(r.merchant_id),
     locationId: Number(r.location_id),
-    // Hidden, blocked (e.g. alcohol), unlisted or deleted products can't be bought
+
     available:
       r.is_visible && r.availability === 'in_stock' && r.currency.trim().toUpperCase() === 'CAD',
     pricingModel: r.pricing_model,
@@ -341,7 +326,6 @@ export async function getPricingProducts(ids: string[]): Promise<PricingProduct[
   }))
 }
 
-/** Merchant and location of a product (cart: one merchant per cart). */
 export async function getProductOwner(
   id: string,
 ): Promise<{ merchantId: number; locationId: number } | null> {
@@ -354,7 +338,6 @@ export async function getProductOwner(
     : null
 }
 
-/** Slugs of visible products and their last change, for the sitemap (G3-16). */
 export async function listProductSlugs(): Promise<Array<{ slug: string; updatedAt: Date }>> {
   const { rows } = await getDb().query<{ slug: string; updated_at: Date }>(
     `SELECT slug, updated_at FROM catalog.product_view WHERE is_visible AND slug IS NOT NULL ORDER BY slug`,
@@ -362,10 +345,6 @@ export async function listProductSlugs(): Promise<Array<{ slug: string; updatedA
   return rows.map((r) => ({ slug: r.slug, updatedAt: new Date(r.updated_at) }))
 }
 
-/**
- * Products of a merchant by UPC (scan-to-verify, G4-10). `upcs` are 12-digit UPC-A codes; deleted
- * products are included (an order line may reference one), visibility is reported, not filtered.
- */
 export async function getProductsByUpc(
   merchantId: number,
   upcs: string[],
@@ -379,10 +358,6 @@ export async function getProductsByUpc(
   return rows.map((r) => toSummary(r, now))
 }
 
-/**
- * Best-match replacement candidates (ORDERS §6): visible, in-stock products of the same merchant
- * and subcategory, closest in effective price first. The console shows them to the picker.
- */
 export async function suggestReplacements(productId: string, limit = 5): Promise<ProductSummary[]> {
   const { rows } = await getDb().query<ProductRow>(
     `${PRODUCT_SELECT}

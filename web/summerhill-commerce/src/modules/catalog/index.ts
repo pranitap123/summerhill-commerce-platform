@@ -1,4 +1,3 @@
-// Public API of the catalog module.
 export {
   getProduct,
   resolveProduct,

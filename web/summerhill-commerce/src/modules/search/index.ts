@@ -1,4 +1,3 @@
-// Public API of the search module (search v2, G3-08; analytics, G3-15).
 export { findProducts } from './service'
 export {
   getSearchClient,

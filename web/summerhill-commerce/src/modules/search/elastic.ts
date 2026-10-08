@@ -18,24 +18,11 @@ import { guard, resetGuardsForTests } from '@/server/outbound'
 import { synonymRules } from './synonyms'
 import type { CatalogQuery, EngineResult } from './types'
 
-/**
- * Elasticsearch engine (ADR-0007, CATALOG §8). Queries go through an alias; the nightly rebuild
- * writes a fresh index, verifies the count and swaps the alias atomically, so a half-built index is
- * never served. Between rebuilds, `product.changed` events upsert single documents.
- */
 let client: Client | undefined
 
-/** Reads: safe to repeat. Writes (bulk, index admin) are tried once. */
 const READ_PATH = /\/_(search|count|msearch|mget|cat|cluster\/health)(\/|$)|^\/$/
 
-/**
- * Every request the client sends goes through the outbound guard (G6-05): per-attempt timeout
- * (the request's own `requestTimeout`), one retry with jitter for reads, and a circuit breaker, so
- * when Elasticsearch is down, search falls back to Postgres at once instead of timing out on
- * every query. The client's own retries are off: the guard does them.
- */
 class GuardedConnection extends UndiciConnection {
-  // The client also calls the streaming overload; the guard passes either result through.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   override async request(params: ConnectionRequestParams, options: any): Promise<any> {
     const opts = options as ConnectionRequestOptions
@@ -56,11 +43,6 @@ class GuardedConnection extends UndiciConnection {
   }
 }
 
-/**
- * Storefront reads get 3 s. The client's own default must be the LONGEST budget (index admin,
- * 30 s): the connection enforces the default at the socket level, so a per-request timeout can
- * only shorten it, never extend it (found in G6-05: the 30 s admin budget had never applied).
- */
 export const QUERY_TIMEOUT = { requestTimeout: 3_000 }
 
 export function getSearchClient(): Client {
@@ -73,7 +55,6 @@ export function getSearchClient(): Client {
   return client
 }
 
-/** Test helper: forget the client (and its circuit) after changing ELASTICSEARCH_URL. */
 export function resetSearchClientForTests(): void {
   client = undefined
   resetGuardsForTests('elasticsearch')
@@ -160,8 +141,6 @@ export const INDEX_MAPPINGS: estypes.MappingTypeMapping = {
   },
 }
 
-// ---------------------------------------------------------------------------------- indexing
-
 async function aliasTargets(): Promise<string[]> {
   const es = getSearchClient()
   if (!(await es.indices.existsAlias({ name: aliasName() }, QUERY_TIMEOUT))) return []
@@ -186,7 +165,7 @@ async function bulkWrite(
   const operations: Array<estypes.BulkOperationContainer | CatalogDocument> = []
   for (const d of docs) operations.push({ index: { _index: index, _id: d.id } }, d)
   for (const id of deletes) operations.push({ delete: { _index: index, _id: id } })
-  // Writes may wait for a refresh (wait_for); only queries keep the short 3 s client timeout.
+
   const res = await getSearchClient().bulk({ operations, refresh }, { requestTimeout: 30_000 })
   if (res.errors) {
     const failed = res.items.filter((i) => {
@@ -207,13 +186,8 @@ export interface RebuildResult {
   removed: string[]
 }
 
-/** Index administration (create, settings, refresh, alias swap) can take seconds on a busy node. */
 const ADMIN = { requestTimeout: 30_000 }
 
-/**
- * Nightly rebuild (CATALOG §8.4): new index → bulk load → verify count → atomic alias swap →
- * re-apply products changed while building → drop old indices (the previous one is kept for rollback).
- */
 export async function rebuildSearchIndex(): Promise<RebuildResult> {
   const es = getSearchClient()
   const alias = aliasName()
@@ -246,7 +220,6 @@ export async function rebuildSearchIndex(): Promise<RebuildResult> {
     throw err
   }
 
-  // A concrete index can't share the alias's name (only possible with hand-made indices).
   if (
     (await es.indices.exists({ index: alias })) &&
     !(await es.indices.existsAlias({ name: alias }))
@@ -268,7 +241,7 @@ export async function rebuildSearchIndex(): Promise<RebuildResult> {
 
   const all = Object.keys(await es.indices.get({ index: `${alias}-*` })).sort()
   const removed = all.filter((i) => i !== index && !previous.includes(i))
-  // Keep the newest previous index for a quick rollback; drop the rest.
+
   removed.push(
     ...previous
       .filter((i) => i !== index)
@@ -279,10 +252,6 @@ export async function rebuildSearchIndex(): Promise<RebuildResult> {
   return { index, count, caughtUp: changed.length, removed }
 }
 
-/**
- * Near-real-time sync for `product.changed` (JOB-search.upsertProduct): index the current
- * documents, delete the ones that no longer exist. Builds the index first if there is none.
- */
 export async function upsertSearchDocuments(
   ids: string[],
 ): Promise<{ indexed: number; deleted: number }> {
@@ -294,12 +263,10 @@ export async function upsertSearchDocuments(
   const docs = await getCatalogDocuments(ids)
   const found = new Set(docs.map((d) => d.id))
   const deletes = ids.filter((id) => !found.has(id))
-  // wait_for: the change is searchable when the job completes (≤ 1 s refresh interval)
+
   await bulkWrite(aliasName(), docs, deletes, 'wait_for')
   return { indexed: docs.length, deleted: deletes.length }
 }
-
-// ---------------------------------------------------------------------------------- querying
 
 type Query = estypes.QueryDslQueryContainer
 
@@ -332,12 +299,6 @@ function filters(query: CatalogQuery) {
   return { base, category, subcategory }
 }
 
-/**
- * Relevance (CATALOG §8.3): name^4, brand^2, subcategory^2, category; typo tolerance (fuzziness
- * AUTO, analysed without synonyms: Lucene can't fuzz a synonym graph), synonyms (exact-term match
- * through the synonym analyzer), prefixes (edge n-grams), exact name ×3, on sale ×1.2,
- * popularity (log), in stock ×1.1.
- */
 export function textQuery(q: string): Query {
   const fields = ['name^4', 'brand^2', 'subcategory^2', 'category', 'description^0.3']
   return {
@@ -404,7 +365,7 @@ export function buildSearchRequest(query: CatalogQuery): estypes.SearchRequest {
     track_total_hits: true,
     _source: false,
     query: scored,
-    // Category/subcategory filters go in post_filter so the category facet ignores them
+
     post_filter: { bool: { filter: [...category, ...subcategory] } },
     sort,
     aggs: {
