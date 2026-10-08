@@ -1,14 +1,7 @@
 #!/usr/bin/env node
-// Blocks secrets and real merchant data from entering the repository.
-//
-// Modes:
-//   --staged          scan files staged for commit (used by the pre-commit hook)
-//   --all             scan every tracked or untracked, non-ignored file in the working tree
-//   --history         scan every line ever added in any branch (pre-publish check)
-//   --files <paths>   scan the given files (used by tests)
-//
+
 // A line can be allow-listed with the comment marker: secret-scan:allow
-// If gitleaks is installed it also runs (staged/all modes) as a second opinion.
+
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +14,7 @@ const CONTENT_RULES = [
   { id: 'private-key', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
   { id: 'connection-string-password', re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?):\/\/[^:\s/]+:[^@\s]{3,}@(?!localhost|127\.0\.0\.1)/ },
   { id: 'hardcoded-credential', re: /\b(?:api[_-]?key|apikey|secret|token|passwd|password)\b["']?\s*[:=]\s*["'][^"'\s]{16,}["']/i },
-  // Confidential merchant analytics seen in the upstream search API (sales volumes).
+
   { id: 'merchant-sales-data', re: /"(?:inStoreVolumeL30|onlineVolumeL30|totalVolumeL30)"/ },
 ];
 
@@ -31,7 +24,7 @@ const PATH_RULES = [
   { id: 'key-file', test: (p) => /\.(pem|key|p12|pfx)$/.test(p) },
 ];
 
-const MAX_JSON_BYTES = 500 * 1024; // large JSON blobs are almost always data dumps
+const MAX_JSON_BYTES = 500 * 1024;
 const SKIP_CONTENT = /\.(png|jpe?g|gif|webp|ico|ttf|woff2?|pdf|zip|pyc|lock)$|package-lock\.json$/;
 const ALLOW = 'secret-scan:allow';
 
@@ -92,7 +85,6 @@ if (mode === '--staged') {
   process.exit(2);
 }
 
-// Second opinion from gitleaks when available.
 if (mode === '--staged' || mode === '--all') {
   const probe = spawnSync('gitleaks', ['version'], { encoding: 'utf8' });
   if (!probe.error && probe.status === 0) {
@@ -102,7 +94,6 @@ if (mode === '--staged' || mode === '--all') {
   }
 }
 
-// Dedupe per-file path findings in history mode (one file can appear in many commits).
 const unique = [...new Set(findings)];
 if (unique.length) {
   console.error(`\nsecret-scan: ${unique.length} finding(s) in ${mode} mode:\n  ` + unique.join('\n  '));

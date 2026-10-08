@@ -1,12 +1,9 @@
-# Runs the exact same checks as `npm run ci:local` (tools/ci-local.mjs).
-# Not executed until the repository is pushed (see docs/IMPLEMENTATION_PLAN.md, pre-publish checklist).
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
-  # Nightly full run, including the back-office journeys (G5-19): 07:00 UTC = 03:00 Toronto
   schedule:
     - cron: '0 7 * * *'
 
@@ -59,9 +56,6 @@ jobs:
         if: always()
         run: npm run stack:down
 
-  # G4-18, G5-19: storefront, store-console and back-office journeys against a production build
-  # with the payment simulator (no Stripe account). Locally: `npm run test:e2e --prefix
-  # web/summerhill-commerce`.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -96,9 +90,6 @@ jobs:
           npm run db:setup
           cp web/summerhill-commerce/.env.example web/summerhill-commerce/.env
           echo "PAYLOAD_SECRET=ci-only-$(openssl rand -hex 16)" >> web/summerhill-commerce/.env
-          # Same three steps as the compose stack's web-init (infra/docker-compose.yml): NODE_ENV
-          # =development lets Payload push its tables (the production build the tests run does
-          # not), then demo accounts, the Payload catalogue copy and the first search index.
           export NODE_ENV=development
           npm run seed:users --prefix web/summerhill-commerce
           npm run catalog:sync-payload --prefix web/summerhill-commerce
